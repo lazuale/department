@@ -51,6 +51,7 @@ flowchart LR
 6. [Строгие шаблоны](docs/06-templates.md)
 7. [Настройка рабочего контура в OpenProject Community](docs/07-openproject-community.md)
 8. [Аудит соблюдения методики](docs/08-audit-checklists.md)
+9. [Каталог и стандарт описания бизнес-процессов](docs/09-process-catalog.md)
 
 ## Что считается системой истины
 
