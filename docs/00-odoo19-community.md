@@ -1,48 +1,56 @@
 # Граница возможностей Odoo 19 Community
 
-[Главная](../README.md) · **00 Возможности** · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · [03 Аналитика](03-control.md) · [04 Шаблоны](04-templates.md) · [05 Процессы](05-processes.md) · [06 Настройка](06-workspace.md) · [07 Углублённый аудит](07-deep-community-audit.md) · [08 Интеграции Project](08-project-integrations.md) · [09 Project и безопасность](09-project-productivity-security.md) · [10 API](10-external-integrations.md)
+[Главная](../README.md) · **00 Возможности** · [01 Модель](01-methodology.md) · [03 Аналитика](03-control.md) · [06 Настройка](06-workspace.md) · [15 Перепроверка](15-capability-recheck.md)
 
 ---
 
-Этот документ — **авторитетная граница методики** для Odoo 19 Community.
+Этот документ — **авторитетная техническая граница методики**.
 
-Если более ранний текст PR противоречит этому документу, используется эта версия.
+Если другой текст PR противоречит этому документу или [повторной проверке](15-capability-recheck.md), использовать более осторожную формулировку.
 
-## 1. Правило проверки
+## 1. Как определяется Community-возможность
 
-Для каждой функции:
+Функция считается пригодной для методики только после проверки:
 
-1. пользовательское поведение сверяется с актуальной официальной документацией **Odoo 19.0**;
-2. если документация не разделяет редакции, наличие функции проверяется в публичной ветке [`odoo/odoo:19.0`](https://github.com/odoo/odoo/tree/19.0);
-3. для связей между приложениями отдельно проверяются auto-install **bridge modules**;
-4. функция не считается базовой только потому, что она существует.
+1. официальной документации Odoo 19.0 — что функция делает;
+2. public `odoo/odoo:19.0` — существует ли она в Community source;
+3. стандартного UI — можно ли реально использовать её без собственного кода;
+4. bridge modules — нет ли уже штатной связи между приложениями;
+5. редакционных зависимостей — не требует ли общий workflow Enterprise-приложение.
 
-Не используем сторонние статьи как основание архитектуры.
+Наличие документации или технического модуля **по отдельности недостаточно**.
 
-## 2. Главный архитектурный принцип
+## 2. Классы возможностей
 
-Odoo не нужно превращать ни в один гигантский Project, ни в набор несвязанных приложений.
+| Класс | Значение | Решение |
+|---|---|---|
+| A | public Community + подтверждённый пользовательский UI | можно включать в click-only baseline |
+| B | public Community, но административный/технический слой | использовать по потребности |
+| C | infrastructure/source есть, полный workflow не подтверждён | только runtime/edition test |
+| D | Community не подтверждена | не использовать в baseline |
 
-Используется три уровня:
+---
+
+## 3. Главная архитектура
+
+Odoo не превращается в одну универсальную таблицу Tasks.
 
 ```text
 предметная сущность
-→ лёгкая связь с обязательством
+→ ссылка из Task при необходимости
 → управленческий контроль
 ```
 
-### Предметная сущность
-
-| Реальный объект | Штатная модель |
+| Реальный объект | Штатная модель / приложение |
 |---|---|
-| обязательство / результат | `project.task` |
+| обязательство / контролируемый результат | `project.task` |
 | сотрудник | `hr.employee` |
 | пользователь-исполнитель | `res.users` |
 | внешний человек / организация | `res.partner` |
-| ТС | `fleet.vehicle` — после проверки пригодности Fleet для реального парка |
-| обслуживаемое оборудование | `maintenance.equipment` |
+| ТС | `fleet.vehicle` после проверки пригодности Fleet |
+| оборудование | `maintenance.equipment` |
 | обслуживание | `maintenance.request` |
-| serial / lot / location / движение | Inventory (`stock.*`) |
+| serial / lot / location / movement | Inventory (`stock.*`) |
 | встреча | `calendar.event` |
 | личная мысль | To-Do |
 | следующее действие | `mail.activity` |
@@ -50,158 +58,25 @@ Odoo не нужно превращать ни в один гигантский 
 | командное обсуждение | Discuss |
 | присутствие | Attendances |
 | отсутствие | Time Off |
-| рабочие интервалы HR | Work Entries |
+| HR work intervals | Work Entries |
 | навык / сертификат | Skills / Certifications |
 | обучение | eLearning |
 | тест / анкета | Surveys |
 | закупка | Purchase |
+| расход сотрудника | Expenses |
 
-**Task остаётся обязательством, а не карточкой ТС, сотрудника или оборудования.**
+> **Task — работа над объектом, а не сам объект.**
 
-Но Task может штатно **ссылаться** на эти сущности через relational Properties.
+---
 
-## 3. Ключевое уточнение: Properties умеют настоящие relational ссылки
+# 4. Project / Tasks — класс A
 
-Ранее в PR Properties были слишком сильно ограничены небольшими Selection-признаками. Это было неверно.
+Подтверждённое Community-ядро:
 
-Официальная документация Odoo 19 и публичный Community source подтверждают типы Property:
-
-- Text / Multiline / HTML;
-- Checkbox;
-- Integer / Decimal / Monetary;
-- Date / Date & Time;
-- Selection;
-- Tags;
-- **Many2one**;
-- **Many2many**;
-- Separator.
-
-Для Many2one/Many2many в интерфейсе можно указать:
-
-- **Model**;
-- **Domain**;
-- default value.
-
-Источник: [Property fields](https://www.odoo.com/documentation/19.0/applications/essentials/property_fields.html), [`fields_properties.py`](https://github.com/odoo/odoo/blob/19.0/odoo/orm/fields_properties.py).
-
-Публичный web-клиент содержит `ModelSelector`, `Many2XAutocomplete`, Domain selector и переход к выбранной записи.
-
-Источник: [`property_definition.js`](https://github.com/odoo/odoo/blob/19.0/addons/web/static/src/views/fields/properties/property_definition.js), [`property_value.js`](https://github.com/odoo/odoo/blob/19.0/addons/web/static/src/views/fields/properties/property_value.js).
-
-### Практическое следствие
-
-В операционном Project можно **кликами** создать, например:
-
-```text
-Property: ТС
-Type: Many2one
-Model: fleet.vehicle
-Domain: <при необходимости>
-```
-
-или:
-
-```text
-Property: Сотрудник
-Type: Many2one
-Model: hr.employee
-```
-
-или:
-
-```text
-Property: Оборудование
-Type: Many2one
-Model: maintenance.equipment
-```
-
-Это лучше, чем:
-
-- текстовое поле;
-- вручную поддерживаемый Selection на тысячи записей;
-- дублирование справочника внутри Project.
-
-## 4. Relational Property не заменяет предметную модель
-
-Правильная схема:
-
-```text
-Fleet Vehicle = источник истины по ТС
-Task Property[ТС] = ссылка на Fleet Vehicle
-```
-
-Не копировать в Task:
-
-- госномер;
-- модель;
-- водителя;
-- пробег;
-- сервисы;
-
-если эти данные уже живут во Fleet.
-
-Аналогично для Employee и Equipment.
-
-## 5. Что умеют Properties в Project
-
-Публичный `project.task` имеет:
-
-```text
-task_properties = fields.Properties(...)
-```
-
-Стандартный Search View Project Task содержит:
-
-- поиск по `task_properties`;
-- `Group By → Properties`.
-
-Источник: [`project_task_views.xml`](https://github.com/odoo/odoo/blob/19.0/addons/project/views/project_task_views.xml).
-
-Property также может отображаться на карточках List/Kanban/Calendar через `Show in cards`.
-
-### Поэтому базово можно
-
-- выбрать ТС/Employee/Equipment из штатного справочника;
-- фильтровать Tasks по Property;
-- группировать по Properties;
-- показывать Property в рабочих карточках;
-- открывать связанную запись;
-- ограничивать выбор Domain.
-
-## 6. Ограничения Properties
-
-Properties — **псевдополя**, а не отдельные колонки таблицы `project_task`.
-
-Значения хранятся внутри JSONB, а definition зависит от parent container — для Task это Project.
-
-Это удобно для click-only кастомизации, но имеет другие свойства, чем обычный schema field.
-
-Поэтому custom Many2one рассматривается только если пилот докажет конкретную проблему, например:
-
-- недостаточная производительность на реальном объёме;
-- нужная интеграция требует обычного model field;
-- внешний API/отчёт неудобно строить по Property;
-- нужна жёсткая серверная constraint/обязательность;
-- нужна связь, одинаковая независимо от Project;
-- нужен специальный индекс или сложная автоматизация.
-
-**Сам факт большого справочника больше не является основанием писать custom field.**
-
-## 7. Важное ограничение relational Property: создание связанных records
-
-Стандартный Many2one/Many2many Property использует обычный autocomplete и технически допускает create/create-edit, если у пользователя есть права на целевую модель.
-
-Следовательно, если пользователи должны **только выбирать** существующий Fleet/Employee/Equipment, права на создание master data нужно проектировать отдельно.
-
-Нельзя считать Domain механизмом безопасности: Domain помогает ограничить выбор, а реальная защита определяется ACL/record rules целевой модели.
-
-## 8. Project: подтверждённая база управления обязательствами
-
-В Community подтверждены:
-
-- Projects / Tasks;
+- Projects;
+- Tasks;
 - Task Stages;
-- Task State;
+- Task States;
 - Assignees;
 - Deadline;
 - Allocated Time;
@@ -210,10 +85,12 @@ Properties — **псевдополя**, а не отдельные колонк
 - Properties;
 - Chatter / followers / attachments;
 - Activities;
-- Activity Types и chaining;
+- Activity Types;
+- Activity chaining;
 - Activity Plans;
 - Subtasks;
-- Dependencies / Blocked by;
+- Dependencies / `Blocked by`;
+- computed `Waiting`;
 - Recurring Tasks;
 - Task Templates;
 - Project Templates;
@@ -225,185 +102,455 @@ Properties — **псевдополя**, а не отдельные колонк
 - Project-level Activities;
 - Rotting / Days to rot;
 - email alias;
-- Website Form → Task;
 - Project sharing/collaboration;
+- Task sharing;
 - Task Analysis;
-- List/Kanban/Calendar/Activity/Pivot/Graph.
+- List / Kanban / Calendar / Activity / Pivot / Graph;
+- mass edit в Task List;
+- custom Project Top Bar views.
 
-Стандартный Community action Tasks не включает Gantt, поэтому методика от него не зависит.
+Стандартный Community Tasks action не включает Gantt.
 
-Источник: [`addons/project`](https://github.com/odoo/odoo/tree/19.0/addons/project), [Project documentation](https://www.odoo.com/documentation/19.0/applications/services/project.html).
+---
 
-## 9. Task State
+## 5. Task States
 
 Обычные пользовательские состояния:
 
-- `In Progress`;
-- `Changes Requested`;
-- `Approved`;
-- `Done`;
-- `Canceled`.
-
-`Waiting` вычисляется Odoo при Task Dependencies и не является шестым обычным ручным статусом.
-
-Источники: [Task stages and statuses](https://www.odoo.com/documentation/19.0/applications/services/project/tasks/task_stages_statuses.html), [Task dependencies](https://www.odoo.com/documentation/19.0/applications/services/project/tasks/task_dependencies.html).
-
-## 10. Priority: четыре уровня действительно доступны
-
-Community model содержит:
-
 ```text
-Low
-Medium
-High
-Urgent
+In Progress
+Changes Requested
+Approved
+Done
+Canceled
 ```
 
-Стандартный priority widget умеет выбирать все четыре значения.
+`Waiting` — вычисляемое состояние при незакрытой Task Dependency.
 
-Это возможность, а не требование использовать четыре смысловых уровня.
+Не описывать `Waiting` как обычный шестой ручной State.
 
-Для начала достаточно обычной работы и `Urgent`; Medium/High вводятся только при понятных критериях.
+---
 
-## 11. Deadline, Activity, Allocated Time и Timesheet
+## 6. Priority
 
-| Механизм | Что означает |
-|---|---|
-| Deadline | срок результата |
-| Activity Due Date | срок следующего действия |
-| Allocated Time | ожидаемая трудоёмкость |
-| Timesheet | фактически заявленное время работы |
-| Attendances | присутствие/check-in/out |
-| Work Entries | рабочие интервалы HR-контура |
-
-Не смешивать их в один показатель.
-
-## 12. Шаблоны: четыре разных механизма
+Public model подтверждает:
 
 ```text
-типовая разовая Task по событию
-→ Task Template
-
-одна Task по расписанию
-→ Recurring Task
-
-типовой набор follow-up действий
-→ Activity Plan / Activity chaining
-
-повторяемая структура целого проекта
-→ Project Template + Project Roles
+0 Low
+1 Medium
+2 High
+3 Urgent
 ```
 
-Это предпочтительнее Automation Rules, если штатный шаблон уже решает задачу.
-
-## 13. Task Templates
-
-Community source подтверждает шаблонные Tasks внутри проекта.
-
-Из Task Template создаётся обычная Task; subtasks шаблона могут копироваться; template Tasks не входят в обычный open backlog.
-
-Источники: [`project_task_template_dropdown.js`](https://github.com/odoo/odoo/blob/19.0/addons/project/static/src/views/components/project_task_template_dropdown.js), [`test_task_templates.py`](https://github.com/odoo/odoo/blob/19.0/addons/project/tests/test_task_templates.py).
-
-## 14. Время в Stage уже видно на карточке
-
-`project.task` наследует `mail.tracking.duration.mixin` и отслеживает длительность по `stage_id`.
-
-Стандартный statusbar показывает время, проведённое в каждом Task Stage.
-
-Это полезно для диагностики конкретной Task.
-
-Но стандартный Pivot/Graph не подтверждён как готовый агрегированный SLA-отчёт по каждому Stage. Такой отчёт остаётся отдельной потребностью.
-
-## 15. Project Stages — отдельный портфельный уровень
-
-Community имеет включаемые **Project Stages** для самих проектов.
-
-Не смешивать:
+Quick-create parser также поддерживает:
 
 ```text
-Project Stage          = этап целого проекта
-Project Update Status  = On Track / At Risk / Off Track / On Hold / Done
-Task Stage             = этап конкретной работы
-Task State             = системное состояние Task
+!   → Medium
+!!  → High
+!!! → Urgent
 ```
 
-Для одного постоянного операционного Project Project Stages почти не нужны.
+Методика не обязана использовать все четыре значения.
 
-Для портфеля инициатив могут быть полезны.
+---
 
-## 16. Shared Views и рабочее место
+# 7. Relational Properties — класс A
 
-Community подтверждает:
+Odoo 19 Property поддерживает:
 
-- Search / Filter / Group By;
-- Favorites;
-- shared/default favorites;
-- Project Top Bar `Save View → Shared`;
-- List/Kanban/Calendar/Pivot/Graph/Activity;
-- Task Analysis;
-- My Dashboard;
-- Spreadsheet Dashboard.
+- Text;
+- Multiline Text;
+- HTML;
+- Checkbox;
+- Integer;
+- Decimal;
+- Monetary;
+- Date;
+- Date & Time;
+- Selection;
+- Tags;
+- **Many2one**;
+- **Many2many**;
+- Separator.
 
-Рекомендуемый порядок:
+Для relational Property доступны:
+
+```text
+Model
+Domain
+Default Value
+```
+
+Поэтому click-only можно создать:
+
+```text
+Property[ТС]           → Many2one(fleet.vehicle)
+Property[Сотрудник]    → Many2one(hr.employee)
+Property[Оборудование] → Many2one(maintenance.equipment)
+```
+
+`project.task` содержит `task_properties`, а стандартный Task search поддерживает поиск и `Group By → Properties`.
+
+### Правильная схема
+
+```text
+Fleet Vehicle
+= master data
+
+Task Property[ТС]
+= ссылка на master record
+```
+
+Не создавать Selection со списком тысяч госномеров.
+
+### Граница
+
+Properties — pseudo-fields/JSONB, а не обычные schema columns.
+
+`task_properties` в standard Project не объявлен как обычное `tracking=True` поле.
+
+Custom field обсуждается только после измеренного ограничения:
+
+- производительность;
+- обязательная history/audit;
+- server constraint;
+- reverse relation;
+- API/BI;
+- bulk import;
+- DB index/FK;
+- единая schema across Projects.
+
+---
+
+# 8. Shared Views и My Dashboard — класс A
+
+## Shared Views
+
+Официальный Project workflow подтверждает:
+
+```text
+настроить view
+→ top bar sliders
+→ Save View
+→ Shared
+```
+
+Это основной способ создавать общие руководительские и исполнительские срезы без размножения Projects.
+
+## My Dashboard
+
+Public module:
+
+```text
+board
+```
+
+предназначен для пользовательских dashboards и зависит от `spreadsheet_dashboard`.
+
+Официальный workflow:
+
+```text
+открыть List / Kanban / Pivot / Graph
+→ Actions
+→ Dashboard
+→ Add to my Dashboard
+```
+
+My Dashboard **не основан на Spreadsheet**.
+
+Для операционного управления это основной dashboard layer Community.
+
+---
+
+# 9. Spreadsheet / Spreadsheet Dashboard — класс C для custom build
+
+В public Community действительно есть:
+
+```text
+spreadsheet
+spreadsheet_dashboard
+```
+
+и соответствующие model/rendering components.
+
+Но повторная проверка показала:
+
+- standard `spreadsheet.dashboard` configuration list имеет `create="false"`;
+- public dashboard JS ожидает server method `action_edit_dashboard`;
+- реализация полного edit/create workflow не подтверждена в public Community model layer;
+- официальная документация для построения dashboard с нуля требует `Dashboards / Admin` + минимум `Documents / User`;
+- Spreadsheet documentation строит основной authoring workflow через Documents.
+
+Следовательно:
+
+> **наличие `spreadsheet*` модулей не равно гарантированному click-only конструктору custom Spreadsheet Dashboards в чистой Community.**
+
+Baseline аналитики:
 
 ```text
 Shared Views
 → Task Analysis
 → My Dashboard
-→ только затем устойчивый Spreadsheet Dashboard
+→ API / внешний BI по необходимости
 ```
 
-## 17. Предметные Community-модули
+Spreadsheet Dashboard возвращается только после runtime/edition-проверки.
 
-### Employees
+---
 
-Источник истины по сотрудникам.
+# 10. Task Templates — класс A
 
-Дополнительно подтверждены:
-
-- departments;
-- org chart;
-- Skills;
-- certifications;
-- working schedules;
-- Remote Work;
-- Attendances;
-- Time Off;
-- Work Entries.
-
-Не использовать эти HR-механизмы как рейтинг Task productivity.
-
-### Contacts
-
-Источник истины по внешним людям/организациям.
-
-Имеет штатный Merge/Deduplicate.
-
-### Fleet
-
-Имеет vehicles, drivers, contracts, services, odometer, costs и reporting.
-
-Но пригодность модели Fleet для специальной/промышленной техники проверяется пилотом.
-
-### Maintenance
-
-Equipment + preventive/corrective maintenance + requests + teams + stages + calendar.
-
-### Inventory
-
-Serial/lot/location/movement/traceability.
-
-Для серийного оборудования сначала пилотировать Inventory + Maintenance, а не писать новый asset registry.
-
-### Purchase / Expenses / Recruitment / Surveys
-
-Использовать только когда процесс действительно является закупкой, расходом, наймом или опросом.
-
-Не использовать специализированное приложение как псевдо-BPM для чужого процесса.
-
-## 18. Штатные bridge modules
+Public Community содержит полноценные Task Templates внутри Project.
 
 Подтверждены:
+
+- `is_template`;
+- dropdown templates;
+- создание Task из template;
+- копирование child tasks;
+- исключение templates из обычного open backlog;
+- копирование templates вместе с Project.
+
+Использование:
+
+```text
+типовая разовая работа по событию
+→ Task Template
+```
+
+Не путать с Recurring Task и Project Template.
+
+---
+
+# 11. Recurring Tasks — класс A, но subtasks требуют runtime test
+
+Подтверждены units:
+
+```text
+Days
+Weeks
+Months
+Years
+```
+
+Hours нет.
+
+Следующий occurrence создаётся после закрытия предыдущей Task.
+
+### Расхождение
+
+Официальная документация говорит, что Subtasks не копируются.
+
+Текущий public source 19.0 рекурсивно создаёт `child_ids`.
+
+До runtime-теста не считать ни одно из этих поведений гарантированным для критического процесса.
+
+---
+
+# 12. Project Templates / Roles — класс A
+
+Использовать для повторяемой структуры самостоятельной инициативы.
+
+Подтверждены:
+
+- Project Template;
+- Project Roles;
+- назначение assignees по roles;
+- перенос структуры Project/Tasks/Subtasks.
+
+## Availability-based scheduling — не baseline
+
+Общая документация описывает task scheduling с учётом workload/availability/time off/working schedules.
+
+Соответствующий planned-date task model layer не подтверждён в public Community `project.task`.
+
+Поэтому Project Template **не считается заменой Planning**.
+
+---
+
+# 13. Dependencies между Projects — класс A
+
+`Blocked by` не ограничен тем же Project.
+
+Следовательно, можно связать:
+
+```text
+Task операционного Project
+↔ dependency ↔
+Task отдельной инициативы
+```
+
+Это позволяет отделять самостоятельные инициативы без потери dependency-механизма.
+
+---
+
+# 14. Rotting / time in Stage — класс A с аналитической границей
+
+Odoo умеет:
+
+- `Days to rot` на Stage;
+- `Rotting` filter;
+- duration tracking по `stage_id`;
+- показывать длительность Stages конкретной Task.
+
+Но готовый агрегированный SLA/time-in-stage report для всего потока не считается подтверждённым стандартным Pivot/Graph.
+
+---
+
+# 15. Website Form → Task — класс A по потребности
+
+Public module:
+
+```text
+website_project
+```
+
+создаёт Tasks из формы Website.
+
+Это связка:
+
+```text
+Website + Project
+```
+
+а не функция голого Project.
+
+Не устанавливать Website только ради гипотетического будущего входящего канала.
+
+---
+
+# 16. Automation Rules / Webhooks — класс B
+
+Public LGPL module:
+
+```text
+base_automation
+```
+
+подтверждает UI Automation Rules и triggers, включая:
+
+- create;
+- create/write;
+- change;
+- time;
+- state;
+- priority;
+- stage;
+- tag;
+- webhook.
+
+Automation Rules — административный/технический слой.
+
+Не строить процесс сразу из automation.
+
+Порядок:
+
+```text
+сущность
+→ workflow
+→ activity/template/recurrence
+→ стабильная ручная работа
+→ только затем automation
+```
+
+---
+
+# 17. JSON-2 / API Documentation — класс B
+
+Public Community 19 подтверждает endpoint:
+
+```text
+POST /json/2/<model>/<method>
+auth = bearer
+```
+
+Hidden auto-install module:
+
+```text
+api_doc
+```
+
+предоставляет `/doc` по фактической базе:
+
+- models;
+- fields;
+- methods;
+- examples;
+- playground.
+
+Для новых интеграций использовать ORM/API path раньше прямого SQL write.
+
+---
+
+# 18. Import / Export — класс A/B
+
+Стандартный Import подходит для master data и повторных обновлений.
+
+Ключевое правило:
+
+```text
+External ID
+→ сохранить
+→ использовать для последующих обновлений и relations
+```
+
+Обычные relational fields поддерживаются import-механизмом.
+
+Импорт **в dynamic Properties** считать отдельным runtime test, а не автоматически равным обычному Many2one field.
+
+---
+
+# 19. Working Schedules — класс A; rotating 2/2 planner — D/C
+
+Resource Calendar умеет:
+
+- обычный weekly schedule;
+- two-week calendar;
+- First / Second week.
+
+Чистый цикл `2/2` — четырёхдневный, поэтому не равен бесконечно повторяющемуся two-week pattern.
+
+Resource Calendar не выдавать за Planning/roster engine.
+
+---
+
+# 20. Предметные Community-приложения
+
+По потребности подтверждены public Community-контуры:
+
+- Employees;
+- Contacts;
+- Fleet;
+- Maintenance;
+- Inventory;
+- Calendar;
+- Timesheets;
+- Attendances;
+- Time Off;
+- Work Entries;
+- Remote Work;
+- Recruitment;
+- Expenses;
+- Skills / Certifications;
+- Surveys;
+- eLearning;
+- Purchase;
+- Purchase Agreements;
+- Analytic Accounting;
+- Live Chat / Discuss;
+- Data Recycle.
+
+Специализированный workflow используется **только для своего предмета**.
+
+Например Purchase не заменяет универсальное согласование.
+
+---
+
+# 21. Штатные bridge modules
+
+Перед custom relation обязательно проверять bridges.
+
+Подтверждены, среди прочего:
 
 ```text
 Employees + Fleet        → hr_fleet
@@ -412,6 +559,7 @@ Inventory + Maintenance  → stock_maintenance
 Skills + Surveys         → hr_skills_survey
 Skills + eLearning       → hr_skills_slides
 Employees + Calendar     → hr_calendar
+
 Project + Accounting     → project_account
 Project + Purchase       → project_purchase
 Project + Inventory      → project_stock
@@ -419,184 +567,136 @@ Project + Stock Account  → project_stock_account
 Project + Expenses       → project_hr_expense
 ```
 
-Перед custom integration всегда проверять bridge modules.
+Bridge = связь моделей, а не обещание полного cross-app отчёта.
 
-## 19. Project ↔ предметные объекты: новый baseline
+---
 
-Базовый click-only вариант теперь такой:
+# 22. Contacts data quality
 
-```text
-Project Task
-├── Property[ТС]          → Many2one(fleet.vehicle)
-├── Property[Сотрудник]   → Many2one(hr.employee)
-├── Property[Оборудование]→ Many2one(maintenance.equipment)
-└── Property[Контрагент]  → Many2one(res.partner), если стандартного Customer недостаточно по смыслу
-```
+Для Contacts подтверждены штатные Merge/Deduplicate механизмы.
 
-Добавлять Property только там, где этот разрез реально нужен процессу и аналитике.
+Community также имеет `data_recycle`.
 
-Не делать все четыре поля обязательными для каждой Task.
+Не переносить на Community весь Enterprise Data Cleaning/Data Merge toolkit.
 
-## 20. Analytic / Purchase / Stock integrations
+---
 
-Base Project уже связан с `account.analytic.account`.
+# 23. Attachments
 
-Штатные bridges могут связать Project с:
+Класс A:
 
-- Vendor Bills / analytic costs/revenues;
-- Purchase Orders;
-- Stock Pickings;
-- Expenses;
-- stock accounting analytics.
+- attachments в Chatter;
+- attachment records;
+- базовый поиск по metadata/name.
 
-Это полезно для отдельных инициатив с экономическим контуром.
+Public Community также содержит техническую indexation части содержимого файлов.
 
-Для обычной операционной очереди отдела не устанавливать финансовые приложения только ради наличия интеграции.
+Но полноценный Documents/full-text document UX не считается подтверждённым Community baseline.
 
-## 21. Import / Export
+---
 
-Odoo 19 поддерживает:
+# 24. Security / authentication
 
-- CSV/XLSX import;
-- `Test`;
-- relational fields;
-- External ID;
-- повторное массовое обновление;
-- Many2many / One2many import;
-- import-compatible export;
-- export templates.
+Подтверждены public Community:
 
-Для master data использовать стабильный External ID.
-
-Import заполняет существующую relation, но не создаёт отсутствующую model relationship.
-
-Источник: [Export and import data](https://www.odoo.com/documentation/19.0/applications/essentials/export_import_data.html).
-
-## 22. API и webhooks
-
-Public Community source Odoo 19 подтверждает:
-
-- JSON-2 `/json/2/<model>/<method>`;
-- bearer API-key auth;
-- dynamic `/doc`;
-- inbound Automation webhook `/web/hook/<uuid>`;
-- outbound `Send Webhook Notification` server action.
-
-Для новых интеграций JSON-2 предпочтительнее legacy XML-RPC/JSON-RPC.
-
-Подробно: [10 — API и интеграции](10-external-integrations.md).
-
-## 23. Automation Rules
-
-Public `base_automation` Community подтверждает triggers по:
-
-- Stage;
-- User;
-- Tag;
-- State;
-- Priority;
-- create/edit/delete/archive;
-- date/time;
-- incoming/outgoing message;
-- webhook.
-
-Также доступны server actions, включая outgoing webhook.
-
-Но автоматизация остаётся **последним слоем**, а не способом заменить хорошую модель данных.
-
-## 24. Аутентификация Community
-
-Подтверждены публичные модули:
-
+- standard ACL;
+- record rules;
+- Internal / Portal users;
+- Project visibility/collaboration;
 - LDAP;
 - OAuth2;
 - TOTP 2FA;
 - Passkeys.
 
-Это инфраструктурные возможности production-стенда, а не workflow Project.
+Domain relational Property — не security.
 
-## 25. Что не считаем гарантированной Community-базой
-
-Не строим методику на:
-
-- Gantt Project;
-- Studio;
-- Helpdesk;
-- Approvals;
-- Documents;
-- Knowledge;
-- Planning;
-- Sign;
-- Appointments;
-- полноценном Quality app;
-- полном Enterprise Data Cleaning/Data Merge;
-- полном Inventory Barcode UI;
-- Budget Management без отдельной редакционной проверки.
-
-Если общая документация показывает такую функцию, это ещё не подтверждает её наличие в public Community.
-
-## 26. Реальные остаточные gaps после углублённого аудита
-
-После обнаружения relational Properties список gaps стал значительно меньше.
-
-### Не считать gap без пилота
-
-- Task → Vehicle;
-- Task → Employee;
-- Task → Equipment;
-
-Эти связи сначала реализуются Many2one Property.
-
-### Возможные реальные gaps
-
-- агрегированный time-in-stage/SLA reporting;
-- произвольное capacity/shift planning;
-- жёсткая BPM-матрица переходов по ролям;
-- связь, которой недостаточно Property из-за производительности/интеграции/constraints;
-- специализированная бизнес-логика предметного процесса;
-- cross-model BI, который не покрывается стандартными reports/dashboard/API.
-
-## 27. Решение о custom module
-
-Custom module появляется только после последовательной проверки:
-
-```text
-1. правильная предметная модель
-2. relational Property
-3. стандартный bridge module
-4. стандартный view/report
-5. Import/External ID
-6. API/Automation
-7. реальный тестовый объём
-8. подтверждённый остаточный gap
-```
-
-Только затем проектируется минимальная доработка.
-
-## 28. Итог
-
-Оптимальная архитектура Community теперь выглядит так:
-
-```mermaid
-flowchart TB
-    MD[Master Data models] --> RP[Relational Properties]
-    RP --> T[Project Tasks]
-    T --> W[Stages / State / Activities / Dependencies]
-    T --> V[Shared Views]
-    V --> A[Task Analysis / My Dashboard]
-
-    MD --> B[Bridge modules]
-    B --> P[Project / Analytic integrations]
-
-    API[JSON-2 / Webhooks / Import] --> MD
-    API --> T
-
-    A --> D[Управленческое решение]
-    D --> T
-```
-
-Главный вывод: **Odoo 19 Community значительно гибче click-only, чем мы предполагали в первой итерации PR.** Relational Properties позволяют связывать Tasks со штатными справочниками без дублирования master data и без немедленного custom module.
+Права target model определяются ACL/record rules.
 
 ---
 
-[← Главная](../README.md) · [01 — Модель управления →](01-methodology.md)
+# 25. Что не является Community baseline
+
+Не строить методику на:
+
+```text
+Studio
+Helpdesk
+Approvals
+Documents
+Knowledge
+Planning
+Project Gantt
+Sign
+Appointments
+полном Quality app
+Enterprise Data Cleaning/Data Merge
+полном Inventory Barcode UI
+Budget Management без отдельной редакционной проверки
+availability/capacity task scheduling
+произвольном rotating roster
+custom Spreadsheet Dashboard без runtime/edition test
+```
+
+---
+
+# 26. Остаточные gaps определяются только пилотом
+
+Нормальные кандидаты:
+
+- history/audit изменения relational Property;
+- aggregated time-in-stage / SLA reporting;
+- rotating 2/2 / capacity planning;
+- BPM transition matrix по ролям;
+- Property не выдерживает объём/API/BI/import;
+- специализированная предметная бизнес-логика;
+- cross-model analytics, которой нет в штатных reports/API.
+
+Ненормальный кандидат:
+
+```text
+«в project.task нет vehicle_id, поэтому сразу пишем модуль»
+```
+
+---
+
+# 27. Приоритетный click-only стек методики
+
+```text
+master data apps
+→ relational Properties
+→ bridge modules
+→ Project Task workflow
+→ Activities / Dependencies / Templates / Recurrence
+→ Shared Views
+→ Task Analysis
+→ My Dashboard
+→ Import / API / Automation по потребности
+→ runtime pilot
+→ residual gaps
+→ минимальный custom module только на подтверждённые gaps
+```
+
+---
+
+# 28. Что обязательно проверить на стенде
+
+1. Fleet на реальном составе ТС;
+2. Many2one Property `ТС` на реальном объёме;
+3. Property filter/group performance;
+4. Property history в Chatter;
+5. Task Import + Properties;
+6. Properties через JSON-2;
+7. ACL Fleet/Employees/Maintenance под обычным Project User;
+8. Task Template + Properties;
+9. Recurring Task + Properties;
+10. Recurring Task + Subtasks;
+11. две daily recurrence chains для handover;
+12. My Dashboard с реальными shared views;
+13. Website Form → Inbox triage при необходимости;
+14. email alias;
+15. Spreadsheet Dashboard create/edit в чистой CE — только как редакционная проверка, не prerequisite;
+16. русская локализация фактических menus/fields.
+
+---
+
+[← Главная](../README.md) · [15 — Перепроверка →](15-capability-recheck.md)
