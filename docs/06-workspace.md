@@ -1,40 +1,94 @@
 # Настройка Odoo 19 Community
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · [03 Аналитика](03-control.md) · [04 Шаблоны](04-templates.md) · [05 Процессы](05-processes.md) · **06 Настройка**
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [03 Аналитика](03-control.md) · **06 Настройка** · [15 Перепроверка](15-capability-recheck.md)
 
 ---
 
-Этот документ — **click-only пилот** Odoo 19 Community для одного отдела.
+Это последовательный **click-only пилот** для одного отдела.
 
-Цель: сначала доказать, что штатная модель работает, и только затем обсуждать код.
+Цель не «включить все функции Odoo», а доказать минимальную рабочую модель:
 
-## 1. Устанавливать приложения по предмету, а не пачкой
+```text
+правильные master data
+→ Task как обязательство
+→ relational Properties
+→ понятный workflow
+→ контроль через Views / Analysis / My Dashboard
+→ только затем automation / integration / code
+```
 
-### База
+Если функция не подтверждена для Community — она не является prerequisite пилота.
 
-- Project;
-- Employees;
-- Contacts;
-- Dashboards — после настройки рабочих views.
+---
 
-### По реальной потребности
+# 1. Установить только базовые приложения
 
-- Fleet;
-- Maintenance;
-- Inventory;
-- Calendar;
-- Timesheets;
-- Website;
-- Surveys;
-- eLearning;
-- Purchase;
-- Expenses.
+Для первого стенда:
 
-Не ставить приложение только потому, что оно есть в Community.
+```text
+Project
+Employees
+Contacts
+```
 
-## 2. Сначала master data
+После стабилизации рабочих views:
 
-До задач определить источники истины:
+```text
+Dashboards / My Dashboard (`board`)
+```
+
+Не начинать с десятка приложений одновременно.
+
+---
+
+# 2. Предметные приложения ставить только по реальному процессу
+
+По потребности:
+
+```text
+Fleet
+Maintenance
+Inventory
+Calendar
+Timesheets
+Website
+Surveys
+eLearning
+Purchase
+Expenses
+Attendances
+Time Off
+```
+
+Пример:
+
+- если нужна карточка ТС → проверяем Fleet;
+- если нужен serial/location → Inventory;
+- если нужен ремонт Equipment → Maintenance;
+- если нужно поручение по ТС → Project Task со ссылкой на Vehicle.
+
+Не использовать Project Task как замену предметной модели.
+
+---
+
+# 3. Пользователь и Employee — разные сущности
+
+Создать Internal User только тем, кто реально работает в Odoo.
+
+```text
+res.users   = пользователь системы / Assignee
+hr.employee = сотрудник как HR-сущность
+```
+
+Employee может существовать без User.
+
+Не создавать пользователей всем сотрудникам только ради справочника.
+
+---
+
+# 4. Сначала загрузить master data
+
+Перед массовым созданием Tasks определить источники истины:
 
 ```text
 сотрудники      → Employees
@@ -44,39 +98,26 @@
 serial/location → Inventory
 ```
 
-Если модуль не нужен предметно, его не включать.
-
-## 3. Пользователи ≠ Employees
-
-Создать Internal Users только для тех, кто реально работает в Odoo.
-
-Employee может существовать без User.
-
-Assignee Task выбирается из Users.
-
-Property `Сотрудник` при необходимости может ссылаться на **любого доступного Employee**, даже если он не является исполнителем задачи.
-
-## 4. Массовая загрузка справочников
-
-Использовать стандартный Import:
+Для CSV/XLSX использовать стандартный Import:
 
 ```text
 List
 → Actions
 → Import records
-→ файл CSV/XLSX
-→ сопоставление полей
+→ сопоставить fields
 → Test
 → Import
 ```
 
-Для повторных обновлений сохранять External ID.
+Для повторных обновлений сохранять **External ID**.
 
-Не вводить тысячи записей вручную.
+Не вести тот же master data параллельно текстом в Project.
 
-## 5. Проверить штатные bridge modules
+---
 
-После установки сочетаний приложений проверить, какие bridges установились автоматически.
+# 5. Проверить auto-install bridge modules
+
+После установки сочетаний приложений проверить уже существующие bridges.
 
 Ключевые:
 
@@ -86,15 +127,20 @@ Employees + Maintenance  → hr_maintenance
 Inventory + Maintenance  → stock_maintenance
 Skills + Surveys         → hr_skills_survey
 Skills + eLearning       → hr_skills_slides
+Employees + Calendar     → hr_calendar
+
+Project + Accounting     → project_account
 Project + Purchase       → project_purchase
 Project + Inventory      → project_stock
-Project + Accounting     → project_account
+Project + Stock Account  → project_stock_account
 Project + Expenses       → project_hr_expense
 ```
 
-До custom code проверить именно эти связи.
+Не проектировать custom relation, пока штатный bridge не проверен.
 
-## 6. Создать один основной операционный Project
+---
+
+# 6. Создать один основной операционный Project
 
 Например:
 
@@ -102,17 +148,50 @@ Project + Expenses       → project_hr_expense
 Операционная работа
 ```
 
-Не создавать отдельные Projects `Топливо`, `Транспорт`, `Табели`, `Запросы` только ради классификации.
+Не создавать Projects:
 
-## 7. Visibility
+```text
+Транспорт
+Топливо
+Табели
+Запросы
+Сверки
+```
 
-Для пилота выбрать минимальную достаточную Project visibility для внутренних пользователей.
+только ради классификации.
 
-Portal/collaborators не включать без конкретного внешнего сценария.
+Процесс/вид работы — аналитический признак Task, а не автоматически отдельный Project.
 
-Права проверять под обычным пользователем, а не только под Administrator.
+Отдельный Project нужен при настоящей границе:
 
-## 8. Task Stages
+- самостоятельная инициатива;
+- свой lifecycle;
+- свой manager;
+- milestones;
+- отдельная visibility;
+- отдельный project-level контроль.
+
+---
+
+# 7. Настроить Visibility
+
+Для внутреннего пилота выбрать минимально достаточную Project visibility.
+
+Права проверять минимум под тремя профилями:
+
+```text
+обычный исполнитель
+руководитель / senior
+administrator
+```
+
+Не тестировать систему только под Administrator.
+
+Portal/collaborators включать только при конкретном внешнем сценарии.
+
+---
+
+# 8. Настроить Task Stages
 
 Базово:
 
@@ -124,13 +203,15 @@ Portal/collaborators не включать без конкретного вне�
 На проверке   [только если реально нужно]
 ```
 
-Не делать отдельный Stage `Готово`, если закрытие нормально решается State `Done`.
+Не создавать Stage `Готово`, если закрытие решается State `Done`.
 
-Не делать Stage `Waiting`: внутреннее Waiting создаётся Dependencies.
+Не создавать Stage `Waiting` для внутренних зависимостей: dependency сама даёт computed Waiting.
 
-## 9. State
+---
 
-Обычные State:
+# 9. Не путать Stage и State
+
+Обычные States:
 
 ```text
 In Progress
@@ -140,13 +221,21 @@ Done
 Canceled
 ```
 
-Computed dependency state:
+Dependency-driven:
 
 ```text
 Waiting
 ```
 
-## 10. Создать классификационные Properties
+Stage отвечает на вопрос:
+
+> где работа в процессе?
+
+State отвечает на системное состояние/закрытие/approval.
+
+---
+
+# 10. Создать минимальные классификационные Properties
 
 Открыть Task основного Project:
 
@@ -155,155 +244,214 @@ Actions
 → Edit Properties
 ```
 
-### `Вид работы`
+Минимально полезный кандидат:
 
 ```text
+Вид работы
 Type: Selection
-Values:
-- Работа
-- Запрос
-- Улучшение
+
+Работа
+Запрос
+Улучшение
 ```
 
-### `Процесс`
+`Процесс` добавлять только когда устойчивый список процессов уже понятен и этот разрез реально используется в фильтрах/аналитике.
 
-Создавать только если список процессов уже понятен и этот разрез будет использоваться.
+Не создавать десятки Properties заранее.
 
-## 11. Создать relational Property `ТС`
+---
 
-Только если процессы действительно работают с ТС.
+# 11. Создать relational Property `ТС`
+
+Только если Fleet реально нужен процессам.
 
 ```text
 Actions
 → Edit Properties
-→ Add a property
+→ Add property
 
 Label: ТС
-Field Type: Many2one
-Model: Fleet Vehicle / fleet.vehicle
+Type: Many2one
+Model: fleet.vehicle
 Domain: при необходимости
-Default: обычно пусто
+Default: пусто
 ```
 
-### Что проверить
+Проверить:
 
-1. поиск Vehicle по имени/display name;
-2. выбор существующей записи;
-3. переход в карточку Vehicle;
-4. отсутствие доступа к запрещённым Vehicles;
-5. фильтрацию Tasks по Property;
+1. autocomplete;
+2. выбор существующего Vehicle;
+3. открытие связанной записи;
+4. права доступа;
+5. поиск Tasks по Property;
 6. `Group By → Properties`;
-7. отображение Property в карточках, если включён `Show in cards`.
+7. отображение в List/Kanban;
+8. скорость на реальном объёме.
 
-## 12. Property `Сотрудник`
+---
 
-Если Task касается сотрудника, но этот человек не является Assignee:
+# 12. Property `Сотрудник`
+
+Если Employee является **объектом работы**, а не исполнителем:
 
 ```text
 Label: Сотрудник
 Type: Many2one
-Model: Employee / hr.employee
+Model: hr.employee
 ```
 
 Пример:
 
 ```text
 Assignee = аналитик Иванов
-Сотрудник = Петров, по данным которого выполняется проверка
+Сотрудник = Петров, чьи данные проверяются
 ```
 
-Не подменять эти роли друг другом.
+Не смешивать Employee-object и Assignee.
 
-## 13. Property `Оборудование`
+---
 
-Если Task относится к Equipment:
+# 13. Property `Оборудование`
+
+Если Task касается Equipment:
 
 ```text
 Label: Оборудование
 Type: Many2one
-Model: Maintenance Equipment / maintenance.equipment
+Model: maintenance.equipment
 ```
 
-Если событие является обычной Maintenance Request, параллельную Task создавать не нужно.
+Если событие само по себе является обычной Maintenance Request, не создавать параллельную Project Task без отдельного контролируемого результата.
 
-## 14. Many2many Property
+---
 
-Использовать только если одна Task действительно относится к нескольким объектам.
+# 14. Many2many использовать осторожно
 
 Пример:
 
 ```text
-Затронутые ТС → Many2many(fleet.vehicle)
+Затронутые ТС
+→ Many2many(fleet.vehicle)
 ```
 
-Но прежде проверить, не лучше ли разделить работу на несколько Tasks с отдельным контролем.
+Использовать только если один результат действительно относится к нескольким records.
 
-## 15. Domain для relational Property
+Если по каждому объекту отдельный владелец/срок/результат — лучше отдельные Tasks.
 
-В Edit Properties для Many2one/Many2many можно настроить Domain.
+---
 
-Использовать для удобства выбора, например:
+# 15. Domain — не security
+
+Domain в relational Property ограничивает варианты выбора в UI.
+
+Он не заменяет:
 
 ```text
-только активные records
-только конкретный тип
-только записи нужной компании
+ACL
+record rules
+company rules
 ```
 
-Domain **не является защитой данных**.
+Если пользователь должен только выбирать Vehicle, но не создавать новые Vehicles, это решается правами Fleet.
 
-Пользовательские access rights целевой модели всё равно должны быть правильными.
+---
 
-## 16. Важная проверка create rights
+# 16. Проверить governance master data
 
-Relational Property использует стандартный Many2X autocomplete, который технически может предлагать создание record, если у пользователя есть create permission.
-
-Для master data определить:
+Определить:
 
 ```text
-кто может создавать Employee
-кто может создавать Vehicle
-кто может создавать Equipment
-кто только выбирает существующее
+кто создаёт Employees
+кто создаёт Vehicles
+кто создаёт Equipment
+кто может исправлять master data
+кто только выбирает записи в Task
 ```
 
-Не давать всем Project Users право создавать master data только ради удобства Property.
+Не давать всем исполнителям create/write master-data rights только ради удобства Project.
 
-## 17. Assignee и общая очередь
+---
 
-Неназначенная готовая Task:
+# 17. Общая очередь = неназначенные Tasks
+
+Готовая к разбору общая Task:
 
 ```text
 Stage = Очередь
 Assignees = empty
 ```
 
-Это штатная общая очередь.
+Это нормальный штатный shared backlog.
 
-Не создавать fake-user `Отдел` или `Общая очередь`.
-
-## 18. Deadline
-
-Deadline = конечный срок результата.
-
-Для напоминания использовать Activity.
-
-## 19. Priority
-
-В UI доступны четыре уровня.
-
-На старте достаточно:
+Не создавать fake user:
 
 ```text
-обычная → default
-критичная → Urgent
+Отдел
+Очередь
+Все
 ```
 
-Не заставлять сотрудников выбирать Medium/High без критериев.
+---
 
-## 20. Activities
+# 18. Одна управленческая ответственность
 
-Минимальный полезный набор Activity Types:
+Odoo технически позволяет несколько Assignees.
+
+Методически для обычной операционной Task должен быть понятен один основной владелец результата.
+
+Несколько Assignees использовать только когда коллективное исполнение действительно осмысленно.
+
+---
+
+# 19. Deadline и Activity — разные даты
+
+```text
+Deadline
+= когда должен быть готов результат
+
+Activity Due Date
+= когда выполнить следующее действие
+```
+
+При `Ожидание внешнего` ставить Activity на дату следующего контроля.
+
+Не двигать Deadline каждый раз только потому, что нужно кому-то напомнить.
+
+---
+
+# 20. Priority
+
+UI поддерживает:
+
+```text
+Low
+Medium
+High
+Urgent
+```
+
+Quick-create:
+
+```text
+!   Medium
+!!  High
+!!! Urgent
+```
+
+На старте методики достаточно:
+
+```text
+обычная работа → default
+критичная      → Urgent
+```
+
+Medium/High вводить после появления однозначных критериев.
+
+---
+
+# 21. Activities
+
+Минимальный полезный набор типов:
 
 ```text
 Проверить
@@ -312,53 +460,90 @@ Deadline = конечный срок результата.
 Встреча
 ```
 
-При `Ожидание внешнего` Activity обязательна как следующая контрольная точка.
+Activity — follow-up, а не отдельная полноценная Task.
 
-## 21. Activity chaining
+---
 
-До Automation Rule проверить:
+# 22. Activity chaining
+
+Перед Automation Rule проверить штатные:
 
 - Suggest Next Activity;
 - Trigger Next Activity;
-- schedule relative to deadline/completion.
+- относительные сроки.
 
-Если этого хватает, Automation не нужна.
+Если цепочка закрывается Activities, не создавать дополнительные Tasks и Automation Rules.
 
-## 22. Activity Plans
+---
 
-Использовать для повторяемого набора follow-up вокруг одной записи.
+# 23. Activity Plans
 
-Не использовать как замену нескольким самостоятельным Tasks.
+Использовать для повторяемого набора follow-up на одной записи.
 
-## 23. Dependencies
+Например:
 
-Включить Task Dependencies только если существуют реальные блокировки.
+```text
+запросить информацию
+→ проверить ответ
+→ напомнить при отсутствии
+```
 
-В successor Task:
+Не использовать Activity Plan как замену набору независимых обязательств.
+
+---
+
+# 24. Dependencies
+
+Включить Task Dependencies только если есть реальные блокировки.
 
 ```text
 Blocked by = predecessor Task
 ```
 
-Odoo сам вычисляет Waiting.
+Odoo сам вычисляет `Waiting`.
 
-## 24. Recurring Tasks
+Важно: predecessor может находиться **в другом Project**.
 
-Для календарной периодики одного результата.
+Поэтому отдельная инициатива может блокировать операционную Task без искусственного объединения Projects.
+
+---
+
+# 25. Recurring Tasks
+
+Использовать для одной календарно повторяемой работы.
 
 Пример:
 
 ```text
-Провести ежемесячную сверку
+ежемесячная сверка
 ```
 
-Не создавать 12 копий вручную.
+Units public source:
 
-## 25. Task Templates
+```text
+Days
+Weeks
+Months
+Years
+```
 
-Для одинаковых разовых задач, возникающих по событию.
+Hours нет.
 
-Примеры:
+Не создавать будущий горизонт из десятков копий вручную.
+
+### Обязательный runtime test
+
+Официальная документация говорит, что Subtasks не копируются, а current public source 19.0 рекурсивно создаёт `child_ids`.
+
+Если recurrence использует subtasks — проверить поведение на конкретной сборке.
+
+---
+
+# 26. Task Templates
+
+Использовать для типовой разовой работы по событию.
+
+Например:
 
 ```text
 Разобрать расхождение
@@ -366,25 +551,70 @@ Odoo сам вычисляет Waiting.
 Подготовить типовой ответ
 ```
 
-В шаблоне держать устойчивую структуру, а не конкретные данные текущего случая.
+В template хранить устойчивую структуру:
 
-Проверить копирование subtasks и Properties на тестовой базе.
+- description;
+- tags;
+- типовые Properties;
+- типовые subtasks при необходимости.
 
-## 26. Subtasks
+Не зашивать конкретный Vehicle/Employee, если объект каждый раз меняется.
 
-Использовать только для частей с самостоятельным результатом/владельцем/сроком.
+Проверить Task Template + Properties на стенде.
 
-Не превращать Task в дерево из технических шагов.
+---
 
-## 27. Rotting
+# 27. Subtasks
 
-После наблюдения реальной длительности Stages настроить `Days to rot` только там, где сигнал полезен.
+Создавать subtask, если у части есть самостоятельный:
 
-Не ставить одинаковый threshold на все Stages.
+- результат;
+- owner;
+- deadline;
+- dependency;
+- контроль.
 
-## 28. Shared Favorites
+Не превращать Task в чек-лист технических действий из десятков child tasks.
 
-Создать минимум:
+---
+
+# 28. Rotting
+
+После наблюдения фактической длительности Stages настроить `Days to rot` там, где этот сигнал реально полезен.
+
+Не ставить один threshold на все Stages.
+
+```text
+Deadline = срок результата
+Activity = срок follow-up
+Rotting = Task слишком долго не меняет Stage
+```
+
+---
+
+# 29. List — диспетчерское рабочее место
+
+Для большого входящего потока открыть **List**.
+
+Standard Project Task List поддерживает mass edit.
+
+Использовать List для:
+
+- сортировки;
+- сравнения полей;
+- массового triage;
+- assignment;
+- deadline/priority review;
+- Activities;
+- Properties.
+
+Kanban использовать прежде всего для визуального flow по Stages.
+
+---
+
+# 30. Создать Shared Views
+
+Минимум:
 
 ```text
 Входящие
@@ -396,304 +626,436 @@ Odoo сам вычисляет Waiting.
 Waiting / Blocking
 Urgent
 Rotting
+Просроченные Activities
 ```
 
-Если используются предметные Properties — добавить только реально нужные views.
-
-Например:
+При необходимости:
 
 ```text
 Открытые по ТС
-Открытые по оборудованию
+Открытые по Equipment
 ```
 
-## 29. Project Top Bar
+Не сохранять десятки почти одинаковых views.
 
-Наиболее частые views сохранить:
+---
+
+# 31. Project Top Bar
+
+Официальный Project workflow:
 
 ```text
-Save View
+открыть view
+→ настроить filter / group / search
+→ sliders
+→ Save View
 → Shared
 ```
 
-Не выносить туда каждый возможный фильтр.
+Использовать для действительно постоянных общих рабочих срезов.
 
-## 30. List и Kanban
+Это сильнее, чем плодить отдельные Projects для разных представлений одного backlog.
 
-### Kanban
+---
 
-Для движения по Stages.
+# 32. Task Analysis
 
-### List
-
-Для больших очередей, сортировки и сравнительного контроля полей.
-
-Для руководителя большой очереди List часто полезнее Kanban.
-
-## 31. Проверить поиск и группировку relational Properties
-
-Минимальный тест:
-
-```text
-создать 10 Tasks
-назначить им 3 разных Vehicles через Property
-→ Filter по конкретному ТС
-→ Group By → Properties → ТС
-```
-
-То же для Employee/Equipment, если используется.
-
-Это обязательная проверка **до** решения писать custom field.
-
-## 32. Task Analysis
-
-Сначала проверить стандартные показатели:
+Сначала использовать штатные показатели:
 
 - created;
 - closed;
-- open backlog;
+- backlog;
 - Stage;
+- State;
 - Assignee;
 - Priority;
 - working time to assign;
-- working time to close.
+- working time to close;
+- task count.
 
-Properties использовать как дополнительные разрезы там, где standard UI их поддерживает.
+Не создавать KPI только потому, что поле можно вывести в Pivot.
 
-## 33. Time in Stage
+---
 
-Открыть Task и проверить statusbar: Odoo показывает длительность в каждом Stage.
+# 33. Time in Stage
 
-Использовать для разбора конкретной зависшей Task.
+Открыть конкретную Task и проверить duration statusbar.
 
-Не обещать агрегированный SLA-report без отдельного теста/доработки.
+Использовать для расследования зависшего случая.
 
-## 34. My Dashboard
+Не обещать готовый aggregated SLA by Stage report: это отдельная аналитическая потребность.
 
-После стабилизации Shared Views добавить в My Dashboard:
+---
 
-- Просрочено;
-- Неназначенная очередь;
-- Ожидание внешнего;
-- Urgent;
-- Pivot по Stage/Assignee;
-- Graph закрытия.
+# 34. My Dashboard — основной click-only dashboard
 
-При необходимости добавить view, сгруппированный по relational Property.
+После стабилизации Views установить/проверить модуль Dashboards (`board`).
 
-## 35. Spreadsheet Dashboard
+Официальный workflow:
 
-Только когда несколько периодов подряд используются одинаковые KPI.
+```text
+открыть нужный List / Kanban / Pivot / Graph
+→ Actions
+→ Dashboard
+→ Add to my Dashboard
+```
 
-Не начинать внедрение с красивого dashboard.
+Рекомендуемый состав:
 
-## 36. Project Stages для инициатив
+```text
+Просрочено
+Неназначенная очередь
+Ожидание внешнего
+Urgent
+Pivot Stage × Assignee
+Graph закрытия по периодам
+```
 
-Если появляются отдельные Project-инициативы, включить Project Stages.
+My Dashboard основан на Odoo views и не требует строить отдельную spreadsheet-модель показателей.
 
-Не использовать для единственного постоянного операционного Project без причины.
+---
 
-## 37. Project Template / Roles / Milestones / Updates
+# 35. Spreadsheet Dashboard — не включать в baseline
 
-Использовать для самостоятельных инициатив.
+Public Community содержит `spreadsheet` и `spreadsheet_dashboard`, но наличие этих модулей не подтверждает полный click-only authoring workflow собственного Spreadsheet Dashboard в чистой CE.
 
-Не тащить их в обычную ежедневную Task-очередь.
+Официальное создание dashboard с нуля требует:
 
-## 38. Inventory + Maintenance
+```text
+Dashboards / Admin
++
+Documents / User
+```
 
-Если нужен серийный учёт оборудования:
+Documents не входит в Community baseline этой методики.
 
-1. создать serial/lot в Inventory;
-2. создать Equipment с соответствующим serial;
-3. проверить `stock_maintenance`;
-4. проверить location;
-5. проверить employee allocation через `hr_maintenance`.
+Поэтому **не настраивать Spreadsheet Dashboard как обязательный этап пилота**.
 
-Только потом решать, нужна ли собственная asset-модель.
+Если позже появится конкретная потребность:
 
-## 39. Fleet + Employees
+1. проверить чистую Community-инсталляцию;
+2. проверить доступный create/edit workflow;
+3. проверить, какие модули реально требуются;
+4. только после этого решать между Spreadsheet Dashboard и внешним BI.
 
-Если Fleet используется:
+---
 
-1. создать Employee;
-2. Vehicle/driver;
-3. проверить `hr_fleet` / Fleet History;
-4. затем проверить Task Property `ТС`.
+# 36. Отдельная инициатива
 
-## 40. Contacts dedupe
+Если работа имеет самостоятельный lifecycle, создать отдельный Project.
 
-Перед импортом большого справочника проверить:
+Использовать по необходимости:
 
-- правила External ID;
-- Merge;
-- Deduplicate other Contacts.
+- Project Manager;
+- Project Start/End;
+- Project Stages;
+- Milestones;
+- Project Updates;
+- Project Dashboard/Burndown;
+- Project-level Activities.
 
-Не включать Data Recycle до определения retention policy.
+Не использовать этот слой для ежедневного операционного backlog без причины.
 
-## 41. Email Alias
+---
 
-Включать только после нормального ручного триажа.
+# 37. Project Stages
+
+Включать для портфеля самостоятельных Projects.
+
+Пример:
+
+```text
+Подготовка
+Запланирован
+В реализации
+На паузе
+Завершён
+```
+
+Не смешивать:
+
+```text
+Project Stage
+Project Update Status
+Task Stage
+Task State
+```
+
+---
+
+# 38. Project Templates + Roles
+
+Использовать для повторяемой структуры целого Project.
+
+Roles позволяют назначить людей на роль при создании Project из template и раздать соответствующие Tasks.
+
+### Не обещать Planning
+
+Общая документация описывает availability/workload scheduling, но этот planned-date layer не подтверждён public Community Project model.
+
+В CE baseline Project Template = **структура + роли**, а не полноценный capacity planner.
+
+---
+
+# 39. Website Form → Task
+
+Только если нужен реальный входящий web-канал.
+
+Установленная связка:
+
+```text
+Website + Project
+→ website_project
+```
+
+может создавать Project Tasks из website form.
+
+Все такие Tasks направлять во `Входящие`, а не сразу `В работе`.
+
+До внешней публикации проверить:
+
+- spam/duplicate handling;
+- обязательные поля;
+- attachment policy;
+- security;
+- triage ownership.
+
+---
+
+# 40. Email Alias
+
+Включать после того, как ручной triage уже работает.
 
 Новые email-created Tasks должны попадать во `Входящие`.
 
-## 42. Website Form
+Проверить:
 
-Использовать только как простой intake.
+- sender → Customer/Contact;
+- subject → Task name;
+- body/attachments;
+- replies;
+- duplicate threads;
+- mail routing;
+- внешние адреса.
 
-Если форма требует сложной бизнес-логики, это уже отдельная интеграционная задача.
+Не запускать email ingestion как первый шаг пилота.
 
-## 43. API `/doc`
+---
 
-На тестовом self-hosted Odoo 19 проверить:
+# 41. Automation Rules
+
+Community source подтверждает `base_automation`.
+
+Настройка относится к административному/technical layer.
+
+После стабилизации процесса:
+
+```text
+Settings
+→ Developer Mode
+→ Technical
+→ Automation
+→ Automation Rules
+```
+
+Использовать только для механических правил, например:
+
+- реакция на конкретный field change;
+- time-based action;
+- webhook integration.
+
+Не пытаться построить в Automation Rules полноценный BPM со скрытыми переходами.
+
+---
+
+# 42. JSON-2 / API
+
+Для внешней интеграции сначала проверить public Odoo 19 JSON-2:
+
+```text
+POST /json/2/<model>/<method>
+Authorization: Bearer ...
+```
+
+Auto-install `api_doc` предоставляет:
 
 ```text
 /doc
 ```
 
-Под системным администратором должны быть доступны динамические модели/поля/методы конкретной базы.
+с фактическими models/fields/methods базы.
 
-Это основной источник для будущей JSON-2 интеграции.
+Перед интеграцией:
 
-## 44. JSON-2
+1. проверить access rights отдельного integration user;
+2. открыть `/doc`;
+3. проверить read/search/write нужной модели;
+4. проверить формат Properties;
+5. не писать напрямую в PostgreSQL.
 
-Для будущего BI/n8n:
+---
+
+# 43. Fleet + Employees
+
+Если Fleet используется:
+
+1. загрузить Vehicles;
+2. связать drivers/Employees по штатной модели;
+3. проверить `hr_fleet` / Fleet History;
+4. проверить Task Property `ТС`;
+5. проверить права Project Users на Fleet.
+
+Только после этого оценивать необходимость custom vehicle registry.
+
+---
+
+# 44. Inventory + Maintenance
+
+Для serialised equipment:
+
+1. проверить serial/lot в Inventory;
+2. Equipment в Maintenance;
+3. `stock_maintenance`;
+4. current location;
+5. employee allocation через `hr_maintenance`, если нужен;
+6. Task Property `Оборудование` при отдельном обязательстве.
+
+Не создавать собственную asset-model раньше этой проверки.
+
+---
+
+# 45. Contacts quality
+
+При большом импорте:
+
+- использовать External IDs;
+- проверить Merge/Deduplicate;
+- определить владельца справочника;
+- не включать автоматический Data Recycle без retention policy.
+
+Не обещать весь Enterprise Data Cleaning toolkit.
+
+---
+
+# 46. Сменный график 2/2
+
+Resource Calendar умеет weekly и two-week schedule.
+
+Это **не** arbitrary four-day rotating roster.
+
+Не пытаться насильно моделировать `2/2` как универсальный repeating two-week calendar.
+
+Для handover задачи можно испытать две независимые daily recurrence chains:
 
 ```text
-отдельный technical user
-→ минимальные права
-→ API key
-→ /json/2/<model>/<method>
+дневная передача
+ночная передача
 ```
 
-Не использовать admin API key как общий интеграционный пароль.
+но recurrence не является заменой планированию состава смен.
 
-## 45. Webhooks
+---
 
-После стабилизации процесса можно тестировать:
+# 47. Что не делать в пилоте
 
-- inbound `On webhook` Automation Rule;
-- outbound `Send Webhook Notification`.
-
-Только на тестовой базе и с ограниченным payload.
-
-## 46. Automation Rules
-
-До Automation проверить:
+Не делать:
 
 ```text
-Property
-Task Template
-Activity chaining
-Activity Plan
-Recurring Task
-Shared View
-bridge module
-```
-
-Если простой механизм решает проблему — Automation не нужна.
-
-## 47. Безопасность production
-
-Вместе с IT проверить:
-
-- LDAP/OAuth при наличии корпоративного IdP;
-- TOTP 2FA;
-- Passkeys — опционально;
-- application access rights;
-- Project visibility;
-- права на master data models;
-- права на records через bridge modules.
-
-## 48. Пилотные сценарии
-
-До признания модели рабочей прогнать:
-
-1. manual Task → очередь → работа → Done;
-2. unassigned queue → self-assign;
-3. external waiting + Activity;
-4. dependency → Waiting → unblock;
-5. recurring task;
-6. Task Template → новая Task;
-7. Subtask;
-8. relational Property `ТС` → выбор Fleet Vehicle;
-9. relational Property `ТС` → filter/group;
-10. relational Property `Сотрудник`;
-11. relational Property `Оборудование`;
-12. Shared Favorite другим пользователем;
-13. Shared Top Bar view;
-14. Rotting;
-15. Task stage duration;
-16. Task Analysis;
-17. My Dashboard;
-18. Import + External ID + повторный update;
-19. master data create-right restriction;
-20. bridge modules нужных приложений.
-
-Опционально после стабилизации:
-
-21. email alias;
-22. Website Form;
-23. JSON-2;
-24. inbound webhook;
-25. outbound webhook;
-26. Timesheets;
-27. Automation Rule.
-
-## 49. Когда фиксировать gap
-
-Gap фиксируется только после теста вида:
-
-```text
-Требование
-→ штатная предметная модель
-→ relational Property
-→ bridge module
-→ standard report/view
-→ реальный объём
-→ что именно не работает
-```
-
-Пример корректного gap:
-
-```text
-Property ТС работает функционально,
-но на X задачах Group By занимает неприемлемое время
-или API/BI не может устойчиво использовать эту связь.
-```
-
-Тогда можно обсуждать schema field.
-
-Пример некорректного gap:
-
-```text
-в project.task нет vehicle_id в Python-модели
-```
-
-Само по себе это больше не проблема: Many2one Property может закрывать пользовательскую связь click-only.
-
-## 50. Порядок внедрения
-
-```text
-1. Users / Employees / Contacts
-2. нужные master data apps
-3. bridge modules
-4. основной Project
-5. Stages / State rules / Assignee / Deadline
-6. классификационные Properties
-7. relational Properties
-8. Activities
-9. Dependencies / Recurrence / Task Templates
-10. Shared Views
-11. Task Analysis
-12. Rotting / stage duration
-13. My Dashboard
-14. Import/External ID procedure
-15. API/webhooks по потребности
-16. Automation по потребности
-17. зафиксированные gaps
-18. минимальный custom module только на доказанные gaps
+отдельный Project на каждый процесс
+fake assignee «Отдел»
+Stage «Waiting» вместо Dependencies
+Stage «Готово» вместо Done без причины
+десятки Properties заранее
+копию Fleet/Employees в Selection
+обязательные Timesheets без управленческого вопроса
+employee leaderboard по количеству Tasks
+Automation до стабилизации workflow
+Spreadsheet Dashboard как обязательный CE-шаг
+прямой SQL write в Odoo
+custom module до измеренного gap
 ```
 
 ---
 
-[← 05 — Процессы](05-processes.md) · [Главная](../README.md)
+# 48. Обязательный runtime checklist
+
+До решения «штатный Odoo не хватает» прогнать:
+
+### Master data
+
+- Employees import;
+- Fleet import на реальном объёме;
+- Equipment/serial при необходимости;
+- External IDs;
+- права обычного пользователя.
+
+### Project
+
+- 100+ реалистичных Tasks;
+- List mass edit;
+- Kanban;
+- Shared Views;
+- Activities;
+- Dependencies;
+- Rotting;
+- Task Templates;
+- Recurring Tasks.
+
+### Properties
+
+- Many2one Vehicle;
+- Many2one Employee;
+- Many2one Equipment;
+- filter;
+- Group By;
+- performance;
+- Import;
+- JSON-2;
+- history/audit.
+
+### Analytics
+
+- Task Analysis;
+- Pivot;
+- Graph;
+- My Dashboard;
+- drill-down;
+- права на данные.
+
+### Routines
+
+- recurrence + Properties;
+- recurrence + Subtasks;
+- daily handover chains;
+- Activity Plans.
+
+### Integration
+
+- email alias;
+- Website Form, если нужен;
+- `/doc`;
+- JSON-2;
+- Automation/webhook только после стабилизации.
+
+---
+
+# 49. Решение после пилота
+
+Для каждого неудобства задать вопросы в порядке:
+
+```text
+1. Неправильно выбрана сущность?
+2. Есть штатное поле/Property/View?
+3. Есть отдельное Community-приложение?
+4. Есть bridge module?
+5. Есть Task Template/Activity/Recurrence?
+6. Решает Shared View / My Dashboard?
+7. Решает Import/API/Automation?
+8. Проблема доказана на реальном объёме?
+```
+
+Только после ответа `нет` на предыдущие уровни появляется нормальное техническое задание на минимальный custom module.
+
+---
+
+[← 05 — Процессы](05-processes.md) · [15 — Перепроверка возможностей →](15-capability-recheck.md)
