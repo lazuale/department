@@ -1,480 +1,295 @@
 # Штатные интеграции Project в Odoo 19 Community
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [07 Углублённый аудит](07-deep-community-audit.md) · **08 Интеграции Project**
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [07 Аудит](07-deep-community-audit.md) · **08 Интеграции Project** · [09 Project и безопасность](09-project-productivity-security.md) · [10 API](10-external-integrations.md) · [11 Properties](11-relational-properties.md)
 
 ---
 
-Этот документ фиксирует отдельный слой аудита: **штатные Community-модули, которые автоматически связывают Project с другими предметными приложениями**.
+Project в Odoo 19 Community связан с другими приложениями не только через ручные ссылки. Значимая часть интеграции появляется через базовые relations, relational Properties и auto-install bridge modules.
 
-Главный вывод:
+## 1. Три уровня связи
 
-> Перед созданием собственного поля или интеграционного модуля недостаточно проверить только `project` и целевое приложение. Нужно проверить семейство `project_*`, `hr_*`, `stock_*` и другие auto-install bridge modules.
+### Уровень A — Task ↔ предметный объект
 
-## 1. Почему это важно
-
-Ранее можно было сделать слишком ранний вывод:
+Для click-only ссылки сначала использовать relational Property:
 
 ```text
-Project существует
-Inventory существует
-→ связи нет
-→ нужен custom module
+Task → fleet.vehicle
+Task → hr.employee
+Task → maintenance.equipment
+Task → res.partner
+Task → stock.lot [если модель доступна и сценарий подтверждён]
 ```
 
-Для Odoo это неверный способ аудита.
+### Уровень B — документ ↔ Project
 
-Правильная последовательность:
+Штатные bridge modules добавляют прямые поля, например:
 
 ```text
-модель A
-→ модель B
-→ bridge modules
-→ реальные встроенные связи
-→ встроенная аналитика
-→ только затем residual gap
+Purchase Order → Project
+Stock Picking  → Project
 ```
 
-## 2. Подтверждённые Project bridge modules
+### Уровень C — Project ↔ analytic/financial layer
 
-В публичной ветке `odoo/odoo:19.0` подтверждены, среди прочего:
+Base Project уже имеет Analytic Account, а bridges добавляют profitability/cost integrations.
 
-| Установленные контуры | Auto-install bridge | Что добавляет |
-|---|---|---|
-| Project + Accounting | `project_account` | profitability sections, analytic costs/revenues, vendor bills |
-| Project + Purchase | `project_purchase` | Purchase Order → Project и мониторинг закупок проекта |
-| Project + Inventory | `project_stock` | Stock Picking → Project |
-| Project + Stock Accounting | `project_stock_account` | analytic accounting stock movements по Project |
-| Project + Expenses | `project_hr_expense` | расходы analytic account в Project |
-| Project + Manufacturing | `project_mrp` / связанные account bridges | manufacturing records → Project; вне базового контура отдела |
+## 2. Project ↔ Analytic Account
 
-Это не означает, что все эти приложения нужно ставить. Это означает, что **их нельзя объявлять несвязанными заранее**.
-
-## 3. Project ↔ Analytic Account — связь уже в базовом Community Project
-
-Публичная модель `project.project` содержит:
+Public `project.project` содержит:
 
 ```python
 account_id = fields.Many2one('account.analytic.account', ...)
-analytic_account_balance = fields.Monetary(related="account_id.balance")
 ```
 
-Сам `project` зависит от `analytic`.
+Project зависит от `analytic`.
 
-Следовательно, Analytic Account является штатным финансово-аналитическим измерением проекта, а не внешним костылём.
+Использовать этот слой, если существует реальный финансовый вопрос:
 
-Источник: [`addons/project/models/project_project.py`](https://github.com/odoo/odoo/blob/19.0/addons/project/models/project_project.py).
-
-### Методическое решение
-
-Analytic Account использовать **только если существует финансовый/стоимостной вопрос**:
-
-- затраты инициативы;
-- доходы инициативы;
-- расходы/закупки/материалы, связанные с Project;
+- затраты проекта;
+- доходы;
+- материалы;
+- расходы;
+- закупки;
 - profitability.
 
-Не использовать Analytic Account вместо:
+Не использовать Analytic Account вместо Process Property или Task classification.
 
-- Stage;
-- Process Property;
-- Task classification;
-- организационной очереди.
+## 3. `project_account`
 
-## 4. `project_account`: Project получает profitability из бухгалтерских и analytic данных
+Community bridge `project_account` добавляет profitability-интеграцию с accounting/analytic data.
 
-Публичный Community bridge [`project_account`](https://github.com/odoo/odoo/blob/19.0/addons/project_account/__manifest__.py):
-
-```text
-summary = project profitability items computation
-depends = account + project
-auto_install = True
-```
-
-Модуль добавляет в profitability, среди прочего:
+Подтверждены секции/источники типа:
 
 - Vendor Bills;
 - Other Costs;
 - Other Revenues.
 
-Исходный код использует:
+Полнота Project Profitability зависит от установленных приложений и bridge modules.
 
-```text
-Project.account_id
-account.move.line.analytic_distribution
-account.analytic.line
-```
+Поэтому корректная формулировка:
 
-и умеет открывать связанные bills / analytic lines из секций profitability.
+> Community имеет модульную public-инфраструктуру Project profitability, а не гарантированно одинаковый полный dashboard на любой установке.
 
-Источник: [`project_account/models/project_project.py`](https://github.com/odoo/odoo/blob/19.0/addons/project_account/models/project_project.py).
+## 4. Project ↔ Purchase
 
-### Официальная документация
-
-[Project profitability](https://www.odoo.com/documentation/19.0/applications/services/project/project_management/project_profitability.html) описывает dashboard costs/revenues, формируемые из записей, связанных с Project и его Analytic Account.
-
-Документация перечисляет потенциальные источники:
-
-- Timesheets;
-- materials;
-- Purchase Orders;
-- Expenses;
-- Vendor Bills;
-- Manufacturing Orders;
-- other analytic costs/revenues.
-
-### Важная оговорка Community
-
-Документация описывает итоговый продукт с набором установленных приложений. Наличие каждой строки profitability в конкретной Community-базе зависит от того, установлен ли соответствующий публичный bridge и его зависимости.
-
-Поэтому не пишем:
-
-> «Community всегда показывает полный profitability dashboard».
-
-Пишем:
-
-> **Community Project имеет публичную модульную инфраструктуру profitability, которая расширяется штатными bridge modules в зависимости от установленных приложений.**
-
-## 5. Project ↔ Purchase — прямая штатная связь
-
-Публичный [`project_purchase`](https://github.com/odoo/odoo/blob/19.0/addons/project_purchase/__manifest__.py) автоматически устанавливается при нужных зависимостях.
-
-В `purchase.order` он добавляет:
+`project_purchase` добавляет в `purchase.order`:
 
 ```python
 project_id = fields.Many2one('project.project', ...)
 ```
 
-Источник: [`project_purchase/models/purchase_order.py`](https://github.com/odoo/odoo/blob/19.0/addons/project_purchase/models/purchase_order.py).
+Если Purchase Order относится к самостоятельной инициативе, связь уже штатная.
 
-### Методический вывод
+Не создавать текстовое Property `Проект закупки` ради той же связи.
 
-Если отдельная Project-инициатива реально имеет закупки, Purchase Order можно связывать с Project штатно.
+Purchase Order при этом не становится Task.
 
-Не нужно для этого:
+## 5. Project ↔ Inventory
 
-- текстовое Property `Проект закупки`;
-- ручная ссылка в Chatter;
-- собственная таблица соответствий.
+`project_stock` добавляет в `stock.picking` прямой `project_id`.
 
-Но **Purchase Order не становится Project Task**. Это две разные сущности:
+Это позволяет связать материальное перемещение с Project.
 
-```text
-Project Task = обязательство / результат
-Purchase Order = закупочный документ
-```
+При этом отдельная Task может ссылаться на конкретный Equipment/Serial/Vehicle через relational Property, если процессу нужен именно такой уровень детализации.
 
-## 6. Project ↔ Inventory — прямая связь Stock Picking → Project
-
-Публичный [`project_stock`](https://github.com/odoo/odoo/blob/19.0/addons/project_stock/__manifest__.py) имеет назначение:
+Не путать:
 
 ```text
-Link Stock pickings to Project
+Picking → Project
+Task → предметный record через Property
 ```
 
-Он добавляет в `stock.picking`:
+Это разные связи.
 
-```python
-project_id = fields.Many2one('project.project', ...)
-```
+## 6. Project ↔ Stock Accounting
 
-Источник: [`project_stock/models/stock_picking.py`](https://github.com/odoo/odoo/blob/19.0/addons/project_stock/models/stock_picking.py).
+`project_stock_account` добавляет analytic handling stock movements в контексте Project.
 
-### Методический вывод
+Если отдельная инициатива использует материалы и стоимость движения важна, сначала тестировать штатную связку.
 
-Если материальное перемещение относится к отдельной инициативе, связь Picking → Project уже предусмотрена Community.
+## 7. Project ↔ Expenses
 
-Это **не** означает наличие связи:
+`project_hr_expense` связывает Expenses с Project/analytic account.
 
-```text
-Project Task → конкретный serial/lot/equipment
-```
+Не создавать Project Task на каждый Expense только ради отображения в проекте.
 
-Поэтому уровни нужно различать:
+Task нужна лишь при отдельном обязательстве поверх expense workflow.
 
-```text
-Stock Picking → Project       [подтверждено штатно]
-Task → Stock Picking          [не считать автоматически существующим]
-Task → Serial/Lot             [не подтверждено как штатное поле Project]
-Task → Maintenance Equipment  [не подтверждено как штатное поле Project]
-```
-
-## 7. `project_stock_account`: stock movements могут участвовать в project analytics
-
-Публичный [`project_stock_account`](https://github.com/odoo/odoo/blob/19.0/addons/project_stock_account/__manifest__.py) описан как:
-
-```text
-Handle analytics in Stock pickings with Project
-```
-
-Он зависит от Stock Accounting и `project_stock` и устанавливается автоматически.
-
-### Методический вывод
-
-Для инициатив с материальными затратами существует штатная дорога:
-
-```text
-Inventory movement
-→ Project
-→ analytic layer
-→ project financial analytics
-```
-
-Не следует заранее проектировать отдельную таблицу «затраты материалов проекта», пока штатная связка не проверена на пилоте.
-
-## 8. Project ↔ Expenses
-
-Публичный [`project_hr_expense`](https://github.com/odoo/odoo/blob/19.0/addons/project_hr_expense/__manifest__.py) связывает Project и Expenses через analytic account.
-
-Описание модуля:
-
-```text
-Bridge created to add the number of expenses linked to an AA to a project form
-```
-
-### Методический вывод
-
-Если расходы сотрудника относятся к отдельной Project-инициативе, сначала использовать штатную analytic integration.
-
-Не создавать дублирующую Project Task на каждый Expense только ради того, чтобы он появился в контроле проекта.
-
-Task нужна только если существует отдельное обязательство поверх expense workflow.
-
-## 9. Project profitability — использовать только в правильном контексте
-
-Официальная документация говорит, что profitability отображается **для billable projects**.
-
-Для нашего постоянного операционного Project это важная граница.
-
-### Операционная очередь отдела
-
-Основные вопросы:
-
-- backlog;
-- сроки;
-- Waiting;
-- external waiting;
-- throughput;
-- working time to assign/close.
-
-Profitability может вообще быть не нужна.
-
-### Самостоятельная инициатива
-
-Если есть:
-
-- бюджет/затраты;
-- закупки;
-- материалы;
-- расходы;
-- экономический результат;
-
-тогда финансово-аналитический слой Project становится осмысленным.
-
-Не включать Accounting/Purchase/Inventory в пилот операционной очереди только ради того, что интеграция существует.
-
-## 10. Budget Management — всё ещё не считаем гарантированной Community-функцией
-
-Официальный Project Dashboard документирует Budget section.
-
-Публичный `account` содержит setting:
-
-```text
-module_account_budget = Budget Management
-```
-
-Но публичный `addons/account_budget` в `odoo/odoo:19.0` не найден.
-
-Поэтому:
-
-- Analytic Accounting — Community подтверждено;
-- Project profitability bridge infrastructure — Community подтверждена частично публичными модулями;
-- Budget Management — **не включать в гарантированный CE baseline** без отдельного подтверждения конкретной сборки/редакции.
-
-## 11. Import relational fields сильнее, чем просто «CSV загрузка»
-
-Официальная документация Odoo 19 подтверждает импорт relational fields.
-
-Поддерживаются ссылки через:
-
-- имя связанной записи;
-- Database ID;
-- External ID.
-
-Для стабильной интеграции справочников рекомендуется External ID.
+## 8. Relational Properties дополняют bridges, а не конкурируют с ними
 
 Пример:
 
 ```text
-Vehicle External ID = vehicle_000123
-Employee External ID = employee_000045
+Stock Picking.project_id
+= к какой инициативе относится перемещение
+
+Task Property[Оборудование]
+= по какому конкретному Equipment выполняется работа
 ```
 
-Для связанного поля используется формат:
+Или:
 
 ```text
-Поле/External ID
+Purchase Order.project_id
+= к какому Project относится закупка
+
+Task Property[ТС]
+= какое ТС является предметом отдельного обязательства
 ```
 
-Документация также подтверждает:
+Не создавать вторую связь там, где bridge уже отвечает на тот же вопрос.
 
-- предварительный импорт связанных records;
-- Many2many imports;
-- One2many imports;
-- повторный массовый update при сохранении External ID;
-- import-compatible export.
+## 9. Inventory ↔ Maintenance bridge
 
-Источник: [Export and import data](https://www.odoo.com/documentation/19.0/applications/essentials/export_import_data.html).
+`stock_maintenance` уже связывает Equipment со stock location и совпавшим serial/lot.
 
-### Методический вывод
-
-Внешний справочник, который регулярно обновляется из другой системы, должен с первого импорта получать **стабильный External ID**.
-
-Это существенно лучше связывает данные, чем поиск только по наименованию.
-
-### Но это не создаёт отсутствующее поле
-
-Import умеет заполнить существующую Many2one/M2M/O2M связь.
-
-Он **не может создать отношение, которого нет в модели**.
-
-Например, отсутствие стандартного:
+Поэтому для asset/process architecture сначала проверить:
 
 ```text
-project.task.vehicle_id
+Inventory
++ Maintenance
++ stock_maintenance
++ Task Property[Оборудование]
 ```
 
-не решается тем, что Fleet Vehicle имеет External ID.
+а не писать собственную цепочку relations.
 
-## 12. Security — сначала стандартные права приложений и Project visibility
+## 10. Employees ↔ Fleet / Maintenance
 
-Официальная документация Odoo 19 разделяет:
+`hr_fleet` даёт Employee ↔ Vehicle history.
 
-1. application/model access rights;
-2. более детальные groups;
-3. record rules как второй уровень ограничения записей.
+`hr_maintenance` даёт Employee ↔ Equipment allocation.
 
-Odoo отдельно предупреждает, что неправильные изменения технических access rights могут повредить доступ к базе.
-
-Источник: [Access rights](https://www.odoo.com/documentation/19.0/applications/general/users/access_rights.html).
-
-### Для Project отдельно подтверждены
-
-- Invited internal users;
-- All internal users;
-- режим с portal collaborators;
-- collaborator access `Read`;
-- `Edit with limited access`;
-- `Edit`.
-
-Источник: [Project management — Visibility and collaboration](https://www.odoo.com/documentation/19.0/applications/services/project/project_management.html).
-
-### Методическое решение
-
-На пилоте:
+Task может при этом иметь:
 
 ```text
-application access rights
-→ Project visibility
-→ реальные тестовые пользователи
-→ проверка чтения/создания/изменения
+Property[Сотрудник]
+Property[ТС]
+Property[Оборудование]
 ```
 
-И только после доказанного ограничения:
+только там, где эти dimensions нужны самому обязательству.
 
-```text
-custom groups / record rules
-```
+## 11. Import relational data
 
-Не строить техническую security-модель на бумаге без проверки фактических ACL каждого установленного приложения.
+Официальный Import Odoo 19 умеет работать с relational fields через names/Database ID/External ID.
 
-## 13. Cross-app security нужно тестировать как отдельный сценарий
+Для master data сохранять стабильный External ID.
 
-При появлении bridge modules вопрос становится сложнее.
+Это важно для Fleet/Employees/Equipment/Contacts.
+
+Для **dynamic Properties внутри Tasks** импорт нужно проверить отдельно: pseudo-field Properties не следует автоматически считать эквивалентным обычной schema Many2one при bulk import.
+
+## 12. JSON-2 для cross-app integration
+
+Если системная интеграция должна читать/писать Project и связанные модели, использовать JSON-2/API keys и фактическую `/doc` конкретной базы.
+
+До custom API-module проверить:
+
+- Project Task;
+- task_properties;
+- target model;
+- bridge-generated fields;
+- user ACL/record rules.
+
+## 13. Cross-app security
+
+Связь record с Project не отменяет права исходного приложения.
 
 Пример:
 
 ```text
-пользователь видит Project
-но не имеет Purchase rights
+Project User видит Project
+но не имеет Purchase access
 ```
 
-Он не обязан автоматически видеть Purchase Order только потому, что та связана с Project.
+Он не должен автоматически получать полный доступ к Purchase Order только из-за `project_id`.
 
-То же относится к:
+Для каждого bridge тестировать под реальными ролями:
 
-- Accounting;
-- Expenses;
-- Inventory;
-- HR;
-- Fleet;
-- Maintenance.
+- видит ли section/smart button;
+- может ли открыть record;
+- может ли изменить;
+- какие target records доступны relational Property.
 
-### Поэтому для каждой интеграции в пилоте фиксировать
+## 14. Что больше не считаем gap
+
+После обнаружения relational Properties не считать gap по умолчанию:
 
 ```text
-роль
-→ исходное приложение
-→ связанный Project
-→ видит ли smart button/section
-→ может ли открыть record
-→ может ли изменить record
+Task → Fleet Vehicle
+Task → Employee
+Task → Maintenance Equipment
 ```
 
-Это безопаснее, чем заранее ослаблять ACL ради «единого окна».
+Они сначала реализуются Property Many2one/Many2many.
 
-## 14. Обновлённая карта остаточных gaps
-
-После проверки Project bridges часть потенциальных gaps исчезла.
-
-### Уже не gaps
+Также уже штатно подтверждены:
 
 ```text
 Purchase Order → Project
 Stock Picking → Project
 Project → Analytic Account
-Project profitability from supported analytic/account sources
 Employee ↔ Fleet history
 Employee ↔ Maintenance allocation
-Inventory serial/location ↔ Maintenance Equipment [частично через stock_maintenance]
+Inventory ↔ Maintenance [частично]
 ```
 
-### Всё ещё реальные/возможные gaps
+## 15. Возможные реальные cross-model gaps
+
+Остаются кандидатами только после пилота:
+
+- Property неудобен/медленен на нужном масштабе;
+- требуется reverse relation на предметной model;
+- API/BI требует обычного schema field;
+- нужна server constraint;
+- требуется специальная cross-model transaction logic;
+- standard profitability/reporting не отвечает на нужный вопрос;
+- нужна агрегированная аналитика, которой нет в standard report models.
+
+## 16. Budget Management
+
+Analytic Accounting подтверждён Community.
+
+Budget Management не включается в гарантированный baseline: общая документация и setting существуют, но public `account_budget` не подтверждён в `odoo/odoo:19.0`.
+
+## 17. Операционный Project vs инициатива
+
+### Операционный Project отдела
+
+Основные вопросы:
+
+- backlog;
+- Deadline;
+- Waiting;
+- external waiting;
+- Assignee;
+- предметные Properties;
+- throughput.
+
+Финансовые bridges могут быть не нужны вообще.
+
+### Самостоятельная инициатива
+
+При наличии закупок/материалов/расходов/экономического результата можно подключать штатный analytic/project integration layer.
+
+## 18. Новый порядок проверки cross-model потребности
 
 ```text
-Project Task → Fleet Vehicle
-Project Task → arbitrary Employee as analyzed subject
-Project Task → Maintenance Equipment
-Project Task → Stock Serial/Lot
-универсальный Project Task → arbitrary business master record
-агрегированный SLA / time-in-stage analytics
-arbitrary capacity/shift planning
-жёсткая BPM transition matrix по ролям
+1. предметная model
+2. relational Property Task → record
+3. bridge modules между приложениями
+4. прямые model relations
+5. standard views/reports
+6. ACL/record rules
+7. Import/External ID
+8. JSON-2/API
+9. реальный объём
+10. residual gap
 ```
 
-Каждый из них ещё требует проверки реального процесса до разработки.
-
-## 15. Главный архитектурный вывод третьего прохода
-
-Odoo 19 Community — это не набор изолированных приложений. Значительная часть силы платформы находится в небольших **auto-install bridge modules**, которые появляются только при сочетании приложений.
-
-Поэтому технический аудит любой новой потребности теперь выполняется так:
-
-```mermaid
-flowchart TD
-    R[Потребность] --> A[Найти предметную модель]
-    A --> B[Проверить Community-приложение]
-    B --> C[Проверить bridge modules]
-    C --> D[Проверить прямые relations]
-    D --> E[Проверить встроенные views/reports]
-    E --> F[Проверить ACL и visibility]
-    F --> G[Проверить Import / External ID]
-    G --> H{Остался реальный gap?}
-    H -- Нет --> S[Использовать штатно]
-    H -- Да --> M[Минимальная доработка]
-```
-
-Только последний шаг является основанием для собственного модуля.
+Только пункт 10 является основанием для custom integration module.
 
 ---
 
-[← 07 — Углублённый аудит](07-deep-community-audit.md) · [Главная](../README.md)
+[← 07 — Аудит](07-deep-community-audit.md) · [09 — Project и безопасность →](09-project-productivity-security.md)
