@@ -6,6 +6,7 @@
 
 **[Сначала — проверенная граница возможностей Odoo 19 Community →](docs/00-odoo19-community.md)**  
 **[Углублённый аудит штатных мостов и скрытых возможностей →](docs/07-deep-community-audit.md)**  
+**[Аудит штатных интеграций Project →](docs/08-project-integrations.md)**  
 **[Затем — модель управления →](docs/01-methodology.md)**
 
 ## На каких источниках основана методика
@@ -53,6 +54,11 @@ flowchart TB
     M --> HM
     I --> SM[stock_maintenance]
     M --> SM
+
+    P[Project] --> PA[project_account]
+    P --> PP[project_purchase]
+    P --> PS[project_stock]
+    P --> PE[project_hr_expense]
 
     I0[Входящее] --> T[Project Task = обязательство]
     T --> S[Stage / State]
@@ -121,15 +127,20 @@ Odoo 19 Community позволяет собрать общий рабочий к
 
 ## Перед любой доработкой — проверить штатный мост
 
-Во втором проходе уже подтверждены auto-install связи:
+Подтверждены auto-install связи:
 
 ```text
-Employees + Fleet       → hr_fleet
-Employees + Maintenance → hr_maintenance
-Inventory + Maintenance → stock_maintenance
-Skills + Surveys        → hr_skills_survey
-Skills + eLearning      → hr_skills_slides
-Employees + Calendar    → hr_calendar
+Employees + Fleet        → hr_fleet
+Employees + Maintenance  → hr_maintenance
+Inventory + Maintenance  → stock_maintenance
+Skills + Surveys         → hr_skills_survey
+Skills + eLearning       → hr_skills_slides
+Employees + Calendar     → hr_calendar
+Project + Accounting     → project_account
+Project + Purchase       → project_purchase
+Project + Inventory      → project_stock
+Project + Stock Account  → project_stock_account
+Project + Expenses       → project_hr_expense
 ```
 
 Поэтому разрыв модели фиксируется только после проверки:
@@ -137,7 +148,8 @@ Employees + Calendar    → hr_calendar
 1. правильной предметной сущности;
 2. стандартного Community-приложения;
 3. штатного bridge module;
-4. фактического ограничения оставшейся связи.
+4. прямых связей и встроенной аналитики;
+5. фактического остаточного ограничения.
 
 ## Где штатной модели уже недостаточно
 
@@ -166,6 +178,7 @@ Employees + Calendar    → hr_calendar
 | **[05 — Описание процессов](docs/05-processes.md)** | как определить штатные сущности процесса, единицу Task, источник истины и click-only gaps |
 | **[06 — Настройка Odoo](docs/06-workspace.md)** | последовательная click-only настройка пилота, импорт, Shared Views, My Dashboard и критерии будущей доработки |
 | **[07 — Углублённый аудит Community](docs/07-deep-community-audit.md)** | Task Templates, stage duration, рабочие календари, Skills/eLearning/Certifications, штатные bridge modules, Data Recycle, Contacts dedupe, Canned Responses и дополнительные границы CE |
+| **[08 — Интеграции Project](docs/08-project-integrations.md)** | Project ↔ Analytic Account, Purchase, Inventory, Expenses, profitability, relational import, access rights и уточнённые cross-model gaps |
 
 ## Что методика сознательно не делает
 
@@ -195,6 +208,7 @@ Employees + Calendar    → hr_calendar
 → Shared Views
 → Task Analysis
 → My Dashboard
+→ при необходимости analytic / purchase / stock integrations
 → стабильные KPI
 → точечная Automation
 → подтверждённые gaps
