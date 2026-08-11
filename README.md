@@ -41,9 +41,10 @@ flowchart TB
     E[Employees] --> U[Users / исполнители]
     C[Contacts] --> X[Внешние люди и организации]
     F[Fleet] --> V[Транспортные средства]
-    M[Maintenance] --> EQ[Оборудование и обслуживание]
+    M[Maintenance] --> EQ[Обслуживаемое оборудование]
+    I[Inventory] --> ST[Серийники / места / перемещения]
 
-    I[Входящее] --> T[Project Task = обязательство]
+    I0[Входящее] --> T[Project Task = обязательство]
     T --> S[Stage / State]
     T --> A[Assignee / Deadline / Priority]
     T --> N[Activities / Dependencies / Chatter]
@@ -53,7 +54,7 @@ flowchart TB
     TD[To-Do] -->|стало общим обязательством| T
     DS[Discuss] -. обсуждение .-> T
     CAL[Calendar] -. встречи .-> T
-    W[Email alias / Website Form] --> I
+    W[Email alias / Website Form] --> I0
 ```
 
 Ключевой принцип:
@@ -64,11 +65,14 @@ flowchart TB
 
 - сотрудник живёт в Employees;
 - внешний человек/организация — в Contacts;
-- ТС — во Fleet;
-- оборудование и его обслуживание — в Maintenance;
+- автомобиль/ТС сначала проверяется на пригодность штатной модели Fleet;
+- обслуживаемое оборудование — в Maintenance;
+- серийный объект, остаток, место хранения и перемещение — в Inventory, если нужен именно складской/трассировочный контур;
 - встреча — в Calendar;
 - личная мысль — в To-Do;
 - обязательство — в Project Task.
+
+Attendances, Time Off, Surveys, Repairs и другие подтверждённые Community-приложения не включаются автоматически: они используются только если их предметная модель отвечает реальной задаче управления.
 
 ## Базовый операционный контур
 
@@ -122,7 +126,7 @@ Odoo 19 Community позволяет собрать общий рабочий к
 
 | Раздел | Что внутри |
 |---|---|
-| **[00 — Возможности Odoo 19 Community](docs/00-odoo19-community.md)** | проверенная карта Project, Employees, Contacts, Fleet, Maintenance, Discuss, Calendar, Dashboards, импорт/экспорт, права и реальные CE-ограничения |
+| **[00 — Возможности Odoo 19 Community](docs/00-odoo19-community.md)** | проверенная карта Project, Employees, Contacts, Fleet, Maintenance, Inventory, Attendances, Time Off, Surveys, Discuss, Calendar, Dashboards, импорта/экспорта, прав и реальных CE-ограничений |
 | **[01 — Модель управления](docs/01-methodology.md)** | какая сущность для чего используется, задача, ответственность, этапы, сроки, ожидание, периодика и границы click-only |
 | **[02 — Рабочие сценарии](docs/02-scripts.md)** | действия в типовых ситуациях: входящие, очередь, зависимости, ТС, сотрудники, оборудование, email/form intake, импорт и gaps |
 | **[03 — Контроль и аналитика](docs/03-control.md)** | Shared Views, Task Analysis, My Dashboard, предметная аналитика Fleet/Maintenance и минимальные управленческие показатели |
@@ -137,7 +141,7 @@ Odoo 19 Community позволяет собрать общий рабочий к
 - превратить Project в BPM-движок;
 - создать отдельный Project на каждый процесс;
 - хранить тысячи ТС/сотрудников в Properties;
-- заменить Fleet или Maintenance Kanban-задачами;
+- заменить Fleet, Maintenance или Inventory Kanban-задачами;
 - использовать Discuss как журнал незавершённой работы;
 - использовать Timesheets как средство дисциплинарного наблюдения;
 - оценивать сотрудников простым числом закрытых Tasks;
