@@ -65,6 +65,8 @@ Property[Оборудование] → Many2one(maintenance.equipment)
 
 Сначала relational Property проверяется на реальном объёме, в filter/group, правах, Import/API и BI.
 
+Важная граница: стандартный `task_properties` не включён в Chatter tracking как обычное `tracking=True` поле. Если доказуемая история смены предметной ссылки обязательна, это уже отдельный критерий для минимальной доработки или специального правила фиксации изменения.
+
 ## Базовый операционный Project
 
 Для постоянной работы одного отдела обычно достаточно одного Project:
@@ -97,6 +99,7 @@ Blocked by
 - Shared Favorites;
 - Project Top Bar `Save View → Shared`;
 - List / Kanban / Calendar / Activity / Pivot / Graph;
+- **mass edit в Task List**;
 - Task Analysis;
 - My Dashboard;
 - Rotting;
@@ -107,6 +110,8 @@ Blocked by
 - Project Templates и Project Roles;
 - Project Stages для портфеля инициатив;
 - Milestones / Project Updates / Burndown для инициатив.
+
+Для большого входящего потока **List рассматривается как диспетчерское рабочее место**, а Kanban — как визуализация потока по Stages.
 
 ## Четыре разных механизма повторяемости
 
@@ -168,6 +173,12 @@ Project + Expenses       → project_hr_expense
 - Data Recycle.
 
 Они не включаются автоматически: специализированный workflow используется только для своего предмета.
+
+## Сменная работа
+
+Community Resource Calendar умеет обычный и двухнедельный рабочий календарь, но это не произвольный roster engine. Чистый цикл `2/2` не следует автоматически считать закрытым штатным two-week schedule.
+
+Recurring Task поддерживает Days / Weeks / Months / Years, но не часы. Поэтому recurrence `каждые 12 часов` штатно не подтверждена; дневной и ночной handover при необходимости тестируются как две отдельные daily chains.
 
 ## API и интеграции
 
@@ -235,6 +246,7 @@ Task → Equipment
 
 Реальными кандидатами на доработку остаются только подтверждённые пилотом проблемы, например:
 
+- обязательная история изменения Property-ссылки;
 - агрегированный time-in-stage/SLA reporting;
 - произвольное capacity/shift planning;
 - жёсткая BPM-матрица переходов по ролям;
@@ -273,7 +285,10 @@ Task → Equipment
 | [08 — Интеграции Project](docs/08-project-integrations.md) | Project ↔ analytic/purchase/stock/expenses |
 | [09 — Project и безопасность](docs/09-project-productivity-security.md) | Project Stages, UX, authentication |
 | [10 — API и интеграции](docs/10-external-integrations.md) | JSON-2, webhooks, integration patterns |
-| [11 — Relational Properties](docs/11-relational-properties.md) | техническая проверка Many2one/Many2many Properties |
+| [11 — Relational Properties](docs/11-relational-properties.md) | Many2one/Many2many Properties, tracking и residual gaps |
+| [12 — Коммуникации и вложения](docs/12-communication-documents.md) | sharing, Chatter, Stage email/rating, scheduled messages, attachment indexation |
+| [13 — Смены и регламентные циклы](docs/13-shift-routines.md) | Resource Calendar, 2/2, handover, recurrence и runtime-границы |
+| [14 — Высокопоточный триаж](docs/14-high-volume-triage.md) | Task List, mass edit, operational filters, Activities и нагрузочный пилот |
 
 ## Где хранится что
 
