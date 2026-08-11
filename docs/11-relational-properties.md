@@ -1,12 +1,12 @@
 # Relational Properties в Odoo 19 Community
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [07 Углублённый аудит](07-deep-community-audit.md) · [08 Интеграции Project](08-project-integrations.md) · [10 API](10-external-integrations.md) · **11 Relational Properties**
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [07 Аудит](07-deep-community-audit.md) · [08 Интеграции Project](08-project-integrations.md) · [10 API](10-external-integrations.md) · **11 Relational Properties**
 
 ---
 
-Этот документ фиксирует главное техническое уточнение текущего аудита: **Properties Odoo 19 — не только текст/Selection, а полноценный click-only механизм ссылок на записи других моделей**.
+Properties Odoo 19 — не только текст/Selection. Это штатный click-only механизм, который в том числе умеет ссылки на записи других моделей.
 
-Это существенно меняет границу между настройкой и custom module.
+Это существенно отодвигает необходимость custom module, но Properties не идентичны обычным schema fields и имеют важные ограничения.
 
 ## 1. Подтверждённые типы Property
 
@@ -29,9 +29,9 @@
 
 Источник: [Property fields](https://www.odoo.com/documentation/19.0/applications/essentials/property_fields.html).
 
-## 2. Many2one / Many2many выбирают реальную Odoo-модель
+## 2. Many2one / Many2many выбирают настоящую Odoo-модель
 
-Для relational Property настраиваются:
+Для relational Property задаются:
 
 ```text
 Label
@@ -40,8 +40,6 @@ Model
 Domain
 Default Value
 ```
-
-То есть Property может ссылаться не на вручную набитый список, а на существующий record нужной модели.
 
 Примеры:
 
@@ -52,17 +50,18 @@ Default Value
 Контрагент   → res.partner
 ```
 
-## 3. Public Community source это подтверждает
+Это не вручную набитый Selection, а ссылка на существующий record.
 
-`odoo/orm/fields_properties.py` поддерживает definition с `type`, `comodel`, `domain` и relational values.
+## 3. Public Community source подтверждает relations
 
-Web-клиент Property Definition содержит:
+`odoo/orm/fields_properties.py` поддерживает `type`, `comodel`, `domain` и relational values.
+
+Web client содержит:
 
 - `ModelSelector`;
 - `DomainSelector`;
-- настройку comodel.
-
-Property Value использует стандартный `Many2XAutocomplete`, умеет открывать связанную запись и учитывает отсутствие доступа к target record.
+- `Many2XAutocomplete`;
+- переход к выбранной записи.
 
 Источники:
 
@@ -70,7 +69,7 @@ Property Value использует стандартный `Many2XAutocomplete`,
 - [`property_definition.js`](https://github.com/odoo/odoo/blob/19.0/addons/web/static/src/views/fields/properties/property_definition.js);
 - [`property_value.js`](https://github.com/odoo/odoo/blob/19.0/addons/web/static/src/views/fields/properties/property_value.js).
 
-## 4. Project Task Properties — штатная часть Community Project
+## 4. Project Task Properties — штатная часть Community
 
 `project.task` содержит:
 
@@ -84,26 +83,22 @@ task_properties = fields.Properties(
 
 Definition хранится на Project.
 
-Это означает: набор Properties зависит от Project и может быть настроен кликами для его Tasks.
+Набор Properties одного операционного Project можно настроить через UI без Studio.
 
 ## 5. Search / Group By подтверждены
 
-Стандартный Task Search View содержит:
+Standard Task Search View содержит:
 
 ```text
-field name="task_properties"
+task_properties
 Group By → Properties
 ```
 
-Следовательно, relational Property — не только поле для отображения. Оно участвует в штатном поиске/группировке Tasks.
+Следовательно, Property участвует в оперативном поиске/группировке Tasks.
 
 Источник: [`project_task_views.xml`](https://github.com/odoo/odoo/blob/19.0/addons/project/views/project_task_views.xml).
 
 ## 6. Правильная архитектура master data
-
-Relational Property **не заменяет** Fleet/Employees/Maintenance.
-
-Правильно:
 
 ```text
 Fleet Vehicle
@@ -113,74 +108,150 @@ Task Property[ТС]
 = ссылка на Fleet Vehicle
 ```
 
-Неправильно:
+Не делать:
 
 ```text
 Property Selection[ТС]
-= вручную набитые тысячи госномеров
+= тысячи вручную внесённых госномеров
 ```
 
-То же самое для Employees, Equipment и Contacts.
+То же для Employee, Equipment и Contacts.
 
-## 7. Почему это лучше текстового поля
+## 7. Что Many2one Property даёт штатно
 
-Many2one Property даёт:
-
-- выбор существующей записи;
+- выбор существующего record;
 - единый display name;
 - переход к target record;
 - Domain;
-- штатные права target model;
+- target-model ACL/record rules;
 - filter/group в Project;
-- отсутствие ручного дублирования значений справочника.
+- `Show in cards`;
+- отсутствие дублируемого справочника.
 
-## 8. Почему это всё-таки не обычный schema field
+## 8. Почему Property всё же не обычный schema field
 
 Property — pseudo-field.
 
-Definition и values хранятся через Properties/JSONB-механику, а не как отдельная колонка вида:
+Values/definition используют Properties/JSONB-механику, а не отдельную колонку:
 
 ```sql
 project_task.vehicle_id
 ```
 
-Поэтому свойства и эксплуатационные характеристики отличаются от обычного `fields.Many2one`.
+Поэтому нельзя автоматически предполагать обычные свойства DB Many2one.
 
-## 9. Что нельзя предполагать без теста
+## 9. Не предполагать без runtime-теста
 
-Не считать автоматически, что relational Property:
+- производительность на любом объёме;
+- наличие Property в каждом SQL report model;
+- DB foreign key/index;
+- reverse relation;
+- удобство любой server constraint;
+- одинаково простой API/BI;
+- одинаково простой bulk import.
 
-- одинаково производителен на любом объёме;
-- одинаково удобен во всех reports;
-- автоматически появляется во всех SQL-report models;
-- имеет обычный DB foreign key/index;
-- обеспечивает reverse relation на target model;
-- подходит для любой server constraint;
-- одинаково прост для внешнего BI/API.
-
-Это вопросы пилота, а не причины отказаться от Property заранее.
+Это предмет пилота.
 
 ## 10. Domain не является security
 
-Domain ограничивает варианты в UI.
+Domain ограничивает варианты выбора в UI.
 
-Но доступ к target record определяется:
+Доступ к target record определяется:
 
 - ACL;
 - record rules;
 - company/security context.
 
-Нельзя использовать Domain как замену правам.
-
 ## 11. Create/Create Edit target records
 
-Стандартный relational Property использует Many2XAutocomplete и технически поддерживает create/create-edit, если пользователь имеет соответствующие права target model.
+Relational Property использует стандартный autocomplete и может позволить создание target record, если пользователь имеет create access соответствующей модели.
 
-Это важно для master data governance.
+Для master data определить отдельно:
 
-Если исполнитель Project должен только выбирать существующий Vehicle, но не создавать Vehicles, create access Fleet должен быть ограничен на уровне Fleet ACL/groups.
+```text
+кто создаёт Vehicles/Employees/Equipment
+кто только выбирает существующие records
+```
 
-## 12. Рекомендуемый Property `ТС`
+## 12. Критичное ограничение: Project Task Properties не включены в Chatter tracking по умолчанию
+
+Это важная цена click-only Properties.
+
+`project.task.task_properties` в public source объявлен без:
+
+```python
+tracking=True
+```
+
+А `mail.thread._track_get_fields()` включает в tracking только поля, у которых установлен атрибут `tracking`.
+
+Источники:
+
+- [`project_task.py`](https://github.com/odoo/odoo/blob/19.0/addons/project/models/project_task.py);
+- [`mail_thread.py`](https://github.com/odoo/odoo/blob/19.0/addons/mail/models/mail_thread.py).
+
+### Следствие
+
+Не следует рассчитывать, что изменение:
+
+```text
+Property[ТС]: Vehicle A → Vehicle B
+```
+
+или:
+
+```text
+Property[Сотрудник]: Employee A → Employee B
+```
+
+автоматически появится в Chatter Project Task как обычное tracked-field изменение.
+
+Это принципиально отличается, например, от `stage_id`, `user_ids`, `date_deadline`, `priority`, где tracking включён.
+
+## 13. Mail engine технически умеет tracking Properties
+
+При этом public `mail.tracking.value` **специально поддерживает property values**, включая:
+
+- Many2one;
+- Many2many;
+- Tags;
+- другие Property types.
+
+Источник: [`mail_tracking_value.py`](https://github.com/odoo/odoo/blob/19.0/addons/mail/models/mail_tracking_value.py).
+
+То есть ограничение не в том, что Odoo вообще не умеет отображать old/new Property values. Ограничение — стандартный `project.task.task_properties` не включён в tracked fields.
+
+### Методический вывод
+
+Если доказуемая история изменения предметной ссылки обязательна, это уже обоснованный критерий для:
+
+1. отдельного правила ручной фиксации причины в Chatter; либо
+2. минимальной доработки tracking; либо
+3. обычного schema field с tracking, если одновременно есть другие основания.
+
+Не писать большое приложение только ради этого.
+
+## 14. Общего CRUD Audit Trail для Project Community не подтверждено
+
+Официальный общий Audit Trail report документирован в Accounting и относится к изменениям, влияющим на бухгалтерский учёт.
+
+Public Community repo не подтверждает отдельный универсальный audit-log app для всех Project fields/records.
+
+Chatter tracking в Odoo работает по конкретным tracked fields.
+
+Источник: [Chatter / field tracking](https://www.odoo.com/documentation/19.0/developer/reference/backend/mixins.html), [Accounting Audit Trail](https://www.odoo.com/documentation/19.0/applications/finance/accounting/reporting.html).
+
+### Следствие
+
+Не обещать:
+
+> «Odoo штатно хранит полный audit всех изменений любого поля Task».
+
+Корректно:
+
+> Odoo хранит Chatter/history для отслеживаемых полей и коммуникаций; полный audit конкретного бизнес-поля нужно проверять отдельно.
+
+## 15. Рекомендуемый Property `ТС`
 
 ```text
 Label: ТС
@@ -192,164 +263,160 @@ Show in cards: <если полезно>
 
 Пилот:
 
-1. создать 100+ Fleet records либо загрузить тестовый набор;
-2. создать Tasks с разными Vehicles;
-3. проверить autocomplete;
-4. проверить Filter;
-5. проверить Group By Properties;
-6. проверить List/Kanban;
-7. проверить отсутствие create rights у обычного пользователя;
-8. проверить экспорт/API.
+1. загрузить реальный тестовый Fleet;
+2. создать Tasks;
+3. autocomplete;
+4. Filter;
+5. Group By Properties;
+6. List/Kanban;
+7. ACL/create rights;
+8. Export/API;
+9. изменить Vehicle и проверить фактическую историю/Chatter;
+10. решить, требуется ли audit этого изменения.
 
-## 13. Property `Сотрудник`
+## 16. Property `Сотрудник`
 
 ```text
-Label: Сотрудник
 Type: Many2one
 Model: hr.employee
 ```
 
-Использовать только когда Employee является **объектом** Task.
+Использовать когда Employee — предмет Task, а не исполнитель.
 
-Не путать с Assignee.
+Если история изменения Employee-связи существенна, применяются те же ограничения tracking.
 
-## 14. Property `Оборудование`
+## 17. Property `Оборудование`
 
 ```text
-Label: Оборудование
 Type: Many2one
 Model: maintenance.equipment
 ```
 
-Если процесс является Maintenance Request, отдельная Project Task может вообще не требоваться.
+Если процесс является обычным Maintenance Request, отдельная Project Task может не требоваться.
 
-## 15. Property на Inventory Serial/Lot
+## 18. Property на Inventory Serial/Lot
 
-Технически Many2one Property позволяет выбрать модель `stock.lot`, если она доступна пользователю и Model selector позволяет её выбрать в конкретной базе.
+Технически Many2one Property может ссылаться на `stock.lot`, если модель доступна в Model selector и ACL пользователя разрешает records.
 
-Это нужно **проверить на стенде**, прежде чем объявлять Task → Serial/Lot custom gap.
+Обязательно проверить на конкретной базе до объявления custom gap.
 
-При этом Inventory + Maintenance bridge `stock_maintenance` уже частично связывает serial/location с Equipment.
+## 19. Когда Many2many оправдан
 
-## 16. Когда Many2many оправдан
+Many2many использовать только если один результат действительно относится к нескольким объектам.
 
-Использовать, если один контролируемый результат действительно относится к нескольким records.
+Он усложняет:
 
-Но Many2many усложняет:
-
-- трактовку ответственности;
+- трактовку;
 - группировку;
-- аналитику;
-- интеграцию.
+- интеграцию;
+- аудит изменений.
 
-Поэтому сначала проверить, не являются ли это несколько отдельных Tasks.
+Сначала проверить, не нужны ли отдельные Tasks.
 
-## 17. Property definition зависит от Project
-
-Это сильная и слабая сторона одновременно.
+## 20. Definition зависит от Project
 
 ### Плюс
 
-Разные Projects могут иметь разные предметные Properties без Studio/custom module.
+Разные Projects могут иметь разные Properties без custom module.
 
 ### Минус
 
-Если одно поле должно иметь абсолютно одинаковую схему во множестве Projects, требуется дисциплина конфигурации или другая модель.
+Если одно поле должно иметь одинаковую schema и tracking во множестве Projects, Property требует дисциплины конфигурации и может стать менее удобным, чем обычное field.
 
-Для нашей базовой методики с одним операционным Project это скорее плюс.
+Для одного операционного Project это в основном плюс.
 
-## 18. Properties и Task Templates
+## 21. Properties и Task Templates
 
 `task_properties` имеет `copy=True`.
 
-Task Templates используют штатное копирование Task data, поэтому relational Properties являются кандидатом на перенос в созданную из template Task.
+Template-based copying делает Properties кандидатом на перенос в созданную Task.
 
-Но конкретный сценарий нужно прогнать на стенде, особенно для default/динамических предметных объектов.
+Но динамический предметный объект (Vehicle/Employee) не нужно зашивать в template, если он меняется в каждом случае.
 
-В шаблон не следует зашивать конкретный Vehicle, если он меняется в каждом случае.
+Проверить runtime.
 
-## 19. Properties и Recurring Tasks
+## 22. Properties и Recurring Tasks
 
-Публичное поле `task_properties` имеет `copy=True`, но официальная user documentation Recurring Tasks перечисляет гарантированно копируемые поля не исчерпывающе относительно source implementation.
+Source recurrence использует `copy_data()`, а `task_properties` имеет `copy=True`.
 
-Для методики правило простое:
+Официальная документация при этом не перечисляет Properties среди гарантированно копируемых полей.
 
-> Поведение нужных Properties в recurrence проверяется на пилоте до запуска критичной периодики.
+Поэтому проверить runtime:
 
-Не строить процесс на непроверенном предположении.
+- Selection Property;
+- Many2one;
+- Many2many;
+- нужность переноса конкретного значения в следующий период.
 
-## 20. Properties и API
+## 23. Properties и API
 
-JSON-2 `/doc` должен показать фактическое поле `task_properties` конкретной базы.
+Через JSON-2 `/doc` проверить фактическое `task_properties` конкретной базы.
 
-Для BI/API отдельно проверить:
+Для BI/API проверить:
 
-- read result;
-- формат relational Property values;
-- поиск/domain по Property;
-- стабильность Property definition names/IDs;
-- удобство трансформации в аналитическую витрину.
+- read format;
+- relational values;
+- search/domain;
+- стабильность definitions;
+- преобразование в витрину.
 
-Если API/BI по Properties оказывается существенно сложнее обычного schema field и это критично — тогда это нормальное основание обсуждать минимальную доработку.
+Если это объективно слишком сложно для критичной интеграции, schema field может быть оправдан.
 
-## 21. Properties и Import
+## 24. Properties и Import
 
-Import умеет relational fields в обычных моделях, но работу импорта **внутрь pseudo-field Properties** не следует считать равной обычному Many2one без практической проверки.
+Обычный Odoo Import умеет relational fields, но bulk import **внутрь pseudo-field Properties** необходимо отдельно проверить.
 
-Для массового создания Tasks с relational Properties необходимо отдельно прогнать импорт на тестовом наборе.
+Не считать поведение обычного Many2one и dynamic Property идентичным без теста.
 
-Если стандартный Import неудобен, остаются JSON-2/Automation/custom minimal logic — выбор делается после теста.
+## 25. Properties и Task Analysis
 
-## 22. Properties и Task Analysis
+Operational Task Search умеет Group By Properties.
 
-Project Task Search View умеет Group By Properties.
+Но `project.report` не следует автоматически считать содержащим каждое dynamic Property как отдельную SQL-report dimension.
 
-Но SQL report model `project.report` не следует автоматически считать содержащей каждое динамическое Property как полноценное аналитическое поле.
-
-Поэтому различать:
+Различать:
 
 ```text
-оперативная filter/group analytics по Tasks
+оперативный filter/group
 vs
-агрегированная reporting model / BI
+агрегированный reporting / BI
 ```
 
-Для первой relational Properties уже подходят штатно.
+## 26. Критерии перехода к custom field
 
-Для второй нужно проверить фактический вопрос и инструмент.
+Обычный `fields.Many2one` / другая минимальная доработка рассматривается, если пилот доказывает:
 
-## 23. Критерии перехода к custom field
+- неприемлемую производительность;
+- невозможность нужного report;
+- нестабильность/сложность API;
+- необходимость server constraint;
+- reverse relation;
+- единое поле across Projects;
+- DB-level index/FK;
+- сложность bulk import;
+- **обязательную историю изменения, которой стандартный Project Property не даёт в нужном виде**.
 
-Обычный `fields.Many2one` проектируется только если пилот доказывает хотя бы один пункт:
-
-- неприемлемая производительность Property;
-- невозможность нужного отчёта;
-- сложность/нестабильность API integration;
-- нужна server constraint;
-- нужен reverse relation;
-- нужна одинаковая schema across Projects;
-- нужен DB-level index/foreign key;
-- стандартные Automation/import paths недостаточны.
-
-Не является причиной:
+Не является причиной само по себе:
 
 ```text
 в Python-модели project.task нет vehicle_id
 ```
 
-## 24. Новый baseline методики
+## 27. Новый baseline
 
 ```text
-master data model
+master data
 → relational Property
 → filter/group/view
-→ pilot at real volume
-→ API/report/security test
-→ только затем residual gap
+→ security + tracking test
+→ real-volume test
+→ Import/API/report test
+→ residual gap
+→ минимальная доработка
 ```
 
-Это значительно сдвигает границу Odoo 19 Community в сторону **реальной click-only адаптации**.
+Именно так Properties становятся сильным click-only механизмом, а не очередным источником скрытых ограничений.
 
 ---
 
-[← 10 — API](10-external-integrations.md) · [Главная](../README.md)
+[← 10 — API](10-external-integrations.md) · [12 — Коммуникации и вложения →](12-communication-documents.md)
