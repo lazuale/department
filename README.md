@@ -6,7 +6,8 @@
 
 **[Граница возможностей Community →](docs/00-odoo19-community.md)**  
 **[Модель управления →](docs/01-methodology.md)**  
-**[Click-only настройка →](docs/06-workspace.md)**
+**[Click-only настройка →](docs/06-workspace.md)**  
+**[Повторная проверка спорных возможностей →](docs/15-capability-recheck.md)**
 
 ## Как проверяются возможности
 
@@ -15,7 +16,8 @@
 1. поведение сверяется с официальной документацией **Odoo 19.0**;
 2. принадлежность Community при необходимости проверяется в публичной ветке **`odoo/odoo:19.0`**;
 3. перед объявлением разрыва проверяются штатные bridge modules;
-4. до custom module проверяются relational Properties, standard views/reports, Import/API/Automation и реальный пилот.
+4. наличие технического модуля не считается доказательством полного click-only workflow;
+5. до custom module проверяются relational Properties, standard views/reports, Import/API/Automation и реальный пилот.
 
 Наличие функции в общей документации Odoo само по себе не считается доказательством её наличия в Community.
 
@@ -76,7 +78,7 @@ Property[Оборудование] → Many2one(maintenance.equipment)
 → Очередь
 → В работе
 → Ожидание внешнего
-→ На проверке   [только при реальной необходимости]
+→ На проверке   [только если реально необходимо]
 ```
 
 Закрытие:
@@ -92,16 +94,18 @@ Blocked by
 → computed Waiting
 ```
 
+Dependencies могут связывать Tasks разных Projects, поэтому самостоятельную инициативу можно вынести в отдельный Project без потери `Blocked by`.
+
 ## Рабочее место без разработки
 
-Подтверждены и включены в методику:
+Подтверждены и включены в click-only baseline:
 
 - Shared Favorites;
 - Project Top Bar `Save View → Shared`;
 - List / Kanban / Calendar / Activity / Pivot / Graph;
 - **mass edit в Task List**;
 - Task Analysis;
-- My Dashboard;
+- **My Dashboard**;
 - Rotting;
 - Activities и Activity Plans;
 - Dependencies;
@@ -112,6 +116,23 @@ Blocked by
 - Milestones / Project Updates / Burndown для инициатив.
 
 Для большого входящего потока **List рассматривается как диспетчерское рабочее место**, а Kanban — как визуализация потока по Stages.
+
+### Важная поправка про Spreadsheet Dashboard
+
+Public Community содержит `spreadsheet` и `spreadsheet_dashboard`, но повторная проверка показала, что наличие этих модулей **не доказывает полноценный click-only create/edit workflow собственного Spreadsheet Dashboard в чистой Community**.
+
+Официальный workflow построения dashboard с нуля требует как минимум прав `Documents / User`, а Documents не является нашей Community-базой.
+
+Поэтому основной путь аналитики сейчас:
+
+```text
+Shared Views
+→ Task Analysis
+→ My Dashboard
+→ API / внешний BI при необходимости
+```
+
+Spreadsheet Dashboard используется только после runtime-проверки конкретной Community-инсталляции и доступного редакционного слоя.
 
 ## Четыре разных механизма повторяемости
 
@@ -130,6 +151,8 @@ Blocked by
 ```
 
 Automation Rule нужен только если более простой механизм не решает задачу.
+
+По Recurring Tasks есть расхождение документации и текущего public source по копированию Subtasks, поэтому этот сценарий проверяется runtime и не считается гарантированным заранее.
 
 ## Штатные bridge modules
 
@@ -151,6 +174,8 @@ Project + Expenses       → project_hr_expense
 ```
 
 Поэтому две отдельные модели нельзя объявлять несвязанными, пока не проверены штатные bridges.
+
+Наличие bridge не означает автоматически наличие нужного отчёта или полного workflow.
 
 ## Дополнительные Community-контуры, которые изучены
 
@@ -186,15 +211,16 @@ Recurring Task поддерживает Days / Weeks / Months / Years, но не
 
 ```text
 JSON-2 /json/2/<model>/<method>
-API keys
+Bearer authentication / API keys
 динамическая /doc
 Import / Export
 Email Alias
-Website Form
+Website + Project → Website Form → Task
 Inbound Automation Webhook
-Outbound Webhook Action
 Automation Rules
 ```
+
+Automation Rules и webhooks — **административный/технический Community-слой**, а не рабочий интерфейс обычного исполнителя.
 
 Для новой системной интеграции JSON-2 предпочтительнее legacy XML-RPC/JSON-RPC.
 
@@ -230,7 +256,9 @@ Relational Property не обходит права target model. Domain — уд
 - полноценном Quality app;
 - Enterprise Data Cleaning/Data Merge;
 - полном Inventory Barcode UI;
-- Budget Management без отдельной редакционной проверки.
+- Budget Management без отдельной редакционной проверки;
+- availability/capacity scheduling Project Tasks;
+- собственном Spreadsheet Dashboard без runtime/edition-проверки.
 
 ## Реальные возможные gaps после углублённого аудита
 
@@ -264,7 +292,7 @@ Task → Equipment
 → Shared Views
 → Task Analysis
 → My Dashboard
-→ API/Automation по потребности
+→ API / внешний BI по потребности
 → реальный нагрузочный/пользовательский пилот
 → подтверждённые residual gaps
 → минимальный custom module только на gaps
@@ -277,7 +305,7 @@ Task → Equipment
 | [00 — Возможности Community](docs/00-odoo19-community.md) | актуальная техническая граница |
 | [01 — Модель управления](docs/01-methodology.md) | единица работы, Properties, ответственность, поток |
 | [02 — Сценарии](docs/02-scripts.md) | рабочие ситуации |
-| [03 — Контроль и аналитика](docs/03-control.md) | Shared Views, Task Analysis, Properties, Dashboards |
+| [03 — Контроль и аналитика](docs/03-control.md) | Shared Views, Task Analysis, Properties, My Dashboard |
 | [04 — Шаблоны](docs/04-templates.md) | Task/Activity/process templates |
 | [05 — Процессы](docs/05-processes.md) | описание процессов и источников истины |
 | [06 — Настройка](docs/06-workspace.md) | последовательный click-only пилот |
@@ -289,6 +317,7 @@ Task → Equipment
 | [12 — Коммуникации и вложения](docs/12-communication-documents.md) | sharing, Chatter, Stage email/rating, scheduled messages, attachment indexation |
 | [13 — Смены и регламентные циклы](docs/13-shift-routines.md) | Resource Calendar, 2/2, handover, recurrence и runtime-границы |
 | [14 — Высокопоточный триаж](docs/14-high-volume-triage.md) | Task List, mass edit, operational filters, Activities и нагрузочный пилот |
+| [15 — Перепроверка возможностей](docs/15-capability-recheck.md) | повторный аудит спорных функций и исправления границы CE |
 
 ## Где хранится что
 
