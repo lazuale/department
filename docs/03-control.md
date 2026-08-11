@@ -1,6 +1,6 @@
 # Контроль и аналитика
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · **03 Аналитика** · [04 Шаблоны](04-templates.md) · [05 Процессы](05-processes.md) · [06 Настройка](06-workspace.md)
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · **03 Аналитика** · [04 Шаблоны](04-templates.md) · [05 Процессы](05-processes.md) · [06 Настройка](06-workspace.md) · [15 Перепроверка](15-capability-recheck.md)
 
 ---
 
@@ -116,6 +116,8 @@ Activity overdue
 - какие Tasks Waiting;
 - какая Task блокирует несколько последующих;
 - просрочена ли блокирующая Task.
+
+`Blocked by` может связывать Tasks разных Projects, поэтому самостоятельные инициативы не становятся изолированными островами.
 
 ## 9. Rotting
 
@@ -286,7 +288,7 @@ Community поддерживает Low / Medium / High / Urgent.
 
 Не использовать как контроль присутствия.
 
-## 19. My Dashboard
+## 19. My Dashboard — основной click-only dashboard layer
 
 После стабилизации Shared Views собрать, например:
 
@@ -299,11 +301,26 @@ Community поддерживает Low / Medium / High / Urgent.
 
 При необходимости добавить view, сгруппированный по `ТС` / `Сотрудник` / `Оборудование` Property.
 
-## 20. Spreadsheet Dashboard
+My Dashboard основан на Odoo views, а не на Spreadsheet, и подтверждён public Community-модулем `board`.
 
-Использовать только после нескольких периодов стабильных KPI.
+## 20. Spreadsheet Dashboard — не считать Community baseline
 
-Не создавать новую параллельную формулу расчёта — источник должен оставаться в Odoo records.
+Public `spreadsheet` и `spreadsheet_dashboard` действительно существуют в `odoo/odoo:19.0`, но повторная проверка не подтверждает полный click-only create/edit workflow собственного Spreadsheet Dashboard в чистой Community.
+
+Официальный workflow построения dashboard с нуля требует `Dashboards / Admin` и минимум `Documents / User`, а Documents не входит в Community baseline этой методики.
+
+Поэтому текущий порядок аналитики:
+
+```text
+Shared Views
+→ Task Analysis
+→ My Dashboard
+→ API / внешний BI при необходимости
+```
+
+Spreadsheet Dashboard можно вернуть в архитектуру только после runtime-проверки конкретной Community-инсталляции и фактически доступного набора модулей.
+
+Не считать наличие технических `spreadsheet*` модулей доказательством полной пользовательской функции.
 
 ## 21. Project initiatives — отдельный режим контроля
 
