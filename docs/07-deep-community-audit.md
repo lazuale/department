@@ -1,839 +1,341 @@
 # Углублённый аудит Odoo 19 Community
 
-[Главная](../README.md) · [00 Возможности Odoo](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · [03 Контроль и аналитика](03-control.md) · [04 Шаблоны](04-templates.md) · [05 Процессы](05-processes.md) · [06 Настройка](06-workspace.md) · **07 Углублённый аудит**
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [06 Настройка](06-workspace.md) · **07 Аудит** · [08 Интеграции Project](08-project-integrations.md) · [09 Project и безопасность](09-project-productivity-security.md) · [10 API](10-external-integrations.md) · [11 Properties](11-relational-properties.md)
 
 ---
 
-Этот документ — второй проход по возможностям **Odoo 19 Community**.
+Этот документ фиксирует дополнительные Community-возможности, найденные после первого прохода. Актуальная архитектурная граница находится в [00](00-odoo19-community.md).
 
-Его цель не увеличить число установленных приложений, а найти штатные функции и межмодульные связи, которые могут:
+## 1. Главная поправка позднего прохода
 
-- упростить методику;
-- заменить ручной обход;
-- убрать ложный click-only gap;
-- показать реальную границу Community;
-- предотвратить ненужную кастомную разработку.
+Первоначальная гипотеза, что Project Task нельзя click-only связать с Fleet/Employee/Equipment, оказалась неверной.
 
-## 1. Правило проверки
+Odoo 19 Properties поддерживают Many2one/Many2many к выбранной модели.
 
-Для каждого вывода используются только первичные источники:
+Поэтому baseline:
 
-1. официальная документация Odoo **19.0** — для пользовательского поведения;
-2. публичная ветка [`odoo/odoo:19.0`](https://github.com/odoo/odoo/tree/19.0) — для проверки наличия функции в Community и фактической модели данных;
-3. если документация описывает функцию, но соответствующей реализации нет в публичной ветке Community, функция **не включается в CE-методику как подтверждённая**.
+```text
+Task Property[ТС]           → fleet.vehicle
+Task Property[Сотрудник]    → hr.employee
+Task Property[Оборудование] → maintenance.equipment
+```
 
-Это особенно важно для документации Odoo, которая не всегда разделяет Community и Enterprise.
+Подробно: [11 — Relational Properties](11-relational-properties.md).
 
-## 2. Краткая матрица второго прохода
+Все ранние тезисы этого PR о необходимости custom field только из-за отсутствия `project.task.vehicle_id` считаются отменёнными.
 
-| Возможность | Community 19 | Решение для методики |
-|---|---:|---|
-| Task Templates | подтверждено | **использовать для типовых разовых задач** |
-| Время в каждом Task Stage в карточке | подтверждено | использовать как диагностику конкретной задачи |
-| Агрегированный отчёт по времени во всех Stages | штатно не подтверждён | не обещать как click-only KPI |
-| Calendar-планирование задачи без Deadline | подтверждено | по потребности, это не ресурсное Planning |
-| Skills Management | подтверждено | по потребности |
-| Certifications | подтверждено | по потребности |
-| eLearning | подтверждено | по потребности |
-| Skills ↔ Surveys | подтверждён штатный мост | использовать для сертификаций |
-| Skills ↔ eLearning | подтверждён штатный мост | использовать для обучения |
-| HR Org Chart | подтверждено | по потребности |
-| Resource Working Schedules | подтверждено | использовать как рабочие календари, не как полноценный сменный Planning |
-| Work Entries | подтверждено | специализированный HR-контур |
-| Remote Work | подтверждено | по потребности |
-| Employees ↔ Fleet history | подтверждён штатный мост | учитывать до кастомизации |
-| Employees ↔ Maintenance allocation | подтверждён штатный мост | учитывать до кастомизации |
-| Inventory ↔ Maintenance | подтверждён штатный мост | **пилотировать для серийного оборудования** |
-| Contacts Merge/Deduplicate | подтверждено | **использовать для качества Contacts** |
-| Data Recycle | Community | по потребности после политики хранения |
-| универсальный Data Cleaning / Data Merge | Enterprise | не считать CE-функцией |
-| Canned Responses | подтверждено | по потребности для повторяемой коммуникации |
-| Live Chat | подтверждено | только как коммуникационный канал |
-| Google Calendar sync | подтверждено | по потребности |
-| Outlook Calendar sync | подтверждено | по потребности |
-| Analytic Accounting | подтверждено | по потребности для стоимости/доходов |
-| Analytic Budget | в общей документации есть, public `account_budget` отсутствует | не считать подтверждённой CE-функцией |
-| Purchase | подтверждено | только для реального закупочного процесса |
-| Purchase Agreements | подтверждено | только для тендеров/blanket orders |
-| Recruitment | подтверждено | только для найма |
-| Expenses | подтверждено | только для расходов |
-| Attendances | подтверждено | присутствие, не трудозатраты |
-| Time Off | подтверждено | отсутствия, не Task workflow |
-| Employee Presence Control | подтверждено | **не использовать как KPI производительности** |
-| Gamification | подтверждено | не использовать для рейтинга операционной работы |
-| полноценное Barcode-приложение Inventory | в public CE не подтверждено | не обещать в методике |
-| автоматическое availability scheduling Project Templates | документация описывает, public CE-модель не подтверждает planned-date слой | не считать подтверждённой CE-функцией |
+## 2. Task Templates
 
-## 3. Task Templates — пропущенная ключевая функция Project
+В Community Project есть отдельные **Task Templates**.
 
-В публичном `project` Odoo 19 есть отдельный механизм **Task Templates** внутри проекта.
+Это не Recurring Task и не Project Template.
 
-Это не то же самое, что:
+Подтверждено public source/tests:
 
-- Recurring Task;
-- Project Template;
-- Activity Plan.
-
-Community-код содержит dropdown шаблонов при создании задачи и методы создания обычной задачи из template task.
-
-Официальный тест Odoo подтверждает, что:
-
-- template task создаёт обычную non-template Task;
-- subtasks шаблона копируются;
-- шаблонные задачи не считаются обычным open backlog проекта;
-- при копировании проекта task templates также копируются.
+- template Task создаёт обычную Task;
+- subtasks шаблона могут копироваться;
+- template Tasks не входят в обычный open backlog;
+- при копировании Project шаблоны Tasks сохраняются.
 
 Источники:
 
-- [`ProjectTaskTemplateDropdown`](https://github.com/odoo/odoo/blob/19.0/addons/project/static/src/views/components/project_task_template_dropdown.js);
+- [`project_task_template_dropdown.js`](https://github.com/odoo/odoo/blob/19.0/addons/project/static/src/views/components/project_task_template_dropdown.js);
 - [`test_task_templates.py`](https://github.com/odoo/odoo/blob/19.0/addons/project/tests/test_task_templates.py).
 
-### Методическое решение
-
-Task Template — лучший кандидат для повторяемой **разовой** работы с одинаковой структурой, когда дата появления заранее неизвестна.
-
-Пример:
+Методический выбор:
 
 ```text
-Шаблон задачи:
-Разобрать расхождение по данным
-
-Описание:
-- проверить источник;
-- определить причину;
-- выполнить/инициировать исправление;
-- проверить результат.
-
-Подзадачи:
-<только если действительно нужны самостоятельные результаты>
+разовая типовая Task по событию → Task Template
+Task по календарю → Recurring Task
+набор follow-up → Activity Plan
+повторяемая структура проекта → Project Template
 ```
 
-Различие:
+## 3. Время в Task Stage
 
-```text
-повторяется по календарю → Recurring Task
-повторяется тип карточки по событию → Task Template
-повторяется целый проект → Project Template
-повторяется набор follow-up → Activity Plan
-```
+`project.task` наследует `mail.tracking.duration.mixin`, а standard statusbar показывает длительность нахождения Task в каждом Stage.
 
-Это существенно уменьшает потребность в собственных шаблонах описания и Automation Rules.
+Это полезно для диагностики конкретного кейса.
 
-## 4. Время в каждом Stage уже считается штатно
+Но готовый агрегированный SLA-report по каждому Stage в стандартном Pivot/Graph не подтверждён.
 
-`project.task` наследует `mail.tracking.duration.mixin` и использует `stage_id` как отслеживаемое поле длительности.
+## 4. Project Calendar: Tasks to Plan
 
-Миксин вычисляет JSON:
+Community Calendar позволяет брать Tasks без Deadline из `Tasks to Plan` и назначать им дату через Calendar.
 
-```text
-stage_id → seconds spent
-```
+Это работает с `date_deadline`.
 
-А стандартная форма Project использует widget `rotting_statusbar_duration`.
+Не путать с capacity Planning или сменным расписанием.
 
-UI-компонент `StatusBarDurationField` подставляет в каждый элемент status bar короткое и полное время нахождения в соответствующем Stage.
+## 5. Project Templates: структура да, capacity scheduling — не подтверждено
 
-Источники:
-
-- [`mail_tracking_duration_mixin.py`](https://github.com/odoo/odoo/blob/19.0/addons/mail/models/mail_tracking_duration_mixin.py);
-- [`project_task_views.xml`](https://github.com/odoo/odoo/blob/19.0/addons/project/views/project_task_views.xml);
-- [`statusbar_duration_field.js`](https://github.com/odoo/odoo/blob/19.0/addons/mail/static/src/views/fields/statusbar_duration/statusbar_duration_field.js).
-
-### Что это даёт
-
-В конкретной Task можно диагностировать:
-
-- сколько она находилась во `Входящие`;
-- сколько была в `Очередь`;
-- сколько была `В работе`;
-- сколько находилась в `Ожидание внешнего`.
-
-### Важное ограничение
-
-Стандартные Project Pivot/Graph не выводят `duration_tracking` как нормальную агрегируемую меру по каждому Stage.
-
-В стандартных Pivot/Graph подтверждены, среди прочего:
-
-- Working Hours to Assign;
-- Working Hours to Close;
-- Allocated Time.
-
-Поэтому:
-
-> **время в Stage штатно видно на конкретной карточке, но полноценный агрегированный SLA-отчёт по каждому Stage не считаем click-only функцией Community.**
-
-Это потенциальный аналитический gap, только если такой отчёт реально нужен.
-
-## 5. Calendar Project умеет планировать неназначенные по дате задачи
-
-Community Project Calendar содержит отдельный механизм `Tasks to Plan` для задач без `date_deadline`.
-
-При планировании из Calendar стандартный код записывает выбранную дату в `date_deadline`.
-
-Источник: [`project_task_calendar_model.js`](https://github.com/odoo/odoo/blob/19.0/addons/project/static/src/views/project_task_calendar/project_task_calendar_model.js).
-
-### Методическое решение
-
-Можно использовать Calendar для визуального распределения **Deadline** задач по датам.
-
-Но это не равно:
-
-- Planning;
-- загрузке по часам;
-- полноценному capacity planning;
-- сменному расписанию сотрудников.
-
-Calendar остаётся календарным представлением Tasks, а не заменой Enterprise Planning.
-
-## 6. Project Templates: структура подтверждена, availability scheduling — нет
-
-Официальная документация Odoo 19 описывает для Project Templates:
-
-- перенос stages/tasks/subtasks/configuration;
-- Project Roles;
-- planned dates;
-- scheduling algorithm с учётом allocated time, dependencies, availability, working schedules, time off и public holidays.
-
-Источник документации: [Project templates](https://www.odoo.com/documentation/19.0/applications/services/project/project_management/project_templates.html).
-
-Однако публичная Community-модель `project.task` не содержит штатного model field `planned_date_begin`, используемого таким planned-date scheduling слоем.
-
-Community Calendar работает с обычным `date_deadline`.
-
-### Методическое решение
-
-Для CE подтверждаем:
+В Community подтверждены:
 
 - Project Templates;
 - Project Roles;
-- перенос структуры проекта;
-- назначение ролей при создании проекта.
+- копирование структуры/Tasks/Subtasks/configuration.
 
-Но **не включаем в гарантированные CE-возможности автоматическое планирование дат по доступности/нагрузке**, пока оно не подтверждено публичной Community-моделью.
+Общая документация также описывает availability-based planned-date scheduling, но соответствующий planned-date model layer не подтверждён в public Community `project.task`.
 
-## 7. Working Schedules — полезно, но это не Planning
+Поэтому эту часть не включаем в гарантированную CE-методику.
 
-Публичный модуль `resource` содержит Resource Calendar.
+## 6. Resource Working Schedules
 
-Подтверждены:
+Public `resource` поддерживает:
 
 - fixed working hours;
 - flexible schedule;
-- average hours per day/week;
 - timezone;
 - two-week calendar;
-- calendar leaves.
+- leaves.
 
-Источник: [`resource_calendar.py`](https://github.com/odoo/odoo/blob/19.0/addons/resource/models/resource_calendar.py), [Working schedules](https://www.odoo.com/documentation/19.0/applications/hr/payroll/working_schedules.html).
+Это рабочий календарь HR/resource layer, а не Enterprise Planning.
 
-### Ограничение
+Для произвольного скользящего графика сначала нужен отдельный пилот.
 
-Two-week calendar — это двухнедельный повторяющийся рабочий календарь. Нельзя автоматически считать его универсальным движком любого скользящего сменного цикла.
-
-Рабочие календари полезны для:
-
-- нормативного рабочего времени;
-- availability в тех функциях Odoo, которые его учитывают;
-- HR-контуров.
-
-Не использовать их как псевдо-Planning.
-
-## 8. Work Entries — третье измерение рабочего времени
-
-Community-модуль [`hr_work_entry`](https://github.com/odoo/odoo/blob/19.0/addons/hr_work_entry/__manifest__.py) управляет work entries и связан с Employees/working schedules.
+## 7. Разные измерения времени сотрудника
 
 Не смешивать:
 
-| Механизм | Что означает |
+| Механизм | Смысл |
 |---|---|
-| Attendances | фактический check-in / check-out, присутствие |
-| Timesheets | фактически заявленные трудозатраты на работу |
-| Work Entries | рабочие интервалы/типы занятости HR-контура |
-| Project Allocated Time | ожидаемая трудоёмкость Task |
+| Attendances | check-in/check-out, присутствие |
+| Timesheets | заявленные трудозатраты |
+| Work Entries | рабочие интервалы HR |
+| Allocated Time | ожидаемая трудоёмкость Task |
 | Deadline | срок результата |
 
-Для операционной методики Work Entries не являются базой Task Management.
+Presence Control также не является производительностью.
 
-## 9. Skills Management — отдельный справочник компетенций
+## 8. Skills Management
 
-Публичный Community-модуль [`hr_skills`](https://github.com/odoo/odoo/blob/19.0/addons/hr_skills/__manifest__.py) содержит:
+Community `hr_skills` содержит:
 
 - skills;
 - skill types;
-- skill levels;
+- levels;
 - employee resume;
 - skill history;
-- отчёты по skills;
-- certifications reports.
+- reports;
+- certifications layer.
 
-Официальная документация: [Employees — Skills & certifications](https://www.odoo.com/documentation/19.0/applications/hr/employees/new_employee.html).
+Навыки должны жить в HR-модели, а не в Project Tags.
 
-### Методическое решение
+## 9. Certifications + Surveys
 
-Если компетенции нужны, они живут в Employees/Skills.
+Bridge `hr_skills_survey` связывает Skills и Surveys.
 
-Не использовать:
-
-```text
-Project Tags = навыки сотрудника
-Task Properties = навыки сотрудника
-```
-
-Skills сами по себе не являются доказанным механизмом автоматического назначения Project Tasks.
-
-Если позже потребуется skill-based task routing, это отдельная потребность.
-
-## 10. Certifications + Surveys — штатный мост
-
-Модуль [`hr_skills_survey`](https://github.com/odoo/odoo/blob/19.0/addons/hr_skills_survey/__manifest__.py) автоматически связывает Skills и Surveys.
-
-Официальная документация подтверждает:
-
-- Certifications в Employees;
-- validity start/end;
-- expiration status;
-- Certifications report;
-- необходимость Surveys для этого слоя.
-
-Источник: [Certifications](https://www.odoo.com/documentation/19.0/applications/hr/employees/certifications.html).
-
-### Возможный контур
+Возможный штатный контур:
 
 ```text
 Survey / assessment
 → certification
 → Employee resume
-→ validity / expiration control
+→ validity / expiration
 ```
 
-Это может закрыть контроль обязательных знаний/сертификатов без собственного регистра.
+Полезно для контроля обязательных компетенций без собственного регистра.
 
-## 11. eLearning + Skills — второй штатный мост
+## 10. eLearning + Skills
 
-Публичный Community eLearning: [`website_slides`](https://github.com/odoo/odoo/blob/19.0/addons/website_slides/__manifest__.py).
+Community eLearning — `website_slides`.
 
-Модуль [`hr_skills_slides`](https://github.com/odoo/odoo/blob/19.0/addons/hr_skills_slides/__manifest__.py) добавляет завершённые курсы в resume сотрудника.
+Bridge `hr_skills_slides` добавляет завершённые курсы в resume сотрудника.
 
-Официальная документация: [Employees — Learning](https://www.odoo.com/documentation/19.0/applications/hr/employees/learning.html).
+Это отдельный контур обучения, не операционный backlog.
 
-### Методическое решение
+## 11. HR Org Chart
 
-Для обучения сотрудников возможен штатный контур:
+`hr_org_chart` добавляет штатную иерархию Employees.
 
-```text
-eLearning
-→ completion
-→ Employee resume / Skills
-```
+Не выводить из оргструктуры автоматически ответственность за Tasks.
 
-Это не Task Management и не должно смешиваться с операционным backlog.
+## 12. Employees ↔ Fleet
 
-## 12. HR Org Chart
+Auto-install `hr_fleet` хранит историю автомобилей, которыми управлял Employee.
 
-Community-модуль [`hr_org_chart`](https://github.com/odoo/odoo/blob/19.0/addons/hr_org_chart/__manifest__.py) автоматически расширяет Employee формой организационной иерархии:
+Это штатная связь HR ↔ Fleet.
 
-- руководитель;
-- следующий уровень;
-- прямые подчинённые.
+Для связи Task ↔ Vehicle использовать relational Property, если она нужна процессу.
 
-Использовать как справочную организационную структуру.
+## 13. Employees ↔ Maintenance
 
-Не выводить из Org Chart автоматически ответственность за Project Tasks.
+`hr_maintenance` связывает Employee и Equipment и поддерживает allocation tracking.
 
-## 13. Employees ↔ Fleet уже имеют штатный мост
+Перед собственным реестром «оборудование сотрудника» проверить этот контур.
 
-Модуль [`hr_fleet`](https://github.com/odoo/odoo/blob/19.0/addons/hr_fleet/__manifest__.py) автоматически устанавливается при наличии HR и Fleet.
+## 14. Inventory ↔ Maintenance
 
-Назначение:
+`stock_maintenance` добавляет Equipment связь с stock location и smart action к совпавшему serial/lot.
 
-> Get history of driven cars by employees.
-
-### Методический вывод
-
-Связь Employee ↔ Vehicle нельзя считать полностью отсутствующей в Community.
-
-Штатно уже есть история использования автомобилей сотрудниками.
-
-При этом это **не решает** другой вопрос:
-
-```text
-Project Task → Fleet Vehicle
-```
-
-Такой прямой связи в Project по-прежнему нет.
-
-## 14. Employees ↔ Maintenance также имеют штатный мост
-
-`hr_maintenance` связывает HR и Maintenance и предназначен для:
-
-- Equipment;
-- Assets;
-- Internal Hardware;
-- Allocation Tracking.
-
-Источник: [`hr_maintenance`](https://github.com/odoo/odoo/blob/19.0/addons/hr_maintenance/__manifest__.py).
-
-Перед созданием собственного справочника «оборудование сотрудника» сначала проверять этот штатный контур.
-
-## 15. Inventory ↔ Maintenance — важная поправка модели активов
-
-Community имеет auto-install модуль [`stock_maintenance`](https://github.com/odoo/odoo/blob/19.0/addons/stock_maintenance/__manifest__.py).
-
-Он добавляет в Maintenance Equipment:
-
-- `location_id` → Many2one на `stock.location`;
-- проверку совпадения `Equipment.serial_no` с `stock.lot.name`;
-- smart button для открытия совпавшего serial/lot.
-
-Источник модели: [`stock_maintenance/models/maintenance.py`](https://github.com/odoo/odoo/blob/19.0/addons/stock_maintenance/models/maintenance.py).
-
-### Что это меняет
-
-Для серийного внутреннего оборудования нужно сначала пилотировать связку:
+Поэтому для серийного оборудования сначала пилотировать:
 
 ```text
 Inventory
-→ serial / lot
-→ location / movement
-
-Maintenance
-→ Equipment
-→ employee allocation
-→ maintenance requests
-
-stock_maintenance
-→ serial match + stock location
++ Maintenance
++ stock_maintenance
++ hr_maintenance
 ```
 
-Это значительно сильнее, чем два изолированных приложения.
+а не писать asset registry с нуля.
 
-### Ограничение
-
-Связь с lot построена по совпадению серийного номера, а не как отдельный хранимый Many2one `Equipment → stock.lot`.
-
-Поэтому реальное поведение на справочнике оборудования всё равно нужно проверить пилотом.
-
-## 16. Inventory и Maintenance отвечают на разные вопросы
+## 15. Inventory и Maintenance — разные вопросы
 
 ### Inventory
 
-Использовать, если важны:
-
 - serial/lot;
-- количество;
-- склад;
+- quantity;
 - location;
-- перемещение;
+- movement;
 - traceability.
 
 ### Maintenance
 
-Использовать, если важны:
-
-- конкретное Equipment;
-- ответственный/сотрудник;
-- категория оборудования;
+- Equipment;
+- owner/allocation;
 - preventive/corrective maintenance;
 - maintenance request;
-- срок и история обслуживания.
+- team/responsible;
+- service history.
 
-### Вместе
+Один физический объект может участвовать в обоих контурах.
 
-Использовать, если один и тот же физический объект требует и логистической, и сервисной истории.
+## 16. Inventory Barcode
 
-## 17. Barcode: не обещать Enterprise-функцию
+Полный warehouse Barcode UI из общей документации не подтверждён отдельным public `stock_barcode` модулем в `odoo/odoo:19.0`.
 
-Официальная документация Odoo 19 содержит полноценное Barcode-приложение для Inventory.
+Технический `barcodes` существует, но этого недостаточно, чтобы обещать Enterprise Barcode app в CE.
 
-Но отдельный модуль `stock_barcode`, соответствующий этому warehouse barcode UI, в публичной ветке `odoo/odoo:19.0` не подтверждён.
+## 17. Contacts Merge / Deduplicate
 
-В Community есть базовый технический `barcodes`, но это не доказательство наличия полного Inventory Barcode app.
+Для Contacts штатно подтверждены:
 
-### Методическое решение
-
-Не закладывать в CE-пилот обязательное сканирование через полноценный Barcode UI без отдельной проверки фактической установленной Community-сборки.
-
-## 18. Contacts имеет собственный Merge/Deduplicate
-
-Даже без Enterprise Data Cleaning базовый Odoo умеет объединять Contacts.
-
-Официальная документация подтверждает:
-
-- ручной Merge;
+- manual Merge;
 - Deduplicate other Contacts;
-- поиск дублей по Email, Name, Is Company, VAT, Parent Company;
-- manual check;
-- automatic merge.
+- критерии поиска дублей;
+- manual/automatic merge.
 
-Источник: [Merge contacts](https://www.odoo.com/documentation/19.0/applications/essentials/contacts/merge.html).
+Для Contacts не нужен отдельный data-cleaning модуль только ради дублей.
 
-### Методическое решение
+## 18. Data Recycle vs Data Cleaning
 
-Для Contacts качество данных строить сначала на штатном merge/deduplicate.
-
-Не покупать/писать общий dedupe-механизм только ради контактов.
-
-## 19. Data Recycle есть в Community, полный Data Cleaning — нет
-
-Официальная документация Odoo 19 прямо разделяет редакции:
-
-- `data_recycle` — доступен в Community;
-- `data_cleaning` — Enterprise;
-- `data_merge` — Enterprise.
-
-Источник: [Data Cleaning](https://www.odoo.com/documentation/19.0/applications/productivity/data_cleaning.html).
-
-Публичный Community-модуль: [`data_recycle`](https://github.com/odoo/odoo/blob/19.0/addons/data_recycle/__manifest__.py).
-
-### Data Recycle использовать только когда определено
-
-- что считается устаревшей записью;
-- архивировать или удалять;
-- какой retention period;
-- кто отвечает за правило;
-- можно ли восстановить ошибочно очищенные данные.
-
-Не включать автоматическое удаление данных на раннем пилоте.
-
-## 20. Canned Responses
-
-Официальная документация подтверждает canned responses в:
-
-- Live Chat;
-- Discuss;
-- Chatter;
-- direct messages;
-- channels.
-
-Источник: [Canned responses](https://www.odoo.com/documentation/19.0/applications/productivity/discuss/canned_responses.html).
-
-### Где полезно
-
-Для повторяемых, но всё ещё человеческих ответов:
+Официальная документация разделяет:
 
 ```text
-запрос принят
-нужны дополнительные данные
-результат подготовлен
-получено, проверяем
+data_recycle → Community
+data_cleaning → Enterprise
+data_merge → Enterprise
 ```
 
-Это уменьшает ручной набор и вариативность формулировок.
+Data Recycle не включать до определения retention policy.
 
-Не использовать canned response вместо изменения State/Stage/Activity.
+## 19. Canned Responses
 
-## 21. Live Chat
+Штатные canned responses доступны в Discuss/Chatter/Live Chat.
 
-Публичный Community-модуль [`im_livechat`](https://github.com/odoo/odoo/blob/19.0/addons/im_livechat/__manifest__.py) содержит:
+Использовать для повторяемых человеческих ответов, а не вместо Stage/State/Activity.
 
-- website visitor chat;
-- operators;
-- chatbot scripts;
-- tags;
-- ratings;
-- conversation reports.
+## 20. Live Chat
 
-Для нашего контура это **коммуникационный канал**, а не Helpdesk.
+`im_livechat` есть в Community и содержит visitor chat/operators/chatbot/tags/ratings/reports.
 
-Если из live chat возникает обязательство, оно должно быть зарегистрировано в правильной рабочей сущности.
+Для методики это входящий коммуникационный канал, не Helpdesk и не Task.
 
-Не считать сам диалог Task.
+## 21. Calendar sync
 
-## 22. Google / Outlook Calendar synchronization
+Public source содержит Google и Microsoft Calendar integrations.
 
-Community source содержит:
+Подключать, если нужен единый календарь встреч.
 
-- `google_calendar`;
-- `microsoft_calendar`.
+Не считать синхронизацией Project Deadlines.
 
-Официальная документация Google подтверждает bidirectional sync событий.
+## 22. Analytic Accounting
 
-Источники:
-
-- [Google Calendar synchronization](https://www.odoo.com/documentation/19.0/applications/productivity/calendar/google.html);
-- [`microsoft_calendar`](https://github.com/odoo/odoo/blob/19.0/addons/microsoft_calendar/__manifest__.py).
-
-Подключать только если пользователи реально ведут внешний корпоративный календарь и нужна единая картина встреч.
-
-Не использовать Calendar sync как механизм синхронизации Project Deadline.
-
-## 23. Analytic Accounting доступен в Community
-
-Публичный модуль [`analytic`](https://github.com/odoo/odoo/blob/19.0/addons/analytic/__manifest__.py) подтверждает:
+Community `analytic` подтверждает:
 
 - Analytic Accounts;
 - Analytic Plans;
-- Analytic Distribution Models;
-- Pivot/Graph views.
+- Distribution Models;
+- Pivot/Graph.
 
-Официальная документация описывает анализ costs/revenues по проектам, сервисам и подразделениям.
+Использовать только при реальном финансово-стоимостном вопросе.
 
-Источник: [Analytic accounting](https://www.odoo.com/documentation/19.0/applications/finance/accounting/reporting/analytic_accounting.html).
+## 23. Budget Management
 
-### Методическое решение
+Общая документация описывает Budget Management, а public `account` содержит модульный переключатель, но сам `account_budget` не подтверждён в публичной ветке Community.
 
-Это полезно, если управление должно отвечать на вопросы:
+Поэтому Budget не входит в гарантированный CE baseline.
 
-- сколько стоит направление/проект;
-- как распределяются затраты;
-- какая стоимость работ/сервисов;
-- какие доходы/затраты относятся к аналитическому контуру.
+## 24. Purchase Agreements
 
-Не использовать Analytic Account как замену Process Property или Project Task.
+Community `purchase_requisition` поддерживает calls for tenders / blanket orders.
 
-## 24. Analytic Budget нельзя автоматически считать Community
+Использовать только для реальной закупочной модели, не как универсальное согласование.
 
-Официальная документация Odoo 19 описывает `Budget Management`.
+## 25. Specialized workflows
 
-При этом публичный Community `account` действительно содержит настройку `module_account_budget`, но самого `addons/account_budget` в публичной ветке `odoo/odoo:19.0` нет.
+Штатные workflow должны оставаться предметными:
 
-### Методический вывод
-
-Не включать Analytic Budget в список гарантированных Community-возможностей только потому, что переключатель и документация существуют.
-
-Analytic Accounting подтверждён; Budget Management требует отдельной редакционной проверки.
-
-## 25. Purchase и Purchase Agreements
-
-Community содержит:
-
-- [`purchase`](https://github.com/odoo/odoo/blob/19.0/addons/purchase/__manifest__.py);
-- [`purchase_requisition`](https://github.com/odoo/odoo/blob/19.0/addons/purchase_requisition/__manifest__.py).
-
-Purchase Agreements поддерживает:
-
-- calls for tenders;
-- blanket orders;
-- competing vendor offers.
-
-### Методическое решение
-
-Если процесс по смыслу является закупкой, не имитировать его Project Task workflow.
-
-Но Purchase/Purchase Agreements **не являются универсальным механизмом внутренних согласований**.
-
-## 26. Специализированный workflow должен оставаться специализированным
-
-Community уже имеет собственные workflow для ряда предметов:
-
-| Предмет | Штатное приложение |
+| Предмет | Приложение |
 |---|---|
 | найм | Recruitment |
-| командировочные/расходы | Expenses |
-| отпуска/отсутствия | Time Off |
-| закупки | Purchase |
+| расходы | Expenses |
+| отсутствие | Time Off |
+| закупка | Purchase |
 | обслуживание | Maintenance |
-| ремонт складского продукта | Repairs |
+| repair stock product | Repairs |
 | опрос/тест | Surveys |
 
-Если запись полностью живёт в таком workflow, **не создавать параллельную Project Task только ради контроля**.
+Project Task создаётся поверх них только при отдельном управленческом результате.
 
-Project Task появляется, только если поверх специализированной записи возник отдельный управленческий результат.
+## 26. Presence Control
 
-## 27. Employee Presence Control существует, но не является KPI
+`hr_presence` технически определяет presence по системным сигналам, включая session/email/IP.
 
-Публичный модуль [`hr_presence`](https://github.com/odoo/odoo/blob/19.0/addons/hr_presence/__manifest__.py) определяет presence на основе, среди прочего:
+Не использовать как KPI производительности или качества.
 
-- IP address;
-- user session;
-- sent emails.
+## 27. Gamification
 
-Это технический HR-инструмент присутствия.
+Community Gamification поддерживает goals/challenges/badges.
 
-### Методическое решение
+Не использовать для рейтинга операционной производительности по Task counts/hours.
 
-Не использовать его как показатель:
+## 28. Remote Work / HR Calendar
 
-- производительности;
-- вовлечённости;
-- качества работы;
-- фактической загрузки.
+Community имеет `hr_homeworking` и `hr_calendar`.
 
-Наличие сессии или отправленного письма ничего не говорит о результате работы.
+Это HR-контекст, а не замена Project workflow.
 
-## 28. Gamification существует, но не нужна для операционного рейтинга
+## 29. Ключевое правило bridge modules
 
-Community-модуль [`gamification`](https://github.com/odoo/odoo/blob/19.0/addons/gamification/__manifest__.py) поддерживает:
-
-- goals;
-- challenges;
-- badges;
-- сравнение/мотивационные механики.
-
-Не использовать для рейтинга сотрудников по закрытым Tasks, Activities или часам.
-
-Допустимый сценарий — ограниченная мотивация обучения/освоения системы, если для неё есть отдельная цель и нет искажающих стимулов.
-
-## 29. Remote Work и HR Calendar
-
-Community имеет:
-
-- [`hr_homeworking`](https://github.com/odoo/odoo/blob/19.0/addons/hr_homeworking/__manifest__.py) — Remote Work;
-- [`hr_calendar`](https://github.com/odoo/odoo/blob/19.0/addons/hr_calendar/__manifest__.py) — отображение Working Hours в Calendar.
-
-Это полезные HR-контекстные функции, но они не меняют базовый workflow задач.
-
-## 30. Главное правило второго прохода: сначала искать штатный bridge module
-
-Odoo Community часто связывает два установленных приложения отдельным auto-install модулем.
-
-Уже подтверждены:
+Перед custom code проверять:
 
 ```text
-Employees + Fleet
-→ hr_fleet
-
-Employees + Maintenance
-→ hr_maintenance
-
-Inventory + Maintenance
-→ stock_maintenance
-
-Skills + Surveys
-→ hr_skills_survey
-
-Skills + eLearning
-→ hr_skills_slides
-
-Employees + Calendar
-→ hr_calendar
+предметная модель A
++ предметная модель B
+→ auto-install bridges
+→ relations / smart buttons / reports
+→ relational Property для Task при необходимости
+→ только затем residual gap
 ```
 
-### Следствие
+## 30. Что действительно осталось проверять эмпирически
 
-Перед тем как объявлять cross-model связь отсутствующей:
+После широкого source-аудита главные неизвестные уже не «какой ещё модуль существует», а:
 
-1. проверить обе предметные модели;
-2. проверить auto-install bridge modules;
-3. проверить, что именно связывает bridge;
-4. только затем фиксировать gap.
+- пригодность Fleet для реального парка спецтехники;
+- производительность relational Properties на реальном объёме Tasks/records;
+- Import Tasks с dynamic Properties;
+- JSON-2/BI работа с Properties;
+- ACL target models через relational Properties;
+- русская локализация конкретных экранов;
+- сменный график 2/2 и рабочие календари;
+- cross-app dashboard usability;
+- email alias на реальной почтовой инфраструктуре;
+- необходимость агрегированного time-in-stage reporting.
 
-Это становится обязательным правилом технического аудита.
-
-## 31. Обновлённая иерархия шаблонов и автоматизации
-
-Перед Automation Rule выбирать самый простой штатный механизм:
-
-```text
-повторяемый текст ответа
-→ Canned Response
-
-следующее действие
-→ Activity
-
-повторяемая цепочка действий
-→ Activity Type chaining / Activity Plan
-
-одинаковая разовая Task по событию
-→ Task Template
-
-одинаковая Task по расписанию
-→ Recurring Task
-
-одинаковый набор Tasks / ролей / структуры
-→ Project Template
-
-однозначное событие → системное действие
-→ Automation Rule
-```
-
-Эта иерархия значительно уменьшает объём нужной no-code автоматизации.
-
-## 32. Новые кандидаты для пилотной проверки
-
-Не устанавливать всё сразу. Для функций, способных изменить основную архитектуру, достаточно отдельных тестов.
-
-### Project
-
-- создать Task Template;
-- создать новую Task из template;
-- проверить копирование subtasks и Properties;
-- посмотреть время по Stages в status bar;
-- проверить `Tasks to Plan` в Calendar.
-
-### Equipment
-
-- создать serial/lot в Inventory;
-- создать Equipment с тем же serial number;
-- проверить smart button serial;
-- проверить `Used in location`;
-- проверить HR allocation через `hr_maintenance`.
-
-### Fleet
-
-- связать Vehicle/driver с Employee;
-- проверить Fleet History;
-- проверить пригодность модели Fleet для реального состава ТС.
-
-### Skills
-
-- создать Skill Type / Skill / Level;
-- создать certification;
-- проверить validity и report;
-- создать eLearning course и проверить запись завершения сотруднику.
-
-### Data Quality
-
-- создать тестовые дубли Contacts;
-- проверить ручной Merge;
-- проверить Deduplicate other Contacts;
-- не включать Data Recycle до определения retention policy.
-
-## 33. Что пока остаётся непроверенным до конца
-
-Этот проход снижает неопределённость, но не даёт права заявлять, что абсолютно весь Odoo изучен.
-
-Отдельной проверки ещё требуют:
-
-- точная пригодность Fleet для специальной/промышленной техники;
-- реальные ограничения Import по каждому нужному справочнику;
-- security boundaries между HR/Fleet/Maintenance/Project;
-- возможности cross-app Dashboards без кастомных spreadsheet models;
-- Project profitability и финансовые мосты в чистой Community;
-- масштабируемость Task Templates и Properties на реальном объёме;
-- точная доступность функций в русской локализации и названия меню;
-- поведение email aliases на реальной почтовой инфраструктуре;
-- целесообразность Live Chat/Website intake для внутреннего контура;
-- необходимость собственного связующего поля Task → предметный объект после пилота.
-
-## 34. Промежуточный архитектурный вывод
-
-После второго прохода архитектура становится не «Project + несколько справочников», а **композиция штатных моделей и мостов**:
-
-```mermaid
-flowchart TB
-    HR[Employees] --> SKF[Skills / Certifications]
-    HR --> HF[hr_fleet]
-    HR --> HM[hr_maintenance]
-    HR --> HC[hr_calendar]
-
-    F[Fleet] --> HF
-    M[Maintenance] --> HM
-    ST[Inventory] --> SM[stock_maintenance]
-    M --> SM
-
-    EL[eLearning] --> HSL[hr_skills_slides]
-    S[Surveys] --> HSS[hr_skills_survey]
-    HSL --> SKF
-    HSS --> SKF
-
-    T[Project Task] --> TT[Task Templates]
-    T --> ACT[Activities]
-    T --> DEP[Dependencies]
-    T --> REC[Recurrence]
-    T --> AN[Task Analysis]
-
-    C[Contacts] --> DED[Merge / Deduplicate]
-
-    T -. отдельный управленческий результат .-> HR
-    T -. отдельный управленческий результат .-> F
-    T -. отдельный управленческий результат .-> M
-```
-
-Главный принцип сохраняется:
-
-> **Использовать штатную сущность и штатный мост, если они уже решают задачу. Project Task создаётся для обязательства, а собственный модуль — только для доказанного остаточного gap.**
+Это уже задачи тестового стенда, а не чтения каталога модулей.
 
 ---
 
-[← 06 — Настройка](06-workspace.md) · [Главная](../README.md)
+[← 06 — Настройка](06-workspace.md) · [08 — Интеграции Project →](08-project-integrations.md)
