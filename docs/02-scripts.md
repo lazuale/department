@@ -1,6 +1,6 @@
 # Рабочие сценарии
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · **02 Сценарии** · [03 Аналитика](03-control.md) · [04 Шаблоны](04-templates.md) · [05 Процессы](05-processes.md) · [06 Настройка](06-workspace.md)
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · **02 Сценарии** · [03 Аналитика](03-control.md) · [04 Шаблоны](04-templates.md) · [05 Процессы](05-processes.md) · [06 Настройка](06-workspace.md) · [17 Люди](17-master-data-people.md)
 
 ---
 
@@ -147,11 +147,13 @@ Model: fleet.vehicle
 Не смешивать:
 
 ```text
-Assignees = кто выполняет Task
-Property[Сотрудник] = кого касается работа
+Assignees = кто выполняет Task = res.users
+Property[Сотрудник] = кого касается работа = res.partner
 ```
 
-Если Employee — только предмет работы, он не обязан быть пользователем Odoo.
+Сотрудник как предмет работы не обязан быть пользователем Odoo. Если ему позже выдаётся доступ, используется тот же `res.partner`, связанный с его `res.users`.
+
+Подробно: [17 — Master data: люди](17-master-data-people.md).
 
 ## PS-15. Task относится к оборудованию
 
