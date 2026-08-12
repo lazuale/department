@@ -1,6 +1,6 @@
 # Граница возможностей Odoo 19 Community
 
-[Главная](../README.md) · **00 Возможности** · [01 Модель](01-methodology.md) · [03 Аналитика](03-control.md) · [06 Настройка](06-workspace.md) · [15 Перепроверка](15-capability-recheck.md)
+[Главная](../README.md) · **00 Возможности** · [01 Модель](01-methodology.md) · [03 Аналитика](03-control.md) · [06 Настройка](06-workspace.md) · [15 Перепроверка](15-capability-recheck.md) · [17 Люди](17-master-data-people.md)
 
 ---
 
@@ -44,9 +44,8 @@ Odoo не превращается в одну универсальную таб
 | Реальный объект | Штатная модель / приложение |
 |---|---|
 | обязательство / контролируемый результат | `project.task` |
-| сотрудник | `hr.employee` |
+| человек / сотрудник компании | `res.partner` |
 | пользователь-исполнитель | `res.users` |
-| внешний человек / организация | `res.partner` |
 | ТС | `fleet.vehicle` после проверки пригодности Fleet |
 | оборудование | `maintenance.equipment` |
 | обслуживание | `maintenance.request` |
@@ -64,6 +63,8 @@ Odoo не превращается в одну универсальную таб
 | тест / анкета | Surveys |
 | закупка | Purchase |
 | расход сотрудника | Expenses |
+
+Для текущего рабочего контура master data людей зафиксирован отдельно: **[17 — Master data: люди](17-master-data-people.md)**. Employees / `hr.employee` является доступной Community-возможностью, но не входит в baseline только ради справочника сотрудников.
 
 > **Task — работа над объектом, а не сам объект.**
 
@@ -185,7 +186,7 @@ Default Value
 
 ```text
 Property[ТС]           → Many2one(fleet.vehicle)
-Property[Сотрудник]    → Many2one(hr.employee)
+Property[Сотрудник]    → Many2one(res.partner)
 Property[Оборудование] → Many2one(maintenance.equipment)
 ```
 
@@ -567,7 +568,7 @@ Project + Stock Account  → project_stock_account
 Project + Expenses       → project_hr_expense
 ```
 
-Bridge = связь моделей, а не обещание полного cross-app отчёта.
+Bridge = связь моделей, а не обещание полного cross-app отчёта. HR bridges учитываются только если HR когда-либо будет включён по отдельной потребности; в текущий baseline они не входят.
 
 ---
 
@@ -682,21 +683,22 @@ master data apps
 
 1. Fleet на реальном составе ТС;
 2. Many2one Property `ТС` на реальном объёме;
-3. Property filter/group performance;
-4. Property history в Chatter;
-5. Task Import + Properties;
-6. Properties через JSON-2;
-7. ACL Fleet/Employees/Maintenance под обычным Project User;
-8. Task Template + Properties;
-9. Recurring Task + Properties;
-10. Recurring Task + Subtasks;
-11. две daily recurrence chains для handover;
-12. My Dashboard с реальными shared views;
-13. Website Form → Inbox triage при необходимости;
-14. email alias;
-15. Spreadsheet Dashboard create/edit в чистой CE — только как редакционная проверка, не prerequisite;
-16. русская локализация фактических menus/fields.
+3. Property `Сотрудник → res.partner` на реальном справочнике людей;
+4. Property filter/group performance;
+5. Property history в Chatter;
+6. Task Import + Properties;
+7. Properties через JSON-2;
+8. ACL Fleet/Contacts/Maintenance под обычным Project User;
+9. Task Template + Properties;
+10. Recurring Task + Properties;
+11. Recurring Task + Subtasks;
+12. две daily recurrence chains для handover;
+13. My Dashboard с реальными shared views;
+14. Website Form → Inbox triage при необходимости;
+15. email alias;
+16. Spreadsheet Dashboard create/edit в чистой CE — только как редакционная проверка, не prerequisite;
+17. русская локализация фактических menus/fields.
 
 ---
 
-[← Главная](../README.md) · [15 — Перепроверка →](15-capability-recheck.md)
+[← Главная](../README.md) · [15 — Перепроверка →](15-capability-recheck.md) · [17 — Master data: люди →](17-master-data-people.md)
