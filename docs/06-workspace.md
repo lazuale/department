@@ -1,6 +1,6 @@
 # Настройка Odoo 19 Community
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [03 Аналитика](03-control.md) · **06 Настройка**
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [03 Аналитика](03-control.md) · **06 Настройка** · [17 Люди](17-master-data-people.md)
 
 ---
 
@@ -19,7 +19,7 @@ Project
 Contacts
 ```
 
-Employees подключается, если сотрудники являются предметными records или нужен HR-контекст.
+Для текущего контура сотрудники компании ведутся в Contacts / `res.partner`. Employees / HR не устанавливается только ради справочника людей. Он возвращается на рассмотрение только при реальной потребности в HR-функциональности.
 
 Остальные приложения устанавливаются только по реальной предметной потребности.
 
@@ -50,6 +50,15 @@ Timesheets  → фактические трудозатраты, если нуж
 → кто поддерживает данные
 ```
 
+Для людей уже зафиксировано:
+
+```text
+человек / сотрудник компании → res.partner
+доступ в Odoo                → res.users, связанный с тем же res.partner
+```
+
+Подробно: [17 — Master data: люди](17-master-data-people.md).
+
 Если штатная model подходит, использовать её.
 
 Если объект нужен только как атрибут работы, достаточно Property/Tag.
@@ -69,13 +78,15 @@ Timesheets  → фактические трудозатраты, если нуж
 - права;
 - пригодность модели для реальных данных.
 
+Для справочника людей один человек должен соответствовать одной записи `res.partner`; выдача доступа через `res.users` не должна создавать вторую карточку человека.
+
 Не дублировать один и тот же master data текстом в Tasks.
 
 ## 5. Проверить bridge modules
 
 После установки связанных приложений проверить auto-install bridges до проектирования собственных relations.
 
-Примеры:
+Примеры доступных технических bridges:
 
 ```text
 Employees + Fleet        → hr_fleet
@@ -86,6 +97,8 @@ Project + Inventory      → project_stock
 Project + Accounting     → project_account
 Project + Expenses       → project_hr_expense
 ```
+
+HR-bridges учитываются только если Employees / HR позже будет осознанно включён. В текущий baseline они не входят.
 
 ## 6. Определить границы Projects
 
@@ -128,7 +141,7 @@ Project + Expenses       → project_hr_expense
 
 После этого проверить фактический UX Odoo.
 
-Не создавать fake users для очередей или организационных групп.
+Assignees остаются штатными `res.users`. Не создавать fake users для очередей, организационных групп или людей, которым вход в Odoo не нужен.
 
 ## 9. Настроить Properties только по потребности
 
@@ -171,13 +184,12 @@ Property
 - List/Kanban;
 - производительность.
 
-Примеры:
+Примеры текущего контура:
 
 ```text
 ТС           → fleet.vehicle
-Сотрудник    → hr.employee
+Сотрудник    → res.partner
 Оборудование → maintenance.equipment
-Контрагент   → res.partner
 ```
 
 ## 11. Domain не заменяет security
@@ -395,7 +407,9 @@ Authorization: Bearer ...
 - External IDs;
 - target-model permissions;
 - качество поиска;
-- объём данных.
+- объём данных;
+- один человек = один `res.partner`;
+- выдача `res.users` без дублирования карточки человека.
 
 ### Tasks
 
@@ -411,6 +425,7 @@ Authorization: Bearer ...
 
 ### Properties
 
+- `Сотрудник → res.partner`;
 - Many2one/Many2many;
 - Filter / Group By;
 - List/Kanban;
@@ -467,4 +482,4 @@ Authorization: Bearer ...
 
 ---
 
-[← 05 — Процессы](05-processes.md) · [Главная](../README.md)
+[← 05 — Процессы](05-processes.md) · [17 — Master data: люди](17-master-data-people.md) · [Главная](../README.md)
