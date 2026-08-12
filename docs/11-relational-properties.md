@@ -1,6 +1,6 @@
 # Relational Properties в Odoo 19 Community
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [07 Аудит](07-deep-community-audit.md) · [08 Интеграции Project](08-project-integrations.md) · [10 API](10-external-integrations.md) · **11 Relational Properties**
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [07 Аудит](07-deep-community-audit.md) · [08 Интеграции Project](08-project-integrations.md) · [10 API](10-external-integrations.md) · **11 Relational Properties** · [17 Люди](17-master-data-people.md)
 
 ---
 
@@ -41,16 +41,17 @@ Domain
 Default Value
 ```
 
-Примеры:
+Примеры для текущего контура:
 
 ```text
 ТС           → fleet.vehicle
-Сотрудник    → hr.employee
+Сотрудник    → res.partner
 Оборудование → maintenance.equipment
-Контрагент   → res.partner
 ```
 
 Это не вручную набитый Selection, а ссылка на существующий record.
+
+Решение по людям зафиксировано отдельно: [17 — Master data: люди](17-master-data-people.md). Employees / `hr.employee` не используется только ради справочника сотрудников.
 
 ## 3. Public Community source подтверждает relations
 
@@ -108,6 +109,16 @@ Task Property[ТС]
 = ссылка на Fleet Vehicle
 ```
 
+Для людей:
+
+```text
+Contact / res.partner
+= единая запись человека
+
+Task Property[Сотрудник]
+= ссылка на res.partner
+```
+
 Не делать:
 
 ```text
@@ -115,7 +126,7 @@ Property Selection[ТС]
 = тысячи вручную внесённых госномеров
 ```
 
-То же для Employee, Equipment и Contacts.
+То же правило действует для людей, Equipment и других master records.
 
 ## 7. Что Many2one Property даёт штатно
 
@@ -169,7 +180,7 @@ Relational Property использует стандартный autocomplete и 
 Для master data определить отдельно:
 
 ```text
-кто создаёт Vehicles/Employees/Equipment
+кто создаёт Vehicles / Contacts / Equipment
 кто только выбирает существующие records
 ```
 
@@ -201,7 +212,7 @@ Property[ТС]: Vehicle A → Vehicle B
 или:
 
 ```text
-Property[Сотрудник]: Employee A → Employee B
+Property[Сотрудник]: Person A → Person B
 ```
 
 автоматически появится в Chatter Project Task как обычное tracked-field изменение.
@@ -276,14 +287,18 @@ Show in cards: <если полезно>
 
 ## 16. Property `Сотрудник`
 
+Для текущего контура:
+
 ```text
 Type: Many2one
-Model: hr.employee
+Model: res.partner
 ```
 
-Использовать когда Employee — предмет Task, а не исполнитель.
+Использовать, когда человек является предметом Task, а не исполнителем.
 
-Если история изменения Employee-связи существенна, применяются те же ограничения tracking.
+Исполнитель остаётся штатным Assignee → `res.users`.
+
+Если история изменения связи с человеком существенна, применяются те же ограничения tracking.
 
 ## 17. Property `Оборудование`
 
@@ -331,7 +346,7 @@ Many2many использовать только если один результ
 
 Template-based copying делает Properties кандидатом на перенос в созданную Task.
 
-Но динамический предметный объект (Vehicle/Employee) не нужно зашивать в template, если он меняется в каждом случае.
+Но динамический предметный объект (Vehicle/Person) не нужно зашивать в template, если он меняется в каждом случае.
 
 Проверить runtime.
 
@@ -419,4 +434,4 @@ master data
 
 ---
 
-[← 10 — API](10-external-integrations.md) · [12 — Коммуникации и вложения →](12-communication-documents.md)
+[← 10 — API](10-external-integrations.md) · [12 — Коммуникации и вложения →](12-communication-documents.md) · [17 — Master data: люди](17-master-data-people.md)
