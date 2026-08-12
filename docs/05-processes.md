@@ -1,6 +1,6 @@
 # Описание процессов
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · [03 Аналитика](03-control.md) · [04 Шаблоны](04-templates.md) · **05 Процессы** · [06 Настройка](06-workspace.md)
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · [03 Аналитика](03-control.md) · [04 Шаблоны](04-templates.md) · **05 Процессы** · [06 Настройка](06-workspace.md) · [17 Люди](17-master-data-people.md)
 
 ---
 
@@ -22,14 +22,16 @@
 
 | Предмет | Возможный источник истины |
 |---|---|
-| сотрудник | Employees |
-| человек / организация | Contacts |
+| сотрудник / человек | Contacts / `res.partner` |
+| пользователь с доступом | `res.users` |
 | ТС | Fleet, если подходит |
 | оборудование | Maintenance Equipment |
 | обслуживание | Maintenance Request |
 | serial / lot / location / movement | Inventory |
 | закупка | Purchase |
 | расход | Expenses |
+
+Для людей текущего контура действует [17 — Master data: люди](17-master-data-people.md): Employees / HR не включается только ради справочника сотрудников.
 
 Если подходящей штатной модели нет, это не означает автоматически, что объект надо хранить в Task.
 
@@ -87,13 +89,12 @@ Task не создаётся только ради:
 
 Если Task должна системно ссылаться на объект, сначала проверить штатную relation или relational Property.
 
-Примеры:
+Примеры текущего контура:
 
 ```text
 ТС           → Many2one(fleet.vehicle)
-Сотрудник    → Many2one(hr.employee)
+Сотрудник    → Many2one(res.partner)
 Оборудование → Many2one(maintenance.equipment)
-Контрагент   → Many2one(res.partner)
 ```
 
 Не копировать большой справочник в Selection Property.
@@ -133,6 +134,8 @@ Task не создаётся только ради:
 - кто имеет право назначать и передавать работу.
 
 Odoo предоставляет механизм, но не определяет организационное правило.
+
+Assignee — это пользователь `res.users`; он не является общим master record человека.
 
 ## 9. Deadline — локальное правило срока
 
