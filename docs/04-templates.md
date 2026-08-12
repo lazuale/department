@@ -1,6 +1,6 @@
 # Шаблоны
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · [03 Аналитика](03-control.md) · **04 Шаблоны** · [05 Процессы](05-processes.md) · [06 Настройка](06-workspace.md)
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [02 Сценарии](02-scripts.md) · [03 Аналитика](03-control.md) · **04 Шаблоны** · [05 Процессы](05-processes.md) · [06 Настройка](06-workspace.md) · [17 Люди](17-master-data-people.md)
 
 ---
 
@@ -60,14 +60,15 @@ Chatter / Attachments
 
 Если Task системно относится к предметному объекту, использовать relation/Property вместо текстовой копии.
 
-Примеры:
+Примеры текущего контура:
 
 ```text
 ТС           → Many2one(fleet.vehicle)
-Сотрудник    → Many2one(hr.employee)
+Сотрудник    → Many2one(res.partner)
 Оборудование → Many2one(maintenance.equipment)
-Контрагент   → Many2one(res.partner)
 ```
+
+Для людей действует единое решение [17 — Master data: люди](17-master-data-people.md).
 
 Не переносить в Task все атрибуты target model без отдельной причины.
 
@@ -91,7 +92,7 @@ Properties со стабильными значениями
 Subtasks, если они действительно самостоятельны
 ```
 
-Не зашивать в template конкретный Vehicle/Employee/Equipment, если объект меняется при каждом использовании.
+Не зашивать в template конкретный Vehicle/Person/Equipment, если объект меняется при каждом использовании.
 
 ## 7. Recurring Task
 
