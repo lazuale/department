@@ -8,7 +8,8 @@
 **[Модель управления →](docs/01-methodology.md)**  
 **[Рабочие сценарии →](docs/02-scripts.md)**  
 **[Контроль и аналитика →](docs/03-control.md)**  
-**[Click-only пилот →](docs/06-workspace.md)**
+**[Click-only пилот →](docs/06-workspace.md)**  
+**[Master data: люди →](docs/17-master-data-people.md)**
 
 ## Три слоя
 
@@ -49,15 +50,23 @@
 → выполнение и контроль
 ```
 
-Примеры предметных моделей:
+Примеры предметных моделей текущего контура:
 
 ```text
-Employees   → сотрудники
-Contacts    → люди / организации
+Contacts    → сотрудники компании / люди
 Fleet       → ТС, если модель подходит реальному парку
-Maintenance → оборудование / обслуживание
-Inventory   → serial / lot / location / movement
+Maintenance → оборудование / обслуживание при необходимости
+Inventory   → serial / lot / location / movement при необходимости
 ```
+
+Для людей отдельно зафиксировано:
+
+```text
+человек / сотрудник компании → res.partner
+доступ в Odoo                → res.users, связанный с тем же res.partner
+```
+
+Employees / HR не входит в текущий baseline только ради справочника сотрудников.
 
 Task хранит работу:
 
@@ -97,7 +106,7 @@ Odoo 19 Properties поддерживают relational-типы.
 
 ```text
 Property[ТС]           → Many2one(fleet.vehicle)
-Property[Сотрудник]    → Many2one(hr.employee)
+Property[Сотрудник]    → Many2one(res.partner)
 Property[Оборудование] → Many2one(maintenance.equipment)
 ```
 
@@ -239,10 +248,11 @@ Domain relational Property помогает выбирать records, но не 
 - [04 — Шаблоны](docs/04-templates.md)
 - [05 — Описание процессов](docs/05-processes.md)
 - [06 — Настройка пилота](docs/06-workspace.md)
+- [17 — Master data: люди](docs/17-master-data-people.md)
 
 ### Технические аудиты
 
-Документы `07–15` фиксируют результаты углублённой проверки возможностей, ограничений и runtime-гипотез. Они являются техническим приложением и **не задают организационные правила работы по умолчанию**.
+Документы `07–16` фиксируют результаты углублённой проверки возможностей, ограничений, модулей и runtime-гипотез. Они являются техническим приложением и **не задают организационные правила работы по умолчанию**, если нормативный слой уже зафиксировал конкретное решение.
 
 ## Где хранится что
 
