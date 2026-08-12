@@ -1,45 +1,69 @@
-# Управление работой отдела в Odoo 19 Community
+# Управление работой в Odoo 19 Community
 
-Практическая методика управления операционной работой, справочниками, контролем и аналитикой в **стандартном Odoo 19 Community**.
+Практическая методика использования **Odoo 19 Community** для управления обязательствами, предметными данными, контролем и аналитикой.
 
-Методика строится вокруг реальных штатных возможностей: предметные данные живут в своих Odoo-моделях, а Project управляет **обязательствами и контролируемыми результатами**.
+Методика адаптируется под штатную модель Odoo, а не пытается воспроизвести заранее заданную организационную схему.
 
 **[Граница возможностей Community →](docs/00-odoo19-community.md)**  
 **[Модель управления →](docs/01-methodology.md)**  
-**[Click-only настройка →](docs/06-workspace.md)**  
-**[Повторная проверка спорных возможностей →](docs/15-capability-recheck.md)**
+**[Рабочие сценарии →](docs/02-scripts.md)**  
+**[Контроль и аналитика →](docs/03-control.md)**  
+**[Click-only пилот →](docs/06-workspace.md)**
 
-## Как проверяются возможности
+## Три слоя
 
-Для каждого существенного решения:
+### 1. Технические возможности Odoo
 
-1. поведение сверяется с официальной документацией **Odoo 19.0**;
-2. принадлежность Community при необходимости проверяется в публичной ветке **`odoo/odoo:19.0`**;
-3. перед объявлением разрыва проверяются штатные bridge modules;
-4. наличие технического модуля не считается доказательством полного click-only workflow;
-5. до custom module проверяются relational Properties, standard views/reports, Import/API/Automation и реальный пилот.
+Что реально умеет Odoo 19 Community:
 
-Наличие функции в общей документации Odoo само по себе не считается доказательством её наличия в Community.
+- Projects / Tasks;
+- Stages / States;
+- Assignees;
+- Deadline / Priority;
+- Activities;
+- Dependencies;
+- Subtasks;
+- Task Templates;
+- Recurring Tasks;
+- Chatter;
+- Properties, включая Many2one/Many2many;
+- List / Kanban / Calendar / Activity / Pivot / Graph;
+- Shared Views;
+- Task Analysis;
+- My Dashboard;
+- Groups / Access Rights / Record Rules;
+- Import / Export;
+- Automation / Webhooks;
+- JSON-2 API.
 
-## Главный принцип
+### 2. Нейтральная методика
 
-> **Task — контролируемый результат, а не универсальная карточка объекта.**
+Из возможностей Odoo выводятся только общие правила:
 
-Master data:
+> **Task — отдельно контролируемый результат, а не универсальная карточка объекта.**
+
+```text
+предметная сущность
+→ штатная Odoo-модель, если она подходит
+→ связь с Task при необходимости
+→ выполнение и контроль
+```
+
+Примеры предметных моделей:
 
 ```text
 Employees   → сотрудники
-Contacts    → внешние люди/организации
+Contacts    → люди / организации
 Fleet       → ТС, если модель подходит реальному парку
-Maintenance → оборудование и обслуживание
+Maintenance → оборудование / обслуживание
 Inventory   → serial / lot / location / movement
 ```
 
-Project Task хранит работу:
+Task хранит работу:
 
 ```text
 результат
-ответственный
+Assignees
 Deadline
 Stage / State
 Priority
@@ -49,11 +73,27 @@ Properties
 Chatter
 ```
 
-## Ключевая находка углублённого аудита: relational Properties
+### 3. Локальные правила процесса
 
-Odoo 19 Properties штатно поддерживают **Many2one и Many2many к выбранной модели**.
+Методика **не задаёт заранее**:
 
-Поэтому Task можно связать кликами с предметным справочником:
+- кто назначает работу;
+- кто имеет право закрывать или отменять;
+- нужен ли отдельный контроль результата;
+- один или несколько Assignees используются;
+- какие именно Stages нужны;
+- какая схема Priority применяется;
+- используется ли общая очередь;
+- есть ли смены и какой у них график;
+- кто и когда меняет Deadline.
+
+Эти решения определяются конкретным процессом и затем настраиваются средствами Odoo.
+
+## Связь Task с предметными объектами
+
+Odoo 19 Properties поддерживают relational-типы.
+
+Поэтому сначала проверяется штатная click-only связь:
 
 ```text
 Property[ТС]           → Many2one(fleet.vehicle)
@@ -61,274 +101,159 @@ Property[Сотрудник]    → Many2one(hr.employee)
 Property[Оборудование] → Many2one(maintenance.equipment)
 ```
 
-Это не копия справочника. Источник истины остаётся в Fleet/Employees/Maintenance, а Property хранит ссылку на record.
+Источник истины остаётся в предметной модели. Task не копирует справочник.
 
-Следовательно, отсутствие обычного Python-поля `project.task.vehicle_id` **само по себе больше не является основанием для custom module**.
+Отсутствие отдельного Python-поля в `project.task` само по себе не является основанием для custom module.
 
-Сначала relational Property проверяется на реальном объёме, в filter/group, правах, Import/API и BI.
-
-Важная граница: стандартный `task_properties` не включён в Chatter tracking как обычное `tracking=True` поле. Если доказуемая история смены предметной ссылки обязательна, это уже отдельный критерий для минимальной доработки или специального правила фиксации изменения.
-
-## Базовый операционный Project
-
-Для постоянной работы одного отдела обычно достаточно одного Project:
+## Как выбирать сущность
 
 ```text
-Входящие
-→ Очередь
-→ В работе
-→ Ожидание внешнего
-→ На проверке   [только если реально необходимо]
+Есть предметная сущность
+        ↓
+Есть подходящая штатная модель Odoo?
+        │
+     да ───→ использовать её
+        │
+       нет
+        ↓
+Нужна ли сущности самостоятельная жизнь?
+        │
+        ├─ нет → Property / Tag / данные Task / Chatter
+        │
+        └─ да  → кандидат на минимальную собственную model
 ```
 
-Закрытие:
+Собственная model оправдана, если объекту нужен самостоятельный реестр, уникальность, lifecycle, отдельные права, связи с множеством records или собственная аналитика.
+
+## Project не является классификатором
+
+Количество Projects определяется реальными границами:
+
+- visibility;
+- lifecycle;
+- отдельный управленческий контур;
+- milestones / project-level reporting;
+- существенно различающийся workflow.
+
+Разные виды работ, ТС, сотрудники или категории сами по себе не требуют отдельных Projects: для этого существуют Properties, Tags и Views.
+
+## Stage, State, Deadline и Activity
 
 ```text
-Done / Canceled
+Stage     → положение Task в настроенном процессе
+State     → системное состояние Task
+Deadline  → срок результата
+Activity  → следующее действие / follow-up
+Blocked by → внутренняя зависимость от другой Task
 ```
 
-Внутренняя блокировка:
+Конкретный набор Stages задаётся процессом. Не нужно дублировать системные `Done`, `Canceled` или dependency-driven `Waiting` отдельными Stages без причины.
 
-```text
-Blocked by
-→ computed Waiting
-```
-
-Dependencies могут связывать Tasks разных Projects, поэтому самостоятельную инициативу можно вынести в отдельный Project без потери `Blocked by`.
-
-## Рабочее место без разработки
-
-Подтверждены и включены в click-only baseline:
-
-- Shared Favorites;
-- Project Top Bar `Save View → Shared`;
-- List / Kanban / Calendar / Activity / Pivot / Graph;
-- **mass edit в Task List**;
-- Task Analysis;
-- **My Dashboard**;
-- Rotting;
-- Activities и Activity Plans;
-- Dependencies;
-- Recurring Tasks;
-- **Task Templates**;
-- Project Templates и Project Roles;
-- Project Stages для портфеля инициатив;
-- Milestones / Project Updates / Burndown для инициатив.
-
-Для большого входящего потока **List рассматривается как диспетчерское рабочее место**, а Kanban — как визуализация потока по Stages.
-
-### Важная поправка про Spreadsheet Dashboard
-
-Public Community содержит `spreadsheet` и `spreadsheet_dashboard`, но повторная проверка показала, что наличие этих модулей **не доказывает полноценный click-only create/edit workflow собственного Spreadsheet Dashboard в чистой Community**.
-
-Официальный workflow построения dashboard с нуля требует как минимум прав `Documents / User`, а Documents не является нашей Community-базой.
-
-Поэтому основной путь аналитики сейчас:
-
-```text
-Shared Views
-→ Task Analysis
-→ My Dashboard
-→ API / внешний BI при необходимости
-```
-
-Spreadsheet Dashboard используется только после runtime-проверки конкретной Community-инсталляции и доступного редакционного слоя.
-
-## Четыре разных механизма повторяемости
+## Повторяемость
 
 ```text
 типовая разовая Task по событию
 → Task Template
 
-одинаковая Task по расписанию
+календарно повторяемая Task
 → Recurring Task
 
-типовой набор follow-up
-→ Activity Plan / Activity chaining
+повторяемый набор follow-up
+→ Activity Plan / chaining
 
-повторяемая структура проекта
-→ Project Template + Project Roles
+повторяемая структура инициативы
+→ Project Template + Roles
 ```
 
-Automation Rule нужен только если более простой механизм не решает задачу.
+Используется только тот механизм, который соответствует реальной потребности.
 
-По Recurring Tasks есть расхождение документации и текущего public source по копированию Subtasks, поэтому этот сценарий проверяется runtime и не считается гарантированным заранее.
+## Контроль
 
-## Штатные bridge modules
-
-В ходе аудита подтверждены, среди прочего:
+Базовый путь без собственной разработки:
 
 ```text
-Employees + Fleet        → hr_fleet
-Employees + Maintenance  → hr_maintenance
-Inventory + Maintenance  → stock_maintenance
-Skills + Surveys         → hr_skills_survey
-Skills + eLearning       → hr_skills_slides
-Employees + Calendar     → hr_calendar
-
-Project + Accounting     → project_account
-Project + Purchase       → project_purchase
-Project + Inventory      → project_stock
-Project + Stock Account  → project_stock_account
-Project + Expenses       → project_hr_expense
+List / Kanban / Activities
+→ Shared Views
+→ Task Analysis
+→ Pivot / Graph
+→ My Dashboard
+→ API / внешний BI при необходимости
 ```
 
-Поэтому две отдельные модели нельзя объявлять несвязанными, пока не проверены штатные bridges.
+Для большого потока List удобен как рабочее место для поиска, сортировки, массовых действий и сравнения полей; Kanban — как визуализация движения по Stages.
 
-Наличие bridge не означает автоматически наличие нужного отчёта или полного workflow.
+## Права
 
-## Дополнительные Community-контуры, которые изучены
+Организационные полномочия не зашиваются в методику заранее.
 
-По потребности могут использоваться:
-
-- Skills / Certifications;
-- eLearning;
-- Surveys;
-- Attendances;
-- Time Off;
-- Work Entries;
-- Remote Work;
-- Recruitment;
-- Expenses;
-- Purchase / Purchase Agreements;
-- Analytic Accounting;
-- Calendar sync;
-- Live Chat / Canned Responses;
-- Contacts Merge/Deduplicate;
-- Data Recycle.
-
-Они не включаются автоматически: специализированный workflow используется только для своего предмета.
-
-## Сменная работа
-
-Community Resource Calendar умеет обычный и двухнедельный рабочий календарь, но это не произвольный roster engine. Чистый цикл `2/2` не следует автоматически считать закрытым штатным two-week schedule.
-
-Recurring Task поддерживает Days / Weeks / Months / Years, но не часы. Поэтому recurrence `каждые 12 часов` штатно не подтверждена; дневной и ночной handover при необходимости тестируются как две отдельные daily chains.
-
-## API и интеграции
-
-В публичном Community 19 подтверждены:
+После определения фактических ролей используются штатные механизмы Odoo:
 
 ```text
-JSON-2 /json/2/<model>/<method>
-Bearer authentication / API keys
-динамическая /doc
-Import / Export
-Email Alias
-Website + Project → Website Form → Task
-Inbound Automation Webhook
-Automation Rules
+Groups
+→ Access Rights
+→ Record Rules
+→ Project visibility
 ```
 
-Automation Rules и webhooks — **административный/технический Community-слой**, а не рабочий интерфейс обычного исполнителя.
+Domain relational Property помогает выбирать records, но не заменяет безопасность target model.
 
-Для новой системной интеграции JSON-2 предпочтительнее legacy XML-RPC/JSON-RPC.
+## Где допустима адаптация, а где начинается критический компромисс
 
-Прямой SQL write в PostgreSQL не является штатной интеграционной моделью Odoo.
+Методику можно менять под Odoo, если меняется только привычный способ организации работы.
 
-## Безопасность
+Нельзя считать адаптацию приемлемой, если из-за неё теряется возможность:
 
-В Community подтверждены:
+- однозначно определить предмет работы;
+- зафиксировать контролируемый результат;
+- определить ответственных;
+- контролировать срок;
+- сохранить необходимую историю;
+- обеспечить требуемое разграничение доступа;
+- получить достоверные данные для контроля.
 
-- application access rights;
-- record rules;
-- Project visibility/collaboration;
-- LDAP;
-- OAuth2;
-- TOTP 2FA;
-- Passkeys.
-
-Relational Property не обходит права target model. Domain — удобство выбора, а не security boundary.
-
-## Что сознательно не является базой Community-методики
-
-Не строим обязательную архитектуру на:
-
-- Studio;
-- Helpdesk;
-- Approvals;
-- Documents;
-- Knowledge;
-- Planning;
-- Gantt Project;
-- Sign;
-- Appointments;
-- полноценном Quality app;
-- Enterprise Data Cleaning/Data Merge;
-- полном Inventory Barcode UI;
-- Budget Management без отдельной редакционной проверки;
-- availability/capacity scheduling Project Tasks;
-- собственном Spreadsheet Dashboard без runtime/edition-проверки.
-
-## Реальные возможные gaps после углублённого аудита
-
-Больше **не считаются gaps по умолчанию**:
-
-```text
-Task → Vehicle
-Task → Employee
-Task → Equipment
-```
-
-Сначала они реализуются relational Properties.
-
-Реальными кандидатами на доработку остаются только подтверждённые пилотом проблемы, например:
-
-- обязательная история изменения Property-ссылки;
-- агрегированный time-in-stage/SLA reporting;
-- произвольное capacity/shift planning;
-- жёсткая BPM-матрица переходов по ролям;
-- Property недостаточен из-за производительности/constraint/API/BI;
-- специализированная бизнес-логика предметного процесса.
+Если штатная конфигурация не закрывает один из этих пунктов, фиксируется конкретный gap и рассматривается минимальная доработка.
 
 ## Порядок развития
 
 ```text
-штатные master data models
-→ relational Properties
+штатные Odoo models
+→ Properties / штатные relations
 → bridge modules
 → Project workflow
-→ Task Templates / Activities / Dependencies / Recurrence
-→ Shared Views
-→ Task Analysis
-→ My Dashboard
-→ API / внешний BI по потребности
-→ реальный нагрузочный/пользовательский пилот
-→ подтверждённые residual gaps
-→ минимальный custom module только на gaps
+→ Views / Analytics
+→ security configuration
+→ Import / API / Automation по потребности
+→ реальный пилот
+→ доказанные gaps
+→ минимальная доработка только на gaps
 ```
 
-## Разделы
+## Структура репозитория
 
-| Раздел | Содержание |
-|---|---|
-| [00 — Возможности Community](docs/00-odoo19-community.md) | актуальная техническая граница |
-| [01 — Модель управления](docs/01-methodology.md) | единица работы, Properties, ответственность, поток |
-| [02 — Сценарии](docs/02-scripts.md) | рабочие ситуации |
-| [03 — Контроль и аналитика](docs/03-control.md) | Shared Views, Task Analysis, Properties, My Dashboard |
-| [04 — Шаблоны](docs/04-templates.md) | Task/Activity/process templates |
-| [05 — Процессы](docs/05-processes.md) | описание процессов и источников истины |
-| [06 — Настройка](docs/06-workspace.md) | последовательный click-only пилот |
-| [07 — Углублённый аудит](docs/07-deep-community-audit.md) | дополнительные Community-модули и bridges |
-| [08 — Интеграции Project](docs/08-project-integrations.md) | Project ↔ analytic/purchase/stock/expenses |
-| [09 — Project и безопасность](docs/09-project-productivity-security.md) | Project Stages, UX, authentication |
-| [10 — API и интеграции](docs/10-external-integrations.md) | JSON-2, webhooks, integration patterns |
-| [11 — Relational Properties](docs/11-relational-properties.md) | Many2one/Many2many Properties, tracking и residual gaps |
-| [12 — Коммуникации и вложения](docs/12-communication-documents.md) | sharing, Chatter, Stage email/rating, scheduled messages, attachment indexation |
-| [13 — Смены и регламентные циклы](docs/13-shift-routines.md) | Resource Calendar, 2/2, handover, recurrence и runtime-границы |
-| [14 — Высокопоточный триаж](docs/14-high-volume-triage.md) | Task List, mass edit, operational filters, Activities и нагрузочный пилот |
-| [15 — Перепроверка возможностей](docs/15-capability-recheck.md) | повторный аудит спорных функций и исправления границы CE |
+### Нормативный слой
+
+- [00 — Возможности Community](docs/00-odoo19-community.md)
+- [01 — Модель управления](docs/01-methodology.md)
+- [02 — Рабочие сценарии](docs/02-scripts.md)
+- [03 — Контроль и аналитика](docs/03-control.md)
+- [04 — Шаблоны](docs/04-templates.md)
+- [05 — Описание процессов](docs/05-processes.md)
+- [06 — Настройка пилота](docs/06-workspace.md)
+
+### Технические аудиты
+
+Документы `07–15` фиксируют результаты углублённой проверки возможностей, ограничений и runtime-гипотез. Они являются техническим приложением и **не задают организационные правила работы по умолчанию**.
 
 ## Где хранится что
 
-- **Odoo** — master data, фактическая работа, история, ответственность, сроки и analytics.
-- **Репозиторий** — методика, правила процессов и результаты технического аудита.
+- **Odoo** — предметные records, фактическая работа, история, ответственность, сроки и аналитика.
+- **Репозиторий** — нейтральная методика, описание конкретных процессов и технические результаты аудита.
 
-Не нужно вести параллельный Excel-реестр тех же обязательств.
+Не требуется вести параллельный ручной реестр тех же обязательств, если они уже корректно учитываются в Odoo.
 
 ---
 
-Работа ведётся только в Draft PR. Merge в `main` — только по отдельной явной команде.
+Работа ведётся в Draft PR. Merge в `main` — только по отдельной явной команде.
 
 ## Лицензия
 
