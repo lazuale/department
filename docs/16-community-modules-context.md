@@ -1,6 +1,6 @@
 # Опорный реестр модулей Odoo 19 Community
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [06 Настройка](06-workspace.md)
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [06 Настройка](06-workspace.md) · [17 Люди](17-master-data-people.md)
 
 ---
 
@@ -93,8 +93,8 @@ Extra filter → остальные устанавливаемые модули
 |---|---|---|---|---|
 | Работа | **Project / Проекты** | `project` | **Используем** | самостоятельная управляемая работа, Tasks, workflow, сроки, зависимости, шаблоны, recurrence, анализ |
 | Коммуникация | **Discuss / Обсуждения** | `mail` | **Используем** | Chatter, Activities, mail gateway, каналы и контекстная коммуникация |
-| HR / справочник | **Employees / Сотрудники** | `hr` | **Используем** | нативные записи сотрудников; не равны `res.users` |
-| Справочник | **Contacts / Контакты** | `contacts` | **Используем** | внешние люди, организации и контрагенты |
+| HR / справочник | **Employees / Сотрудники** | `hr` | **Вероятно нет** | для текущего контура не нужен: единый рабочий справочник людей ведём через Contacts / `res.partner`; возвращаем HR только при реальной HR-потребности |
+| Справочник | **Contacts / Контакты** | `contacts` | **Используем** | единый рабочий справочник сотрудников компании на `res.partner`; доступ в Odoo выдаётся отдельно через `res.users` |
 | Транспорт | **Fleet / Автопарк** | `fleet` | **Используем** | нативные записи ТС; не система путевых листов |
 | Productivity | **Calendar / Календарь** | `calendar` | **Возможно** | встречи и календарные события, если они реально нужны процессам |
 | Productivity | **To-Do** | `project_todo` | **Возможно методически; автоматически присутствует с Project** | личный лёгкий список; не должен стать вторым скрытым backlog |
@@ -129,9 +129,9 @@ Extra filter → остальные устанавливаемые модули
 ### Контроль количества
 
 ```text
-Используем:      5 Apps
+Используем:      4 Apps
 Возможно:        8 Apps
-Вероятно нет:   21 Apps
+Вероятно нет:   22 Apps
 Итого:          34 Apps
 ```
 
@@ -240,7 +240,7 @@ hr + fleet
 hr_fleet   [auto_install=True]
 ```
 
-Для нашего baseline это штатная автоматическая связь Employees ↔ Fleet.
+Это штатная bridge-возможность Odoo, но **не часть текущего baseline**, потому что `hr` сейчас не используется. Fleet может использовать `res.partner` для водителей без включения HR.
 
 ### Discuss / mail infrastructure
 
@@ -250,15 +250,15 @@ hr_fleet   [auto_install=True]
 
 | Bridge | Technical name | Связка | Auto-install / роль | Решение |
 |---|---|---|---|---|
-| Fleet History | `hr_fleet` | Employees ↔ Fleet | auto-install | **Используем автоматически** |
-| Maintenance – HR | `hr_maintenance` | Employees ↔ Maintenance | auto-install | **Возможно автоматически** |
+| Fleet History | `hr_fleet` | Employees ↔ Fleet | auto-install при `hr` + `fleet` | **Не baseline; возможен только если позже включим HR** |
+| Maintenance – HR | `hr_maintenance` | Employees ↔ Maintenance | auto-install | **Не baseline; возможен только при HR** |
 | Stock – Maintenance | `stock_maintenance` | Inventory ↔ Maintenance | auto-install | **Возможно автоматически** |
 | Project – Purchase | `project_purchase` | Project ↔ Purchase | штатный bridge | **Возможно** |
 | Project – Stock | `project_stock` | Project ↔ Stock | штатный bridge | **Возможно** |
 | Project Stock Account | `project_stock_account` | Project/Stock ↔ stock accounting analytics | auto-install при зависимостях | **Вероятно нет**, пока Accounting не в нашем контуре |
 | Project – Accounting | `project_account` | Project ↔ accounting/analytic layer | штатный bridge | **Вероятно нет** |
 | Project – Expenses | `project_hr_expense` | Project ↔ employee expenses | штатный bridge | **Вероятно нет** |
-| HR Calendar | `hr_calendar` | Employees ↔ Calendar working hours | auto-install | **Возможно**, если Calendar войдёт в процесс |
+| HR Calendar | `hr_calendar` | Employees ↔ Calendar working hours | auto-install | **Не baseline; возможен только при HR** |
 | Skills Certification | `hr_skills_survey` | Skills ↔ Survey | auto-install | **Вероятно нет** |
 | Skills eLearning | `hr_skills_slides` | Skills ↔ eLearning | auto-install | **Вероятно нет** |
 | Accounting/Fleet | `account_fleet` | Fleet ↔ Accounting | auto-install | **Вероятно нет** |
@@ -338,7 +338,6 @@ google_calendar / microsoft_calendar
 ```text
 Project        project
 Discuss        mail
-Employees      hr
 Contacts       contacts
 Fleet          fleet
 My Dashboard   board
@@ -349,12 +348,13 @@ API docs       api_doc
 
 ```text
 project_todo
-hr_fleet
 spreadsheet_dashboard
 spreadsheet
 api_doc (auto-install через web)
 и прямые инфраструктурные dependencies выбранных Apps
 ```
+
+`hr` и `hr_fleet` в текущий baseline не входят.
 
 ### Первые кандидаты на расширение по реальному процессу
 
@@ -393,7 +393,7 @@ Fleet не превращается в систему путевых листо�
 ### Табели / Мстрой / 1С
 
 ```text
-сотрудник                  → Employees
+сотрудник                  → Contacts / res.partner
 табельные данные           → предметная система
 сверка / исправление       → Task при самостоятельном управляемом результате
 ```
@@ -545,3 +545,5 @@ applications.html
 Нормативная методика должна ссылаться на этот реестр, а не заново перечислять edition-boundary и набор приложений в каждом документе.
 
 Конкретное решение использовать модуль в реальном процессе переносится в нормативный слой только после отдельного согласования.
+
+Для master data людей действующее согласованное решение зафиксировано в [17 — Master data: люди](17-master-data-people.md).
