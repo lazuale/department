@@ -1,731 +1,663 @@
-# Штатная модель справочников и субъектов Odoo 19 Community
+# Текущая нативная модель справочников и субъектов Odoo 19 Community
 
 [Главная](../README.md) · [16 Реестр модулей](16-community-modules-context.md) · [20 Аудит досье](20-subject-dossier-stock-audit.md) · [21 Штатный baseline](21-stock-only-baseline.md)
 
 ---
 
-Этот документ фиксирует **принятую на текущем этапе штатную модель справочников и субъектов**.
+Этот документ фиксирует **текущее принятое решение проекта** после повторной проверки по официальной документации Odoo 19 и public source `odoo/odoo:19.0`.
 
-Граница решения:
+Граница:
 
-> используем только официальные возможности Odoo 19 Community; custom models, custom fields, OCA и собственный связующий модуль не используются.
+> используем только официальные штатные механизмы Odoo 19 Community; custom models, custom fields, OCA и собственный связующий модуль не используются.
 
-Цель — получить единые предметные записи, к которым можно привязывать Tasks и по которым можно воспроизводимо искать историю работы.
+Это решение действует до отдельного согласованного изменения.
 
-## 1. Базовая схема
+## 1. Что перепроверено
+
+Повторно проверены:
+
+- `fleet.vehicle` и его штатные history records;
+- `hr.employee` и HR Work Location;
+- `maintenance.equipment` и `maintenance.request`;
+- Inventory Locations;
+- lot/serial tracking и traceability;
+- Inventory Internal Transfers;
+- официальный bridge `stock_maintenance`;
+- официальный bridge `hr_maintenance`;
+- relational Properties `Many2one` / `Many2many`;
+- Packages, Repairs и BoM как возможные кандидаты для состава терминала.
+
+По итогам предыдущая модель `участок = hr.work.location` и `серийная комплектующая = maintenance.equipment` **заменена более нативной штатной схемой**.
+
+## 2. Текущая базовая схема
 
 ```text
-ТС                    → Fleet / fleet.vehicle
-Сотрудники             → Employees / hr.employee
-Участки                → Employees / hr.work.location
-Терминалы Nobilis      → Maintenance / maintenance.equipment
-Комплектующие терминала→ Maintenance / maintenance.equipment
-Рамки измерения объёма → Maintenance / maintenance.equipment
+ТС
+→ Fleet / fleet.vehicle
 
-Task → relational Properties → соответствующие штатные records
+Сотрудник
+→ Employees / hr.employee
+
+Операционный участок / площадка
+→ Inventory / stock.location (internal)
+
+Терминал Nobilis
+→ Maintenance / maintenance.equipment
++ Inventory / product.product + unique stock.lot Serial
+
+Рамка измерения объёма
+→ Maintenance / maintenance.equipment
++ Inventory / product.product + unique stock.lot Serial
+
+Серийная комплектующая терминала
+→ Inventory / product.product + unique stock.lot Serial
+
+Project Task
+→ relational Properties → нужные штатные records
 ```
 
 Отдельная универсальная сущность `Субъект` не создаётся.
 
-Одна Task может одновременно ссылаться на несколько предметов, например:
+## 3. Приложения текущего решения
 
-```text
-ТС + сотрудник + участок
-терминал + участок
-рамка + участок
-терминал + снятая комплектующая + установленная комплектующая
-```
-
-## 2. Минимальный набор приложений
-
-Для master-data baseline активируем:
+Используем:
 
 ```text
 Project      project
 Employees    hr
 Fleet        fleet
 Maintenance  maintenance
+Inventory    stock
 Contacts     contacts
 Discuss      mail
 ```
 
-При одновременной установке Employees и Maintenance официальный bridge:
+Официальные bridge-модули:
 
 ```text
 hr_maintenance
+stock_maintenance
 ```
 
-устанавливается автоматически (`auto_install=True`). Он связывает Equipment с сотрудником/подразделением и добавляет Equipment smart button на карточку сотрудника.
+устанавливаются автоматически при наличии зависимостей.
 
-Inventory (`stock`) **не является обязательным** для master-data baseline. Он рассматривается отдельно, только если будет принято вести полноценные складские перемещения, lot/serial traceability и stock locations.
+### 3.1. Что даёт `hr_maintenance`
 
-## 3. Главное правило импорта и идентичности
+Штатно связывает Equipment с Employee / Department и добавляет Equipment navigation в Employees.
 
-Для всех загружаемых справочников используем штатный Odoo `External ID`.
+### 3.2. Что даёт `stock_maintenance`
 
-Причина:
+Штатно:
 
-- повторный импорт обновляет существующие записи, а не плодит дубли;
-- relations можно импортировать через `<Field>/External ID`;
-- ключ не зависит от отображаемого имени;
-- можно использовать исходный устойчивый ID из 1С / реестра / другой системы.
+```text
+maintenance.equipment.location_id
+→ stock.location
+```
 
-Рекомендуемый формат:
+добавляет переход из Equipment к Inventory serial с совпадающим серийным номером и обратный просмотр Equipment из Stock Location.
+
+Важно:
+
+> `maintenance.equipment.location_id` не является автоматически вычисляемым отражением stock moves.
+
+Фактическую историю движения ведёт Inventory. Поле Equipment Location используется как штатный эксплуатационный атрибут, а не как замена Inventory traceability.
+
+## 4. Идентичность и импорт
+
+Для массовой загрузки используем штатный Odoo `External ID` как интеграционный ключ.
+
+Пример:
 
 ```text
 vehicle_<source_id>
 employee_<source_id>
 site_<source_id>
+product_<source_id>
+serial_<source_id>
 equipment_<source_id>
 ```
 
-Не использовать имя, ФИО, госномер или serial как единственный интеграционный ключ, если источник уже имеет стабильный ID.
+Правила:
 
-## 4. ТС
+- не использовать ФИО как уникальный ключ;
+- не использовать госномер как единственный вечный ID ТС;
+- serial является физическим идентификатором экземпляра, но импортный `External ID` всё равно сохраняем;
+- повторные импорты выполняются по устойчивым ключам.
 
-### 4.1. Master record
+## 5. ТС
+
+### 5.1. Master record
 
 ```text
 fleet.vehicle
 ```
 
-Это единственная карточка ТС в Odoo.
+Fleet является единственной карточкой ТС.
 
-Не создаём второй справочник ТС в Project Properties, Contacts или Tags.
-
-### 4.2. Штатные данные
-
-Минимально используем:
+Используем штатные поля по фактической необходимости:
 
 ```text
-External ID   — устойчивый импортный ключ
-Model         — штатно required
-License Plate — основной пользовательский поиск
-VIN/SN        — если доступен
-State         — только если реально используется
-Location      — текущее местонахождение текстом, если требуется
-Tags          — только для настоящей дополнительной классификации
+Model
+License Plate
+VIN/SN
+State
+Tags
+Location
+Properties
 ```
 
-Не превращаем Fleet в систему путевых листов.
+`Model` штатно обязателен.
 
-### 4.3. Участок ТС
+### 5.2. Штатное досье ТС
 
-У Fleet есть штатное поле:
-
-```text
-location → Char
-```
-
-Поэтому без кода нет единой строгой relation:
-
-```text
-fleet.vehicle → hr.work.location
-```
-
-Это **принятый компромисс штатного baseline**.
-
-Если текущий участок ТС нужен прямо в Fleet, используем `Location` с согласованными наименованиями участков.
-
-Для аналитики работы участок фиксируется **отдельно в Task** через relational Property `Участок → hr.work.location`. Историческая Task не должна зависеть от текущего текста `fleet.vehicle.location`.
-
-### 4.4. Связь с Task
-
-В Project создаётся relational Property:
-
-```text
-ТС
-Type: Many2one
-Model: fleet.vehicle
-```
-
-Если конкретная работа одновременно относится к нескольким ТС, допускается `Many2many`, но baseline — `Many2one`, пока реальные процессы не докажут обратное.
-
-### 4.5. Что видно по ТС штатно
-
-Из карточки Fleet штатно доступны собственные истории Fleet:
+Fleet уже хранит:
 
 ```text
 Drivers History
-Contracts
 Services
+Contracts
 Odometer
 Chatter
 Activities
 ```
 
-Операционные Project Tasks ищутся в Project фильтром по Property `ТС`.
+Не создаём Project Task для дублирования этих штатных Fleet events.
 
-Отсутствие обратной smart button `Все Tasks` на карточке ТС принято как штатное ограничение этапа.
+### 5.3. Операционный участок ТС
 
-## 5. Сотрудники
+Штатное поле Fleet:
 
-### 5.1. Master record
+```text
+fleet.vehicle.location → Char
+```
+
+Строгой relation `fleet.vehicle → stock.location` в базовом Fleet нет.
+
+Поэтому текущее принятое решение:
+
+- `Fleet.Location` можно использовать как пользовательский текст текущего места, если это удобно;
+- **не считать его master relation участка**;
+- в каждой работе, где участок важен для анализа, Task хранит отдельную relation `Участок → stock.location`;
+- структурированная текущая привязка самого Vehicle к `stock.location` остаётся штатным gap.
+
+### 5.4. Связь Task → ТС
+
+```text
+Property: ТС
+Type: Many2one
+Model: fleet.vehicle
+```
+
+`Many2many` используется только для реального процесса, где одна работа относится сразу к нескольким ТС.
+
+## 6. Сотрудники
+
+### 6.1. Master record
 
 ```text
 hr.employee
 ```
 
-ФИО в Task текстом не хранится как замена Employee record.
+Штатная карточка Employees остаётся источником идентичности человека в Odoo.
 
-### 5.2. Минимальные данные
+### 6.2. HR Work Location и операционный участок — разные понятия
 
-```text
-External ID
-Name
-Company
-Work Location
-Work Email / Work Phone — только если реально нужны
-Job / Department — только если реально используются в системе
-Employee Properties — для дополнительных рабочих атрибутов
-```
-
-Табельный номер, если он нужен пользователю и в штатных полях нет подходящего семантического поля, допускается хранить как Employee Property `Табельный номер`.
-
-При этом:
-
-- `External ID` остаётся интеграционным ключом;
-- Property не считается database unique constraint;
-- ФИО не используется для обновления записей при импорте.
-
-### 5.3. Участок сотрудника
-
-Используем штатную relation:
+Odoo штатно имеет:
 
 ```text
-hr.version.work_location_id
+hr.employee / hr.version.work_location_id
 → hr.work.location
 ```
 
-Это нативная связь Employees.
+Это **HR Work Location**: место работы сотрудника.
 
-### 5.4. Связь с Task
+Наш операционный участок одновременно используется для:
+
+- Inventory movement;
+- терминалов;
+- рамок;
+- серийных комплектующих;
+- Tasks;
+- аналитики.
+
+Поэтому единым master record операционного участка принят `stock.location`, а `hr.work.location` не переименовывается методически в производственный участок.
+
+Если в Employee нужно хранить именно текущий операционный участок:
 
 ```text
-Сотрудник
+Employee Property: Операционный участок
+Type: Many2one
+Model: stock.location
+```
+
+HR Work Location при этом можно использовать независимо по его штатному назначению.
+
+### 6.3. Связь Task → сотрудник
+
+```text
+Property: Сотрудник
 Type: Many2one
 Model: hr.employee
 ```
 
-Это **предмет работы**, а не Assignee.
+Это субъект работы, а не Assignee.
 
-Не использовать `Task.Assignees` для значения «по какому человеку выполняется проверка/корректировка».
-
-### 5.5. Что видно по сотруднику штатно
-
-Карточка сотрудника даёт собственные Employees-данные, Chatter/Activities и при `hr_maintenance` — Equipment smart button.
-
-Операционные Tasks по сотруднику ищутся в Project через Property `Сотрудник`.
-
-## 6. Участки / площадки
-
-### 6.1. Принятый штатный справочник
-
-На текущем этапе используем:
-
-```text
-hr.work.location
-```
-
-Причина выбора:
-
-- это самостоятельный штатный справочник Odoo;
-- он имеет `name`, `active`, `company`, `address`, `location_number`;
-- Employee штатно имеет настоящую Many2one relation на Work Location;
-- Property `Many2one` может ссылаться на запись другой модели, поэтому Work Location можно использовать в Tasks и Equipment без своего поля.
-
-### 6.2. Как заводим производственный участок
-
-Для каждого реального участка создаётся отдельная Work Location.
-
-Рекомендуемая схема:
-
-```text
-Work Location: <наименование участка>
-Location Type: Other
-Location Number: <устойчивый короткий код>, если используется
-Work Address: соответствующий штатный res.partner address
-Active: True
-```
-
-Если точный почтовый адрес для производственной площадки не важен, создаётся минимальная штатная запись Work Address, достаточная для обязательного поля Odoo. Не выдумываем фиктивные юридические реквизиты сверх того, что требует форма.
-
-### 6.3. Где используется участок
-
-```text
-Employee.Work Location → hr.work.location       — штатное поле
-Task.Property Участок → hr.work.location        — relational Property
-Equipment.Property Участок → hr.work.location   — relational Property
-```
-
-Для Fleet прямой relation нет; см. раздел 4.3.
-
-### 6.4. Связь с Task
-
-В Project:
-
-```text
-Участок
-Type: Many2one
-Model: hr.work.location
-```
-
-Для перемещений дополнительно могут использоваться:
-
-```text
-Откуда → hr.work.location
-Куда   → hr.work.location
-```
-
-Это штатные Properties, не custom fields.
-
-### 6.5. Ограничение
-
-`hr.work.location` остаётся HR-моделью и не становится полноценным общим «досье площадки».
-
-Нам важнее, что она даёт **один контролируемый список значений** для Employees, Task Properties и Equipment Properties.
-
-Все работы конкретного участка ищутся через Project filter/grouping по Property `Участок`.
-
-## 7. Терминалы Nobilis
+## 7. Участки / площадки
 
 ### 7.1. Master record
+
+Текущее решение:
+
+```text
+stock.location
+usage = internal
+```
+
+Каждый операционный участок создаётся отдельной Internal Location.
+
+### 7.2. Почему выбран Inventory Location
+
+Это наиболее нативная модель для нашего фактического сценария:
+
+```text
+участок A
+→ физический объект
+→ internal transfer
+→ участок B
+```
+
+Inventory штатно хранит:
+
+```text
+Date
+From
+To
+Product
+Quantity
+Lot / Serial
+Reference
+```
+
+и позволяет открыть traceability конкретного serial.
+
+### 7.3. Связь участка с Equipment
+
+Официальный `stock_maintenance` добавляет:
+
+```text
+maintenance.equipment.location_id
+→ stock.location
+```
+
+и smart button Equipment на Stock Location.
+
+Это делает `stock.location` нативнее для эксплуатационного оборудования, чем `hr.work.location`.
+
+### 7.4. Связь Task → участок
+
+```text
+Property: Участок
+Type: Many2one
+Model: stock.location
+Domain: internal locations текущего контура
+```
+
+При необходимости процесса перемещения:
+
+```text
+Task.Property Откуда → stock.location
+Task.Property Куда   → stock.location
+```
+
+Но сам факт физического движения фиксируется Inventory Transfer, а не Task.
+
+## 8. Терминалы Nobilis
+
+Терминал — один физический объект, но Odoo штатно рассматривает две стороны его жизни разными моделями.
+
+### 8.1. Эксплуатационная карточка
 
 ```text
 maintenance.equipment
 Category = Терминал Nobilis
+Serial Number = фактический serial терминала
 ```
 
-Каждый физический терминал — отдельный Equipment record.
-
-Минимум:
+Equipment используется для:
 
 ```text
-External ID
-Equipment Name
-Equipment Category = Терминал Nobilis
-Serial Number
-Model — при наличии
-Vendor — при необходимости
-Warranty — при необходимости
-Properties
-Chatter / Activities
+эксплуатационной карточки
+Maintenance Requests
+ремонтов / профилактики
+Chatter
+Activities
+maintenance metrics
 ```
 
-### 7.2. Текущий участок терминала
+### 8.2. Физическая единица Inventory
 
-На Equipment Category `Терминал Nobilis` создаём Property:
+Создаётся тип товара терминала:
 
 ```text
-Участок
-Type: Many2one
-Model: hr.work.location
+product.product
+Track Inventory = By Unique Serial Number
 ```
 
-Это отвечает на вопрос:
+Каждый физический терминал:
 
-> где терминал находится сейчас?
+```text
+stock.lot / Serial Number
+```
 
-Изменение текущего участка само по себе не считается полноценным журналом перемещений.
+Inventory используется для:
 
-### 7.3. Ремонт
+```text
+текущего физического местонахождения
+Internal Transfers
+истории движений
+Traceability
+```
 
-Используем штатно:
+### 8.3. Связь двух представлений
+
+Используется один фактический serial number.
+
+Официальный `stock_maintenance` умеет из Equipment открыть совпадающий Inventory Serial.
+
+Не создаём третью собственную карточку терминала.
+
+### 8.4. Перемещение терминала
+
+Физическое перемещение:
+
+```text
+Inventory Internal Transfer
+From: участок A
+To:   участок B
+Serial: конкретный терминал
+```
+
+Project Task создаётся только если существует самостоятельная управленческая работа вокруг перемещения.
+
+### 8.5. Ремонт терминала
 
 ```text
 maintenance.request
 → equipment_id = терминал
 ```
 
-Maintenance Request — источник ремонтной истории терминала.
-
-Не создаём параллельную Project Task только ради дублирования ремонта.
-
-Task нужна только если вокруг ремонта существует отдельная операционная работа, не совпадающая с самим Maintenance Request.
-
-### 7.4. Project Tasks по терминалу
-
-В Project:
-
-```text
-Оборудование
-Type: Many2one
-Model: maintenance.equipment
-```
-
-При необходимости Domain ограничивает выбор нужными Equipment Categories.
-
-Так фиксируются операционные работы, которые не являются Maintenance Request:
-
-```text
-перемещение
-проверка
-замена комплектующей
-сверка / разбор
-другая контролируемая работа
-```
-
-## 8. Комплектующие терминалов
-
-### 8.1. Когда комплектующая становится отдельным Equipment
-
-Если у комплектующей есть собственный серийный номер и её нужно различать физически, она заводится как:
-
-```text
-maintenance.equipment
-```
-
-с отдельной Equipment Category, например:
-
-```text
-Nobilis — <тип компонента>
-```
-
-Одна физическая комплектующая = один Equipment record.
-
-### 8.2. Текущий состав терминала без custom
-
-На категории `Терминал Nobilis` можно создать relational Properties по реальным типам комплектующих:
-
-```text
-<Компонент A> → Many2one maintenance.equipment
-<Компонент B> → Many2one maintenance.equipment
-<Компонент C> → Many2one maintenance.equipment
-```
-
-Для каждой Property задаётся Domain по соответствующей Equipment Category.
-
-Это штатно даёт **текущий состав терминала**.
-
-Если компонентов одного типа может быть несколько, используется `Many2many`.
-
-### 8.3. История замен
-
-Properties показывают текущий состав, но baseline не считает их отдельным структурированным журналом замен.
-
-Историю замены фиксируем как реальную Project Task, если замена является контролируемой работой:
-
-```text
-Тип работы = Замена комплектующей
-Оборудование = терминал
-Снятая комплектующая = maintenance.equipment
-Установленная комплектующая = maintenance.equipment
-Участок = hr.work.location
-```
-
-`Снятая комплектующая` и `Установленная комплектующая` — обычные relational Task Properties.
-
-После выполнения Task текущая Property терминала обновляется вручную на фактический компонент.
-
-Это штатный компромисс:
-
-```text
-текущий состав → Equipment Properties
-история выполненных замен → Project Tasks
-```
-
-Без скрытой автоматизации и без собственного регистра.
+Не дублируем ремонт обычной Project Task без самостоятельной причины.
 
 ## 9. Рамки измерения объёма
 
-### 9.1. Master record
+Используется та же двухслойная штатная модель:
 
 ```text
 maintenance.equipment
-Category = Рамка измерения объёма
++ product.product / unique stock.lot Serial
 ```
 
-Минимум:
+Разделение ролей:
 
 ```text
-External ID
-Equipment Name
-Serial Number / устойчивый номер
-Category
-Model — если нужен
-Properties
-Chatter / Activities
+Equipment
+→ эксплуатация и ремонты
+
+Inventory Serial
+→ текущее физическое место и движения
 ```
 
-### 9.2. Текущий участок
-
-На Equipment Category создаём:
-
-```text
-Участок
-Type: Many2one
-Model: hr.work.location
-```
-
-### 9.3. Ремонт
+Ремонт:
 
 ```text
 maintenance.request
 ```
 
-используется штатно для ремонта рамки.
-
-### 9.4. Перемещение
-
-Если перемещение является контролируемой операцией, используем Project Task:
+Перемещение:
 
 ```text
-Тип работы = Перемещение оборудования
-Оборудование = рамка
-Откуда = hr.work.location
-Куда = hr.work.location
+Inventory Internal Transfer
 ```
 
-После фактического перемещения обновляется текущая Equipment Property `Участок`.
+## 10. Серийные комплектующие терминалов
 
-Таким образом:
+### 10.1. Базовая модель
+
+Если комплектующая имеет собственный серийный номер и может сниматься, устанавливаться, храниться или перемещаться:
 
 ```text
-текущее местонахождение → Equipment Property
-история перемещений      → Project Tasks
-ремонтная история        → Maintenance Requests
+тип комплектующей
+→ product.product
+
+конкретный экземпляр
+→ stock.lot / unique Serial
 ```
 
-## 10. Набор субъектных Properties в Project
+Это более нативно, чем создавать каждую такую деталь как `maintenance.equipment`.
 
-Это не отдельные models, а штатные Properties задачи.
+### 10.2. Когда комплектующая также становится Equipment
 
-Базовый словарь:
-
-| Property | Type | Model / значения | Назначение |
-|---|---|---|---|
-| **ТС** | Many2one | `fleet.vehicle` | работа по конкретному ТС |
-| **Сотрудник** | Many2one | `hr.employee` | сотрудник как предмет работы |
-| **Участок** | Many2one | `hr.work.location` | контекст работы |
-| **Оборудование** | Many2one | `maintenance.equipment` | терминал / рамка / компонент |
-| **Откуда** | Many2one | `hr.work.location` | только для работ с перемещением |
-| **Куда** | Many2one | `hr.work.location` | только для работ с перемещением |
-| **Снятая комплектующая** | Many2one | `maintenance.equipment` | только для замены |
-| **Установленная комплектующая** | Many2one | `maintenance.equipment` | только для замены |
-
-Properties `Откуда`, `Куда`, `Снятая комплектующая`, `Установленная комплектующая` не обязаны присутствовать в каждом Project. Их добавляем только туда, где соответствующий процесс реально живёт.
-
-Не создаём Property `Субъект` как текстовое универсальное поле.
-
-## 11. Что является текущим состоянием, а что историей
-
-Критически важно не смешивать эти два слоя.
-
-### Текущее состояние
+Только если сам компонент имеет самостоятельный эксплуатационный lifecycle:
 
 ```text
-Employee.Work Location
-Fleet.Location
-Equipment.Property Участок
-Terminal Properties текущих комплектующих
+его отдельно обслуживают
+его отдельно ремонтируют
+по нему нужны Maintenance Requests
 ```
 
-### История
+Тогда допускается дополнительный `maintenance.equipment` с тем же фактическим serial, аналогично терминалу.
+
+## 11. Замены комплектующих
+
+Сам физический serial-компонент остаётся Inventory entity.
+
+Если замена выполняется в рамках ремонта, штатный кандидат — процесс, который фиксирует движение/расход частей через Inventory; Maintenance Request остаётся записью ремонта Equipment.
+
+Project Task создаётся только если замена сама является отдельной контролируемой работой.
+
+Для Task могут использоваться relational Properties:
 
 ```text
-Fleet native logs
-Maintenance Requests
-Project Tasks
-Chatter / Activities
+Терминал
+→ maintenance.equipment
+
+Снятая комплектующая
+→ stock.lot
+
+Установленная комплектующая
+→ stock.lot
+
+Участок
+→ stock.location
 ```
 
-Правило:
+## 12. Текущий состав терминала — подтверждённый open gap
 
-> изменение текущего состояния не должно уничтожать смысл старой Task.
+Требование:
 
-Поэтому Task, относящаяся к участку A, сохраняет Property `Участок = A`, даже если потом сотрудник, ТС или оборудование переместилось на участок B.
+```text
+открыть конкретный терминал
+→ увидеть структурированный список конкретных serial-комплектующих,
+  установленных в нём сейчас
+```
 
-## 12. «Все чихи по субъекту» в штатном baseline
+повторно проверено отдельно.
 
-Принимаем не единую custom-кнопку, а воспроизводимый штатный маршрут.
+### 12.1. Почему не объявляем Packages решением
+
+Inventory Package штатно предназначен для физического контейнера, группировки товаров, хранения и перемещения содержимого.
+
+Технически туда можно поместить serial-компоненты, но терминал как инженерное изделие не принимается автоматически за warehouse package только ради обхода отсутствующей relation.
+
+### 12.2. Почему не объявляем BoM решением
+
+BoM описывает нормативный/производственный состав продукта, а не обязательно фактический текущий набор установленных serial-экземпляров после эксплуатационных замен.
+
+### 12.3. Почему Repairs пока не master состава
+
+Repair Order штатно умеет:
+
+```text
+Product to Repair
+Lot / Serial
+Parts: Add / Remove / Recycle
+Product Moves
+```
+
+Это сильный кандидат для конкретного сценария ремонта/замены, но он описывает **операцию ремонта**, а не самостоятельную постоянно актуальную relation «терминал → текущие serial-компоненты».
+
+Поэтому текущим решением является:
+
+- вести все серийные компоненты в Inventory;
+- сохранять их движения и события замены штатными операциями;
+- не создавать ложный «текущий состав» через неподходящую модель;
+- отдельно runtime-проверить, достаточно ли traceability / repair history для ежедневной работы.
+
+Это **принятый gap текущего штатного baseline**, а не черновая гипотеза.
+
+## 13. Project Tasks и предметные связи
+
+Project остаётся управленческим слоем, а не реестром физических движений.
+
+Базовые relational Properties:
+
+```text
+ТС                   → fleet.vehicle
+Сотрудник            → hr.employee
+Участок              → stock.location
+Оборудование         → maintenance.equipment
+Серийный объект      → stock.lot
+Снятая комплектующая → stock.lot
+Новая комплектующая  → stock.lot
+```
+
+Создаём только те Properties, которые реально нужны конкретному Project/process.
+
+## 14. Как выбираем запись события
+
+```text
+Исправление ПЛ / сверка / запрос / аналитическая работа
+→ Project Task
+
+Следующее действие по существующей записи
+→ Activity
+
+Ремонт / профилактика терминала или рамки
+→ Maintenance Request
+
+Физическое перемещение терминала / рамки / серийной детали
+→ Inventory Internal Transfer
+
+История конкретного серийного экземпляра
+→ Inventory Traceability
+
+Штатный Fleet service / odometer / driver event
+→ Fleet record
+```
+
+Главное правило:
+
+> если профильное приложение Odoo уже имеет естественную запись события, Project Task не создаётся только ради копии этого события.
+
+## 15. Что считаем «все чихи по субъекту» на штатном baseline
 
 ### ТС
 
 ```text
-Fleet record
-→ native Fleet history
-+
-Project → filter ТС = <vehicle>
+Fleet card
+→ Drivers / Services / Contracts / Odometer
++ Project filter по ТС
 ```
 
 ### Сотрудник
 
 ```text
-Employee record
-→ штатные Employee / Equipment данные
-+
-Project → filter Сотрудник = <employee>
+Employee card
+→ HR data / Activities / assigned Equipment
++ Project filter по сотруднику
 ```
 
 ### Терминал / рамка
 
 ```text
-Equipment record
-→ Maintenance history
-→ текущий участок / текущий состав через Properties
-+
-Project → filter Оборудование = <equipment>
+Equipment card
+→ Maintenance Requests
+→ matched Serial
+→ Inventory Traceability
++ Project filter по Equipment
 ```
 
 ### Участок
 
 ```text
-Work Location record
-+
-Project → filter/group Участок = <site>
+Stock Location
+→ Equipment
+→ Inventory movements
++ Project filter по участку
 ```
 
-Требование считается закрытым штатно, если пользователь может найти нужную историю по выбранному record без ручного сопоставления строк и без знания внутренних ID.
-
-## 13. Порядок первичной загрузки
-
-Рекомендуемый порядок:
+### Серийная комплектующая
 
 ```text
-1. Contacts / Work Addresses для участков
-2. Work Locations
-3. Employees
-4. Fleet brands/models
-5. Vehicles
-6. Maintenance Equipment Categories
-7. Terminals Nobilis
-8. Terminal components
-9. Volume-measurement frames
-10. Project Properties
-11. Тестовые Tasks
+Inventory Serial
+→ current location
+→ Traceability
++ Project filter по serial при необходимости
 ```
 
-Каждый массовый справочник сначала импортируется на тестовом наборе 5–10 строк.
+Отсутствие одной универсальной кнопки `Все события` принимается как штатный UX-компромисс текущего этапа.
 
-После проверки выполняется полный импорт.
-
-## 14. Правила CSV/XLSX
-
-Для массовой загрузки:
-
-- используем штатный Import Records;
-- сначала выполняем `Test`;
-- сохраняем `External ID`;
-- повторные обновления выполняем с тем же `External ID`;
-- relations по возможности связываем через `<Field>/External ID`;
-- перед большим импортом экспортируем 1–2 тестовые записи из нужной модели, чтобы получить фактические имена импортируемых полей.
-
-Не обновляем Odoo прямой записью в PostgreSQL.
-
-## 15. Архивирование
-
-Справочник не очищается удалением исторически использованных records.
-
-Используем штатный `Active / Archived`, где он доступен.
-
-Принцип:
+## 16. Что сейчас НЕ является решением
 
 ```text
-объект больше не используется
-→ archive
-→ старые relations сохраняются
-```
-
-Не переиспользовать старую карточку физического терминала/рамки/ТС под другой физический объект.
-
-## 16. Принятые компромиссы
-
-В рамках stock-only baseline принимаются следующие ограничения:
-
-1. Fleet не имеет штатной relation `vehicle → hr.work.location`; текущее местонахождение ТС остаётся `Location` text, а исторический участок работы фиксируется в Task.
-2. Нет единой reverse smart button `Все Project Tasks` на Fleet / Employee / Equipment.
-3. `hr.work.location` используется как единый штатный справочник участков, хотя сама модель остаётся частью HR.
-4. Текущий состав терминала через Equipment Properties не является отдельным журналом замен; история замен ведётся Tasks.
-5. Текущее местонахождение Equipment через Property не является отдельным журналом перемещений; история перемещений ведётся Tasks.
-6. Properties не заменяют строгие schema fields и database constraints.
-7. Если один и тот же набор Properties нужен в нескольких Projects, его придётся поддерживать в каждом Project штатными средствами.
-
-Эти пункты сейчас **не являются основанием для разработки**.
-
-## 17. Что пока не включаем
-
-Не включаем в baseline:
-
-```text
-Inventory / stock
-custom module
+custom department.site
+custom equipment.movement
+custom component assignment
 OCA
-собственные models
-собственные smart buttons
-собственные ORM relations
-скрытую автоматизацию для синхронизации субъектов
+самописные smart buttons
+прямая БД
+Task вместо Inventory Transfer
+Task вместо Maintenance Request
+hr.work.location как универсальный операционный участок
+maintenance.equipment для каждой серийной детали без maintenance lifecycle
+Packages как искусственный реестр состава терминала
 ```
 
-Inventory возвращается на рассмотрение только если фактический процесс требует:
+## 17. Runtime-проверки перед процессами
+
+На стенде обязательно проверить:
+
+1. создать 2–3 `stock.location` участка;
+2. импортировать тестовые ТС и сотрудников;
+3. создать terminal product с unique serial tracking;
+4. создать terminal Equipment с тем же serial;
+5. проверить matched Serial через `stock_maintenance`;
+6. выполнить Internal Transfer терминала между участками;
+7. проверить Traceability serial;
+8. открыть Stock Location и Equipment list;
+9. создать Maintenance Request по терминалу/рамке;
+10. создать serialized component и выполнить его движение;
+11. настроить Task relational Properties на Fleet / Employee / Location / Equipment / Serial;
+12. проверить search/filter/grouping по каждому субъекту;
+13. отдельно проверить реальную замену компонента и понять, достаточно ли штатной traceability без структурированного current composition.
+
+## 18. Статус решения
+
+На текущем этапе принято:
 
 ```text
-stock quantities
-warehouses
-internal transfers
-lot/serial traceability
-складских документов
+Fleet         → ТС
+Employees     → люди
+Inventory     → участки, serials, физические движения
+Maintenance   → эксплуатационное оборудование и ремонты
+Project       → управляемая работа
+Properties    → связи Project/Employees с предметными records там, где нет штатного schema field
 ```
 
-## 18. Что нужно проверить на стенде
+Это **текущее решение**, а не кандидат.
 
-До того как на этой модели строится вся методика, обязательно проверить руками:
-
-1. CSV/XLSX import Work Locations и Employees с External ID.
-2. Task Property `Many2one → fleet.vehicle`.
-3. Task Property `Many2one → hr.employee` с реальными правами обычного пользователя.
-4. Task Property `Many2one → hr.work.location`.
-5. Task Property `Many2one → maintenance.equipment`.
-6. Filter / group Tasks по каждому relational Property.
-7. Equipment Property `Many2one → hr.work.location`.
-8. Equipment Property `Many2one → maintenance.equipment` с Domain по категории комплектующей.
-9. Maintenance smart button с историей ремонта терминала/рамки.
-10. Employee Equipment smart button после auto-install `hr_maintenance`.
-11. Повторный импорт справочников с теми же External IDs без дублей.
-12. Архивирование субъекта и поведение старых Task relations.
-
-Результат проверки фиксируется как:
-
-```text
-PASS
-PASS с приемлемым компромиссом
-FAIL / gap
-```
-
-До runtime-проверки не добавлять custom-код для улучшения UX.
-
-## 19. Источники проверки
-
-Официальная документация Odoo 19.0:
-
-- `Applications → Essentials → Property fields`;
-- `Applications → Essentials → Export and import data`;
-- `Applications → Human Resources → Employees → New employees`;
-- `Applications → Human Resources → Employees → Equipment`;
-- `Applications → Inventory and MRP → Maintenance`;
-- `Applications → Inventory and MRP → Maintenance → Add new equipment`;
-- `Applications → Inventory and MRP → Maintenance → Maintenance requests`.
-
-Официальный Community source `odoo/odoo:19.0`:
-
-```text
-addons/fleet/models/fleet_vehicle.py
-addons/fleet/views/fleet_vehicle_views.xml
-addons/hr/models/hr_work_location.py
-addons/hr/models/hr_version.py
-addons/maintenance/models/maintenance.py
-addons/maintenance/views/maintenance_views.xml
-addons/hr_maintenance/__manifest__.py
-addons/hr_maintenance/models/equipment.py
-addons/hr_maintenance/views/hr_views.xml
-addons/project/models/project_task.py
-```
-
-Текущий source snapshot для этой итерации:
-
-```text
-2f0f8e5e00685129b5bbe954117bc9f80a568e88
-```
+Изменяется оно только после фактического runtime-результата или отдельного согласованного решения.
 
 ---
 
-**Статус:** принято как stock-only master-data baseline текущего пилота. Изменять границу только отдельным решением после фактической runtime-проверки.
+[← 21 — Штатный baseline](21-stock-only-baseline.md)
