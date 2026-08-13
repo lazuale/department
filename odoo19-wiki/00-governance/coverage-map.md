@@ -48,7 +48,8 @@
 | безопасность поля (`groups`) | `SEC-01` | planned |
 | `company_dependent` | `EXT-04` | planned |
 | настройка индексов/производительности на уровне поля | `RUN-01` | planned |
-| `Many2one` / `One2many` / `Many2many` / `Command` | `ORM-05` | planned |
+| `Many2one` / `One2many` / `Many2many` / `Command` | `ORM-05` | covered |
+| переходы `domain` по связям, `any` / `not any`, `child_of` / `parent_of` | `ORM-05`; security-аспект `any!` → `SEC-01` | covered |
 | вычисляемые / связанные / `inverse` / `depends` / Python-ограничения | `ORM-06` | planned |
 | транзакция RPC / `commit` / `rollback` | `ORM-07`, предпосылка `ARCH-04` | planned |
 | изменения `Environment` в аспектах безопасности и компаний | аспекты `SEC-01`, `EXT-04` | planned |
