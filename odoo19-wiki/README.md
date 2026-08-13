@@ -1,108 +1,110 @@
 # Odoo 19 Community: архитектура и идеология
 
-Этот каталог — последовательный учебный курс по **Odoo 19.0 Community**.
+Последовательный учебный курс по **Odoo 19.0 Community**.
 
-Цель — не научиться нажимать кнопки в отдельных приложениях, а понять Odoo настолько глубоко, чтобы видеть:
+Цель — досконально понять Odoo как платформу и ERP-систему: от runtime/module/ORM architecture до штатных business models и end-to-end процессов.
 
-- устройство платформы;
-- модульную композицию;
-- ORM и model semantics;
-- границы data/UI/security layers;
-- способы штатного расширения;
-- нативную ERP-логику предметных моделей и сквозных процессов.
+## Governance
 
-## Принцип курса
+Перед уроками действуют четыре обязательных правила:
 
-Мы изучаем Odoo **снизу вверх** и не начинаем с Sales, Purchase, Project или Inventory.
+1. только официальные материалы Odoo 19.0;
+2. один owner для каждого фундаментального понятия;
+3. Community/Enterprise status не угадывается;
+4. новый уровень не использует необъяснённые prerequisites.
 
-Пока не понятны platform, modules, ORM и extension semantics, изучение приложений даёт знание интерфейса, но не архитектуры.
+Документы governance:
 
-Единый метод и порядок курса зафиксированы в [00-method.md](00-method.md). README только отображает эту структуру.
-
-## Источники
-
-Используются только официальные материалы Odoo 19.0:
-
-- Odoo Documentation;
-- Developer tutorials;
-- Developer reference;
-- Administration documentation.
-
-Наличие функции в общей документации Odoo не считается само по себе доказательством её доступности в Community.
+- [Метод курса](00-governance/method.md)
+- [Политика источников](00-governance/source-policy.md)
+- [Владение понятиями](00-governance/concept-ownership.md)
+- [Реестр редакций](00-governance/edition-ledger.md)
+- [Глоссарий](00-governance/glossary.md)
 
 ## Маркировка утверждений
 
-- **[ODOO]** — непосредственно следует из официальной документации Odoo 19.0;
+- **[ODOO]** — непосредственно подтверждено official Odoo 19.0 documentation;
 - **[ВЫВОД]** — логическое следствие документированных механизмов;
-- **[ERP-КЛАССИФИКАЦИЯ]** — внешний ERP-термин для анализа бизнес-смысла, а не внутренний тип Odoo.
+- **[ERP-КЛАССИФИКАЦИЯ]** — внешний business/ERP term, а не внутренний platform/ORM type Odoo.
 
-## Терминология
+## Текущие уроки
 
-Основные понятия нормализованы в [глоссарии](glossary.md).
+### 01. Architecture
 
-В обычном русском тексте используем:
+- [01. Архитектурный фундамент](01-architecture/01-architecture-foundations.md)
+- [02. Модульная система](01-architecture/02-module-system.md)
+- [03. Загрузка модулей и per-database models](01-architecture/03-module-loading.md)
 
-- модель (`model`);
-- запись (`record`);
-- набор записей (`recordset`);
-- поле (`field`);
-- модуль (`module`, addon);
-- приложение (`App`);
-- окружение (`Environment`).
+### 02. ORM
 
-Технические API names не переводятся.
+- [01. ORM Core](02-orm/01-orm-core.md)
 
-## Карта курса
-
-### 00. Метод
-
-- [Метод и правила курса](00-method.md)
-- [Глоссарий](glossary.md)
-
-### 01. Платформа
-
-- [Урок 1. Что такое Odoo: архитектурный фундамент](01-platform/01-architecture-foundations.md)
-- [Урок 2. Модульная система: addons path, manifest, dependencies и lifecycle](01-platform/02-module-system.md)
-- [Урок 3. Загрузка модулей: Python package, imports и per-database model construction](01-platform/03-module-loading.md)
-- [Урок 4. ORM Core: Model, recordset, Environment, search и CRUD](01-platform/04-orm-core.md)
-
-### Следующие согласованные уровни
+## Согласованная архитектура курса
 
 ```text
-05  Fields
-06  Relations
-07  Computed / related / onchange / constraints / recomputation
-08  Module data / external IDs / noupdate
-09  Security
-10  Actions / menus / views
-11  Inheritance / extension / mixins
-12  Multi-company
-13  Advanced ORM
-14  HTTP / frontend
-15  Testing / upgrades / deployment
-16+ Shared business models / domain applications / end-to-end ERP
+00-governance/
+
+01-architecture/
+    architecture foundation
+    module system
+    module loading
+
+02-orm/
+    ORM Core
+    Fields
+    Relations
+    Computed / related / inverse / constraints
+    Transactions
+
+03-data-security-ui/
+    Module data / external IDs / noupdate
+    Security
+    Actions and menus
+    Views
+    Onchange
+
+04-extension/
+    Model inheritance
+    View inheritance
+    Mixins
+    Multi-company
+
+05-runtime/
+    Advanced ORM
+    HTTP / RPC
+    Web client / Owl / assets
+    Testing
+    Upgrades / migrations
+    Deployment / workers
+
+10-business-model/
+11-domain-apps/
+12-end-to-end/
 ```
 
-Следующие уроки добавляются только после проверки предыдущего уровня на полноту, достоверность, последовательность и отсутствие скрытых зависимостей.
+Эта структура разделяет платформенные понятия по владельцам и не позволяет одному каталогу `platform` превратиться в свалку всех последующих тем.
 
-## Главный вопрос курса
+## Важные терминологические границы
 
-После изучения системы на любой новый business question мы должны уметь рассуждать не от интерфейса, а от архитектуры:
+### Odoo module master data ≠ ERP master data
 
-```text
-Какой бизнес-смысл у объекта?
-        ↓
-Есть ли штатная model Odoo?
-        ↓
-Какой module создаёт или расширяет её?
-        ↓
-Какие relations и constraints заложены в модели?
-        ↓
-Какая часть поведения относится к model/data,
-а какая — к view/action/security/mixin/context?
-        ↓
-Как эта model участвует в сквозном процессе Odoo?
-```
+Официальная Odoo documentation использует **Master Data** для data, устанавливаемых с module и необходимых для его работы, включая technical data вроде views/actions.
+
+Будущая **ERP master data** — отдельная business classification курса. Эти понятия всегда квалифицируются.
+
+### App ≠ functional area
+
+App — user-facing Odoo module. Functional area — аналитическая business category и может складываться из нескольких modules.
+
+### Odoo server/runtime ≠ один process
+
+Odoo может работать в multiprocessing mode. При этом official tutorial отдельно показывает multi-database property одного Python process. Process architecture и database context не смешиваются.
+
+## Community scope
+
+Official custom-module examples используются для изучения architecture/framework, но **не считаются частью канонического Community ERP baseline**.
+
+Concrete module/feature попадает в Community-карту только после отдельного official edition evidence.
 
 ## Официальные отправные точки
 
@@ -110,6 +112,6 @@
 - Server Framework 101: https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101.html
 - ORM API: https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
 - Module Manifests: https://www.odoo.com/documentation/19.0/developer/reference/backend/module.html
-- Data Files: https://www.odoo.com/documentation/19.0/developer/reference/backend/data.html
-- Security: https://www.odoo.com/documentation/19.0/developer/reference/backend/security.html
-- Actions: https://www.odoo.com/documentation/19.0/developer/reference/backend/actions.html
+- Define module data: https://www.odoo.com/documentation/19.0/developer/tutorials/define_module_data.html
+- CLI: https://www.odoo.com/documentation/19.0/developer/reference/cli.html
+- Coding Guidelines: https://www.odoo.com/documentation/19.0/contributing/development/coding_guidelines.html
