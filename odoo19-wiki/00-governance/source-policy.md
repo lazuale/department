@@ -2,15 +2,15 @@
 
 ## Scope
 
-Для фактических утверждений используются только официальные материалы Odoo 19.0.
+Для фактических утверждений используются только официальные материалы **Odoo 19.0**.
 
 Допустимые семейства источников:
 
 - Developer Reference;
-- актуальный Server Framework 101 и другие актуальные official tutorials;
+- актуальный Server Framework 101 и другие current official tutorials;
 - Administration documentation;
 - User Documentation;
-- официальные Contributing / Coding Guidelines, когда речь о development/runtime conventions.
+- official Contributing / Coding Guidelines, когда речь о development/runtime conventions.
 
 Не используются как основание курса:
 
@@ -19,8 +19,15 @@
 - Stack Overflow;
 - статьи интеграторов;
 - сторонние addons;
-- документация других версий, если утверждение относится к Odoo 19.0;
-- deprecated tutorial, если актуальный Reference или Server Framework 101 покрывает тот же вопрос.
+- документация других версий, если claim относится к Odoo 19.0;
+- `saas-19.x` как замена ветке 19.0;
+- deprecated tutorial, если current Reference или Server Framework 101 покрывает тот же вопрос.
+
+## Product scope
+
+Baseline курса — **Odoo 19.0 Community self-hosted**.
+
+Odoo Online и Odoo.sh могут изучаться позже как отдельные deployment/product contexts, но их поведение не переносится автоматически на Community self-hosted.
 
 ## Приоритет по типу вопроса
 
@@ -28,27 +35,27 @@
 
 Основной источник: **Developer Reference**.
 
-Tutorial используется для объяснения и учебной последовательности, но не должен переопределять более точную reference semantics.
+Tutorial используется для объяснения и learning flow, но не переопределяет более точную current Reference semantics.
 
-### Архитектурная mental model и учебная последовательность
+### Архитектурная mental model
 
-Основной источник: **актуальный Server Framework 101**.
+Основной источник: **current Server Framework 101** плюс relevant Developer Reference.
 
-### Deployment / CLI / workers / installation
+### Deployment / CLI / workers / server-wide modules
 
-Основной источник: **Administration documentation** и соответствующая **Developer CLI Reference**.
+Основной источник: **Administration documentation** и **Developer CLI Reference**.
 
 ### User-facing business behavior
 
-Основной источник: **User Documentation** конкретного приложения/feature.
+Основной источник: **User Documentation** конкретного application/feature.
 
-### Development conventions и transactional discipline
+### Development conventions / transaction discipline
 
-Основной источник: **официальные Contributing / Coding Guidelines**, если Reference не описывает это полнее.
+Основной источник: official **Contributing / Coding Guidelines**, если Developer Reference не описывает вопрос полнее.
 
-## Если официальные источники различаются по детализации
+## Если official sources различаются по детализации
 
-Используем правило:
+Для API semantics:
 
 ```text
 более точный current Reference
@@ -56,36 +63,70 @@ Tutorial используется для объяснения и учебной 
 упрощённый current Tutorial
 ```
 
-для API semantics.
+Tutorial при этом может быть лучшим источником объяснения purpose/learning sequence.
 
-При этом tutorial может оставаться лучшим источником объяснения **зачем** механизм существует.
-
-## Если документация не позволяет установить факт
+## Если documentation не позволяет установить факт
 
 Пишем:
 
 > Официальная документация Odoo 19.0 не позволяет надёжно установить это утверждение.
 
-Не заменяем пробел предположением.
+Пробел не заменяется предположением.
 
 ## Community / Enterprise
 
-Общая страница документации не является доказательством edition availability.
+Наличие общей documentation page не является edition evidence.
 
-Для каждого спорного module/feature edition evidence хранится отдельно в [edition-ledger.md](edition-ledger.md).
+Для конкретных module/feature edition evidence хранится в [edition-ledger.md](edition-ledger.md).
+
+## Ограничение documentation-only
+
+Current governance сознательно не использует official source code/manifests как normative evidence.
+
+Следствие:
+
+- documented platform semantics можно изучать глубоко;
+- user-facing documented behavior можно проверять;
+- но exhaustive Community addon inventory **не гарантируется**.
+
+Если потребуется технически полный Community whitelist, policy должна быть отдельно изменена до использования official source/manifests.
+
+## Source IDs в уроках
+
+Каждый урок назначает локальные source IDs:
+
+```text
+S1 — ORM API
+S2 — Security Reference
+S3 — Coding Guidelines
+```
+
+Claims оформляются:
+
+```text
+**[ODOO][S1]** ...
+```
+
+Один source ID может подтверждать несколько claims.
+
+Для `[ВЫВОД]` source ID не обязателен прямо в marker, но supporting `[ODOO]` claims должны быть traceable.
 
 ## Дата проверки
 
-Каждый урок содержит `Проверено: YYYY-MM-DD`.
+Каждый урок содержит:
 
-Это важно, потому что документация ветки Odoo 19.0 продолжает обновляться. При существенном обновлении урока дата проверки обновляется вместе с повторной верификацией ключевых claims.
+```text
+Проверено: YYYY-MM-DD
+```
 
-## Прямые ссылки
+При существенной правке дата меняется только после повторной проверки ключевых claims по current Odoo 19.0 documentation.
 
-Внизу каждого урока хранится компактный список official source pages. Не нужно дублировать один и тот же URL после каждого абзаца внутри wiki, если принадлежность утверждений `[ODOO]` и источников урока однозначна.
+## Coverage
+
+Источниковая полнота отслеживается не количеством ссылок в уроке, а [coverage-map.md](coverage-map.md), который сопоставляет major official documentation surfaces с owner-уроками и статусами.
 
 ## Исходный код Odoo
 
-На текущем этапе курса официальный source code **не используется как основной источник фактов**, потому что scope согласован как official documentation only.
+Official Odoo source code **не используется как основной источник фактов** при current policy.
 
-Если это правило когда-либо изменится, source-level evidence вводится отдельной правкой governance, а не молча.
+Любое изменение этого правила должно сначала изменить governance, source policy и scope evidence в edition ledger.
