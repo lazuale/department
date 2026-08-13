@@ -1,218 +1,225 @@
 # ARCH-01. Архитектурный фундамент Odoo
 
-> Lesson ID: `ARCH-01`  
+> ID урока: `ARCH-01`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `GOV`  
-> Canonical owner: three-tier architecture; deployment/runtime/process distinction; multi-database property; data-driven architecture  
-> Aspect owner: workers → `RUN-06`; per-database models → `ORM-02`  
-> Preview: module, App, model, record, UI resources  
-> Отложено: module lifecycle, imports, ORM details, workers, security, business models  
-> Edition scope: Odoo 19.0 Community self-hosted platform baseline; concrete feature entitlement не определяется здесь  
-> Sources: `S1`–`S6`
+> Предпосылки: `GOV`  
+> Канонический владелец: трёхуровневая архитектура; различие развёртывания, runtime и процессов; multi-database; data-driven архитектура  
+> Владельцы аспектов: workers → `RUN-06`; набор моделей конкретной базы → `ORM-02`  
+> Предварительно упоминается: модуль, App, модель, запись, ресурсы интерфейса  
+> Отложено: жизненный цикл модулей, импорты, детали ORM, workers, безопасность, бизнес-модели  
+> Область редакции: базовая архитектура Odoo 19.0 Community self-hosted; доступность конкретных функций здесь не определяется  
+> Источники: `S1`–`S6`
 
 ## Цель
 
-Построить первую непротиворечивую mental model Odoo, не превращая overview в выдуманную internal implementation diagram.
+Построить первую непротиворечивую модель Odoo и не подменять документированную архитектуру выдуманной схемой внутренней реализации.
 
 ---
 
-## 1. Odoo — three-tier application
+## 1. Odoo — трёхуровневое приложение
 
-**[ODOO][S1]** Architecture Overview описывает Odoo как three-tier application:
+**[ODOO][S1]** Официальный Architecture Overview описывает Odoo как трёхуровневое приложение:
 
 ```text
-Presentation tier
+Уровень представления
 HTML5 / JavaScript / CSS
         │
         ▼
-Logic tier
-Python / Odoo server
+Уровень логики
+Python / сервер Odoo
         │
         ▼
-Data tier
+Уровень данных
 PostgreSQL
 ```
 
-**[ВЫВОД]** UI, server-side logic и persistence — разные architectural layers. Экран Odoo нельзя считать самой business model.
+**[ВЫВОД]** Пользовательский интерфейс, серверная логика и постоянное хранение данных — разные архитектурные уровни. Экран Odoo нельзя считать самой бизнес-моделью.
 
 ---
 
-## 2. Server/runtime нельзя приравнивать к одному process
+## 2. Сервер Odoo нельзя автоматически приравнивать к одному процессу
 
 Нельзя закреплять формулу:
 
 ```text
-Odoo server = один Python process
+сервер Odoo = один процесс Python
 ```
 
-**[ODOO][S6]** CLI поддерживает multiprocessing mode: при `--workers > 0` используются worker subprocesses; runtime behavior зависит от server mode.
+**[ODOO][S6]** CLI поддерживает многопроцессный режим: при `--workers > 0` используются дочерние рабочие процессы.
 
-Минимально:
+Минимальная модель:
 
 ```text
-Odoo deployment / runtime
+развёртывание / runtime Odoo
         │
-        ├── single-process mode
-        └── multiprocessing / workers
+        ├── однопроцессный режим
+        └── многопроцессный режим / workers
 ```
 
-Exact worker architecture принадлежит `RUN-06`.
+Точная архитектура workers принадлежит `RUN-06`.
 
 ---
 
-## 3. Один Python process может обслуживать несколько databases
+## 3. Один процесс Python может обслуживать несколько баз данных
 
-**[ODOO][S2]** Server Framework 101 предупреждает, что один Odoo process может обслуживать несколько databases, на которых установлены разные modules.
+**[ODOO][S2]** Server Framework 101 отдельно предупреждает, что один процесс Odoo может обслуживать несколько баз данных с разными наборами установленных модулей.
 
 ```text
-one Python process
+один процесс Python
       │
-      ├── Database A → module set A
-      ├── Database B → module set B
-      └── Database C → module set C
+      ├── База A → набор модулей A
+      ├── База B → набор модулей B
+      └── База C → набор модулей C
 ```
 
-Это не означает, что production deployment всегда состоит из одного process.
+Это не означает, что производственное развёртывание всегда состоит из одного процесса.
 
-**[ВЫВОД]** Database context и OS/Python process — разные dimensions architecture.
-
----
-
-## 4. Функциональность Odoo композиционно поставляется modules
-
-Понятие previewed; canonical owner — `ARCH-02`.
-
-**[ODOO][S1]** Server/client extensions packaged as modules/addons, которые могут загружаться в Odoo database/runtime context.
-
-**[ВЫВОД]** User-facing functionality нельзя мыслить как набор полностью independent monolithic apps; она собирается поверх общей platform/module system.
+**[ВЫВОД]** Контекст базы данных и процесс операционной системы — разные измерения архитектуры.
 
 ---
 
-## 5. Database имеет собственную installed configuration
+## 4. Функциональность Odoo поставляется модулями
 
-**[ODOO][S2]** Different databases одного runtime могут иметь different installed module sets.
+Здесь понятие только предварительно вводится; канонический владелец — `ARCH-02`.
 
-Per-database ORM model mapping будет определён только после ORM Core в `ORM-02`.
+**[ODOO][S1]** Расширения серверной и клиентской части Odoo упаковываются в модули/addons.
+
+**[ВЫВОД]** Пользовательскую функциональность Odoo нельзя мыслить как набор полностью независимых монолитных приложений. Она собирается поверх общей платформы и модульной системы.
+
+---
+
+## 5. У каждой базы есть собственная установленная конфигурация
+
+**[ODOO][S2]** Разные базы данных одного runtime могут иметь разные наборы установленных модулей.
+
+Набор ORM-моделей конкретной базы будет определён позже, в `ORM-02`.
 
 На текущем уровне достаточно:
 
 ```text
-server has addon code
+на сервере есть код addons
         │
         ▼
-Database X has installed configuration
+в Базе X установлен свой набор модулей
         │
         ▼
-runtime behavior of Database X differs from Database Y
+поведение Базы X может отличаться от Базы Y
 ```
 
-**[ВЫВОД]** Нельзя выводить database functionality только из files, лежащих на server.
+**[ВЫВОД]** Функциональность конкретной базы нельзя определять только по файлам, лежащим на сервере.
 
 ---
 
-## 6. Odoo в значительной степени data-driven
+## 6. Odoo в значительной степени управляется данными
 
-**[ODOO][S3][S5]** Developer documentation описывает Odoo как greatly/highly data-driven. Records/data используются не только для ordinary business rows: views, actions/menus, security/configuration и другие system resources во многом представлены data records.
+**[ODOO][S3][S5]** Официальная документация описывает Odoo как систему, в значительной степени управляемую данными. Записями базы представлены не только обычные бизнес-данные, но и многие технические ресурсы: представления, действия, меню, настройки безопасности и другое.
 
-**[ODOO][S4]** Views themselves хранятся как records.
+**[ODOO][S4]** Представления сами хранятся как записи.
 
 ```text
-Odoo data records
-├── business/configuration data
-├── views
-├── actions/menus
-├── security-related data
-└── other system resources
+записи данных Odoo
+├── бизнес-данные и настройки
+├── представления
+├── действия и меню
+├── данные безопасности
+└── другие системные ресурсы
 ```
 
-**[ВЫВОД]** Граница `Python code` / `database data` не совпадает с простой схемой «code = system, rows = user data».
+**[ВЫВОД]** Граница «Python-код / данные базы» не совпадает с примитивной схемой «код = система, строки таблиц = пользовательские данные».
 
-Detailed owners появятся позже.
+Подробные владельцы этих механизмов появятся дальше по курсу.
 
 ---
 
-## 7. App, module, model и record — разные levels
+## 7. App, модуль, модель и запись — разные уровни
 
-Здесь только preview:
+Здесь только предварительное различие:
 
 ```text
-MODULE → technical extension/package unit
-APP    → user-facing application module
-MODEL  → ORM concept
-RECORD → concrete ORM data record
+MODULE → техническая единица расширения / поставки
+APP    → пользовательский модуль-приложение
+MODEL  → ORM-модель
+RECORD → конкретная запись модели
 ```
 
-**[ВЫВОД]** Mental model `1 App = 1 module = 1 model = 1 table = 1 screen` неверна.
+**[ВЫВОД]** Формула
 
-Canonical owners: `ARCH-02`, `ORM-01`.
+```text
+1 App = 1 модуль = 1 модель = 1 таблица = 1 экран
+```
+
+неверна.
+
+Канонические владельцы: `ARCH-02` и `ORM-01`.
 
 ---
 
-## 8. UI resources не являются business model
+## 8. Ресурс интерфейса не равен бизнес-модели
 
 На архитектурном уровне:
 
 ```text
-models / records
+модели / записи
       │
       ▼
-actions / views / menus
+действия / представления / меню
       │
       ▼
-web client
+веб-клиент
 ```
 
-**[ВЫВОД]** Separate menu or screen не доказывает existence отдельной independent domain entity.
+**[ВЫВОД]** Отдельное меню или экран не доказывает существование отдельной независимой предметной сущности.
 
 ---
 
-## 9. Community и Enterprise: только общая boundary
+## 9. Community и Enterprise: только общая граница
 
-**[ODOO][S1]** Odoo имеет Community и Enterprise editions; technical Enterprise functionality описывается как additional modules поверх Community modules/server.
+**[ODOO][S1]** Odoo имеет редакции Community и Enterprise; техническая функциональность Enterprise поставляется дополнительными модулями поверх Community и общего сервера.
 
-**[ВЫВОД]** Общая edition boundary модульна, но concrete module/feature entitlement определяется только edition ledger.
+**[ВЫВОД]** Общая граница редакций модульна, но доступность конкретного модуля или функции определяется только через реестр редакций.
 
 ---
 
 ## Минимальная модель
 
 ```text
-                     ODOO DEPLOYMENT / RUNTIME
+                     РАЗВЁРТЫВАНИЕ / RUNTIME ODOO
                               │
                  ┌────────────┴────────────┐
                  │                         │
-        one or more processes      addon code available
+          один или несколько         доступный код addons
+              процессов                    │
                  │                         │
                  └────────────┬────────────┘
                               │
-                       DATABASE CONTEXT
+                       КОНТЕКСТ БАЗЫ
                               │
-                    installed configuration
+                    установленная конфигурация
                               │
-                 ORM/data/UI layers later
+                 ORM / данные / интерфейс — далее
 ```
 
-Эта схема conceptual, не UML internal implementation.
+Схема концептуальная и не изображает точную внутреннюю реализацию Odoo.
 
 ## Что нельзя заключать
 
-- Odoo server = one process — нет;
-- one database = one process — нет;
-- addon code on disk = installed functionality — нет;
-- App = module = model — нет;
-- menu/view = business object — нет;
-- documentation page = Community entitlement — нет;
-- ARCH-01 уже определяет backend model registry — нет.
+- сервер Odoo всегда равен одному процессу — нет;
+- одна база всегда равна одному процессу — нет;
+- наличие addon на диске означает установленную функциональность — нет;
+- `App = module = model` — нет;
+- меню или представление равно бизнес-объекту — нет;
+- наличие страницы документации доказывает Community-доступность — нет;
+- `ARCH-01` уже определяет реестр ORM-моделей — нет.
 
 ## Контрольные вопросы
 
-1. Какие three tiers официально выделяет Odoo?
-2. Почему runtime нельзя автоматически приравнять к одному process?
-3. Что означает multi-database property одного process?
-4. Почему database context и process architecture различаются?
+1. Какие три уровня официально выделяет Odoo?
+2. Почему сервер нельзя автоматически приравнять к одному процессу?
+3. Что означает возможность одного процесса обслуживать несколько баз?
+4. Почему контекст базы данных и архитектура процессов — разные вещи?
 5. Что означает data-driven характер Odoo?
-6. Почему UI resource не равен business model?
+6. Почему ресурс интерфейса не равен бизнес-модели?
 
 ## Официальные источники
 
