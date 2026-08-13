@@ -44,7 +44,10 @@
 | SQL/schema declarations: `Constraint`, `Index`, `UniqueIndex` and related model-storage semantics | `ORM-03` | covered |
 | inheritance-specific model attributes (`_inherit`, `_inherits`) | `EXT-01` | planned |
 | multi-company model attribute (`_check_company_auto`) | `EXT-04` | planned |
-| field classes / attributes / automatic fields / field storage semantics | `ORM-04` | planned |
+| Field descriptor / generic attributes / non-relational field types / automatic and reserved fields / field storage semantics | `ORM-04` | covered |
+| field security aspect (`groups`) | `SEC-01` | planned |
+| company-dependent field semantics | `EXT-04` | planned |
+| field-level performance/index tuning | `RUN-01` | planned |
 | Many2one / One2many / Many2many / commands | `ORM-05` | planned |
 | computed / related / inverse / depends / Python constraints | `ORM-06` | planned |
 | RPC transaction / commit / rollback discipline | `ORM-07`, prerequisite `ARCH-04` | planned |
