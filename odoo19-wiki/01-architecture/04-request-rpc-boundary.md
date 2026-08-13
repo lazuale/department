@@ -9,7 +9,7 @@
 > Preview: public methods; transactions; controller routes; frontend ORM/RPC services  
 > Отложено: HTTP routing; controller API; authentication details; transaction internals; frontend services; external API product semantics  
 > Edition scope: platform client/server semantics; не entitlement claim конкретного feature  
-> Sources: `S1`–`S4`
+> Sources: `S1`–`S6`
 
 ## Цель
 
@@ -62,7 +62,7 @@ Odoo server execution
 - controllers имеют routes;
 - external integration APIs имеют отдельную version/product semantics.
 
-**[ODOO][S4]** External XML-RPC/JSON-RPC endpoints в Odoo 19 имеют собственную deprecation/version story и не должны автоматически смешиваться с controller JSON-RPC or generic client/server request semantics.
+**[ODOO][S6]** External XML-RPC/JSON-RPC endpoints в Odoo 19 имеют собственную deprecation/version story и не должны автоматически смешиваться с controller JSON-RPC or generic client/server request semantics.
 
 **[ВЫВОД]** В этом курсе `request/RPC boundary` — общий execution concept. Конкретный external API изучается отдельно, если понадобится.
 
@@ -82,9 +82,7 @@ Security details принадлежат `SEC-01`, но архитектурны�
 
 Transaction semantics принадлежат `ORM-06`.
 
-Но dependency нужно зафиксировать сейчас.
-
-**[ODOO][S3]** Official Coding Guidelines описывает framework-provided transactional context для RPC calls: cursor создаётся для call, при успешном завершении framework делает commit, при exception — rollback.
+**[ODOO][S4]** Coding Guidelines описывает framework-provided transactional context для RPC calls: cursor создаётся для call, при успешном завершении framework делает commit, при exception — rollback.
 
 Здесь это только preview:
 
@@ -107,7 +105,7 @@ server execution inside framework transaction
 
 Onchange owner — `UI-03`.
 
-**[ODOO][S3]** ORM Reference описывает `@api.onchange` как form-view mechanism на pseudo-record; assignments возвращаются client.
+**[ODOO][S5]** ORM Reference описывает `@api.onchange` как form-view mechanism на pseudo-record; assignments возвращаются client.
 
 **[ВЫВОД]** Onchange — не просто server-side helper method. Он участвует в client/server interaction и поэтому требует сначала понимать request boundary и form views.
 
@@ -177,9 +175,11 @@ SERVER-SIDE EXECUTION
   https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/01_architecture.html
 - `S2` — Frontend Services / RPC service  
   https://www.odoo.com/documentation/19.0/developer/reference/frontend/services.html
-- `S3` — ORM API; Security Reference; Coding Guidelines  
-  https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html  
-  https://www.odoo.com/documentation/19.0/developer/reference/backend/security.html  
+- `S3` — Security Reference  
+  https://www.odoo.com/documentation/19.0/developer/reference/backend/security.html
+- `S4` — Coding Guidelines  
   https://www.odoo.com/documentation/19.0/contributing/development/coding_guidelines.html
-- `S4` — External RPC API  
+- `S5` — ORM API (`@api.onchange`)  
+  https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
+- `S6` — External RPC API  
   https://www.odoo.com/documentation/19.0/developer/reference/external_rpc_api.html
