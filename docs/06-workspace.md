@@ -1,202 +1,295 @@
 # Настройка Odoo 19 Community
 
-[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [03 Аналитика](03-control.md) · **06 Настройка** · [17 Люди](17-master-data-people.md)
+[Главная](../README.md) · [00 Возможности](00-odoo19-community.md) · [01 Модель](01-methodology.md) · [16 Модули](16-community-modules-context.md) · [19 Master data](19-master-data.md) · [26 Task ↔ master data](26-task-master-data-relations.md)
 
 ---
 
-Это последовательный **click-only пилот**. Его задача — проверить, можно ли закрыть реальные процессы штатными средствами Odoo 19 Community без критических компромиссов.
+Это последовательный пилот текущей архитектуры Odoo 19 Community.
 
-Пилот не должен заранее навязывать конкретные роли, Stages, смены, правила назначения или схему приёмки результата.
+Его задача — проверить принятые master data, связи с `project.task`, реальные рабочие сценарии, права и аналитику до появления custom addon.
 
-## 1. Установить минимальное ядро
+## 1. Установить согласованный базовый контур
 
-Начать с тех приложений, без которых нельзя проверить саму модель работы.
-
-Базовый минимум:
+Master data уже определили обязательные предметные Apps:
 
 ```text
-Project
-Contacts
+Project      project
+Contacts     contacts
+Fleet        fleet
+Maintenance  maintenance
+Inventory    stock
 ```
 
-Для текущего контура сотрудники компании ведутся в Contacts / `res.partner`. Employees / HR не устанавливается только ради справочника людей. Он возвращается на рассмотрение только при реальной потребности в HR-функциональности.
+`Discuss / mail` входит в рабочую и техническую инфраструктуру выбранных приложений.
 
-Остальные приложения устанавливаются только по реальной предметной потребности.
-
-## 2. Подключать предметные приложения по смыслу
-
-Примеры:
+Назначение:
 
 ```text
-Fleet       → ТС
-Maintenance → Equipment / maintenance
-Inventory   → serial / lot / location / movement
-Calendar    → встречи
-Purchase    → закупки
-Expenses    → расходы
-Timesheets  → фактические трудозатраты, если нужны
+project.task             → работа
+res.partner              → люди
+fleet.vehicle            → путевая техника
+maintenance.equipment    → сканирующие рамки
+stock.package            → терминал Nobilis как комплект
+product.product          → тип комплектующей Nobilis
+stock.lot                → конкретная серийная комплектующая
+stock.location / quant   → положение Nobilis
+stock.move / move.line   → движение и изменение состава
 ```
 
-Не устанавливать приложение только потому, что оно существует.
+Employees / HR не устанавливается ради справочника людей.
 
-## 3. Определить источники истины
+Purchase, Repair, Calendar, Website и прочие кандидаты не входят в baseline только потому, что они существуют.
 
-До настройки Tasks составить карту предметных сущностей:
+Полное решение по модулям: [16 — Реестр модулей](16-community-modules-context.md).
+
+## 2. Проверить автоматически установленный технический слой
+
+После установки базовых Apps проверить фактический список модулей.
+
+Из выбранной архитектуры ожидаются, в частности:
 
 ```text
-сущность
-→ штатная model / Property / отдельная model
-→ источник загрузки
-→ кто поддерживает данные
+product
+barcodes
+barcodes_gs1_nomenclature
+project_todo
+project_stock
+stock_maintenance
+api_doc
+и другие dependencies выбранных Apps
 ```
 
-Для людей уже зафиксировано:
+Критичные bridges:
 
 ```text
-человек / сотрудник компании → res.partner
-доступ в Odoo                → res.users, связанный с тем же res.partner
+Project + Inventory
+→ project_stock
+
+Inventory + Maintenance
+→ stock_maintenance
 ```
 
-Подробно: [17 — Master data: люди](17-master-data-people.md).
+`project_stock` связывает `stock.picking` с `project.project`; он не заменяет связь Task с Package/Lot.
 
-Если штатная model подходит, использовать её.
+`stock_maintenance` добавляет Equipment связь с `stock.location` и сопоставление с `stock.lot` по serial. Это не означает автоматического решения использовать Stock для всех рамок и участков.
 
-Если объект нужен только как атрибут работы, достаточно Property/Tag.
+## 3. Загрузить master data
 
-Если объекту нужен самостоятельный реестр, lifecycle, уникальность, права и связи — это кандидат на отдельную model.
-
-## 4. Загрузить master data
-
-Для CSV/XLSX использовать стандартный Import.
-
-При повторных обновлениях сохранять External ID.
-
-Перед массовой загрузкой проверить:
-
-- уникальность;
-- активность records;
-- права;
-- пригодность модели для реальных данных.
-
-Для справочника людей один человек должен соответствовать одной записи `res.partner`; выдача доступа через `res.users` не должна создавать вторую карточку человека.
-
-Не дублировать один и тот же master data текстом в Tasks.
-
-## 5. Проверить bridge modules
-
-После установки связанных приложений проверить auto-install bridges до проектирования собственных relations.
-
-Примеры доступных технических bridges:
+Сначала загружаются предметные справочники, только затем строятся Tasks.
 
 ```text
-Employees + Fleet        → hr_fleet
-Employees + Maintenance  → hr_maintenance
-Inventory + Maintenance  → stock_maintenance
-Project + Purchase       → project_purchase
-Project + Inventory      → project_stock
-Project + Accounting     → project_account
-Project + Expenses       → project_hr_expense
+люди             → res.partner
+путевая техника  → fleet.vehicle
+рамки             → maintenance.equipment
+Nobilis           → Stock models
 ```
 
-HR-bridges учитываются только если Employees / HR позже будет осознанно включён. В текущий baseline они не входят.
+Для импорта:
 
-## 6. Определить границы Projects
+- проверять уникальность;
+- сохранять External ID при повторных обновлениях;
+- не создавать дубли;
+- заранее определить источник истины;
+- проверить права на импорт и редактирование.
 
-Не использовать универсальное правило `один процесс = один Project` или `один отдел = один Project`.
+Один человек должен соответствовать одной записи `res.partner`. Выдача доступа через `res.users` не создаёт второго человека.
 
-Для каждого Project зафиксировать причину его существования:
+Task не копирует master data текстом.
+
+## 4. Проверить Nobilis в нативном Stock
+
+На реальных тестовых данных проверить:
+
+```text
+Терминал T-001
+→ stock.package
+
+Основной блок SN-...
+Компонент A SN-...
+Компонент B SN-...
+→ stock.lot
+```
+
+Сценарии:
+
+1. собрать Package из серийных частей;
+2. переместить весь Package между locations;
+3. снять одну часть;
+4. поставить другую часть;
+5. переставить часть между двумя терминалами;
+6. хранить часть отдельно;
+7. вернуть часть производителю;
+8. вернуть целый комплект производителю;
+9. восстановить traceability по конкретному Serial Number.
+
+Если эти сценарии закрываются штатным Stock, собственная terminal model не вводится.
+
+## 5. Проверить рамки в Maintenance
+
+Для реальной рамки проверить:
+
+```text
+maintenance.equipment
+├── идентичность рамки
+├── инвентарный номер
+├── состояние
+└── maintenance requests
+```
+
+Отдельно проверить автоматически появившийся `location_id → stock.location` из `stock_maintenance`, но не принимать его как общую модель участка до отдельного решения по master data участков.
+
+## 6. Проверить путевую технику во Fleet
+
+В один предметный реестр входят:
+
+```text
+самосвалы
+строительная техника
+малая механизация
+→ fleet.vehicle
+```
+
+Проверить импорт фактического списка техники, уникальные идентификаторы, поиск и пригодность категорий/моделей.
+
+Fleet не превращается в систему путевых листов. Путевые листы остаются в действующей учётной системе; Odoo связывает управляемую работу с нужной единицей техники.
+
+## 7. Настроить связь Task с master data
+
+Согласованный пилотный механизм — relational Properties.
+
+```text
+Исполнитель
+→ штатный project.task.user_ids → res.users
+
+Заявитель
+→ Many2one(res.partner)
+
+Связанные люди
+→ Many2many(res.partner)
+
+Техника
+→ Many2one / Many2many(fleet.vehicle)
+
+Рамка
+→ Many2one(maintenance.equipment)
+
+Терминал
+→ Many2one(stock.package)
+
+Комплектующие
+→ Many2many(stock.lot)
+```
+
+`project.task.partner_id` не переименовывается в «Заявитель»: в штатном Project это Customer.
+
+Подробно: [26 — Task ↔ master data](26-task-master-data-relations.md).
+
+## 8. Проверить Properties до решения о custom fields
+
+На реальном объёме проверить:
+
+- autocomplete и выбор records;
+- открытие target record;
+- права target model;
+- List / Kanban;
+- Search / Filter / Group By;
+- Task Analysis;
+- импорт / массовое заполнение;
+- JSON-2;
+- несколько Projects;
+- производительность;
+- историю изменений, если она нужна процессу.
+
+Обычные ORM-поля добавляются только при доказанном gap.
+
+## 9. Определить границы Projects
+
+Не использовать автоматически правила:
+
+```text
+один отдел = один Project
+один процесс = один Project
+```
+
+Новый Project оправдан реальной границей:
 
 - visibility;
 - отдельный lifecycle;
-- отдельные milestones / project-level reporting;
-- существенно другой workflow;
+- substantially different workflow;
+- milestones / project-level reporting;
 - самостоятельная инициатива.
 
-Если различие нужно только для поиска и аналитики, использовать Properties/Tags/Views.
+Если различие нужно только для классификации — использовать Properties / Tags / Views.
 
-## 7. Настроить Stages по фактическому workflow
+Важно: Properties определяются на уровне Project, поэтому сценарий нескольких Projects обязательно входит в runtime-проверку.
 
-Создать только те Stages, которые реально нужны процессу.
+## 10. Настроить workflow только по реальным процессам
 
-Для каждого Stage определить:
+Для каждого используемого Stage определить:
 
 ```text
 что означает вход
-что означает нахождение в Stage
+что означает нахождение
 что означает выход
 ```
 
-Не создавать Stage только ради копирования старой методики.
+Не создавать Stages только ради копирования старой методики.
 
-Не дублировать штатные `Done`, `Canceled` или dependency-driven `Waiting` без отдельного смысла.
+Не дублировать без причины системные `Done`, `Canceled` и dependency-driven `Waiting`.
 
-## 8. Определить использование Assignees
+## 11. Исполнители, сроки и приоритет
 
-Процесс должен ответить:
+Assignees остаются `res.users`.
 
-- нужен ли Assignee сразу;
-- допустима ли неназначенная Task;
-- используется один или несколько Assignees;
-- кто может назначать/переназначать.
+Не создавать fake users для очередей, групп или людей без доступа.
 
-После этого проверить фактический UX Odoo.
+Deadline используется только при реальном сроке результата.
 
-Assignees остаются штатными `res.users`. Не создавать fake users для очередей, организационных групп или людей, которым вход в Odoo не нужен.
+Activity Due Date — срок следующего действия, а не второй Deadline Task.
 
-## 9. Настроить Properties только по потребности
+Priority используется только после определения смысла уровней в конкретном процессе.
 
-Добавлять Property, если оно реально нужно для:
-
-- выполнения;
-- фильтрации;
-- группировки;
-- шаблонов;
-- аналитики.
-
-Примеры классификационных Properties:
+## 12. Activities, Dependencies и Subtasks
 
 ```text
-Вид работы
-Процесс
-Источник
+Activity
+→ следующее действие / follow-up
+
+Dependency
+→ реальная блокировка одной Task другой
+
+Subtask
+→ самостоятельная управляемая часть результата
 ```
 
-Это только примеры, а не обязательный набор.
+Не превращать технические шаги в лишние Tasks/Subtasks.
 
-## 10. Проверить relational Properties
-
-Если Task должна ссылаться на предметный record:
+## 13. Templates и Recurrence
 
 ```text
-Property
-→ Many2one / Many2many
-→ Model
-→ Domain при необходимости
+типовая разовая работа
+→ Task Template
+
+календарно повторяемая работа
+→ Recurring Task
 ```
 
-Проверить на реальных моделях:
+Если процесс зависит от копирования Properties/Subtasks в recurrence, проверить это runtime на стенде.
 
-- autocomplete;
-- выбор record;
-- открытие связанной записи;
-- права target model;
-- Search / Group By;
-- List/Kanban;
-- производительность.
+## 14. Права
 
-Примеры текущего контура:
+Сначала описать фактические действия пользователя:
 
 ```text
-ТС           → fleet.vehicle
-Сотрудник    → res.partner
-Оборудование → maintenance.equipment
+read
+create
+write
+delete
+какие records видит
+какие master data может менять
 ```
 
-## 11. Domain не заменяет security
-
-Domain ограничивает варианты выбора в UI.
-
-Права задаются отдельно:
+Только после этого настраивать:
 
 ```text
 Groups
@@ -205,217 +298,94 @@ Record Rules
 Project visibility
 ```
 
-## 12. Настроить права после определения реальных полномочий
+Domain у relational Property ограничивает выбор, но не заменяет security target model.
 
-Не начинать с искусственных ролей `исполнитель / старший / руководитель`, если они не определены процессом.
+## 15. Входящие каналы
 
-Сначала описать действия:
+Сначала должна работать ручная модель.
 
-```text
-может читать
-может создавать
-может изменять
-может удалять
-может видеть все records или только часть
-может менять master data
-```
-
-Затем настроить Groups / ACL / Record Rules.
-
-Проверять права минимум под обычным рабочим пользователем и администратором. Дополнительные профили создаются только если они реально нужны.
-
-## 13. Deadline
-
-Использовать Deadline только там, где есть срок результата.
-
-Проверить:
-
-- отображение в List/Kanban/Calendar;
-- overdue filters;
-- правила изменения срока конкретного процесса.
-
-Activity Due Date использовать отдельно для следующего действия.
-
-## 14. Priority
-
-Odoo поддерживает Low / Medium / High / Urgent.
-
-Не задавать локальную шкалу заранее.
-
-Если Priority нужен, определить:
-
-```text
-что означает каждый используемый уровень
-какое действие он меняет
-```
-
-## 15. Activities
-
-Использовать Activities для follow-up и следующего действия.
-
-Настраивать Activity Types/Plans только когда конкретный процесс этого требует.
-
-Не превращать каждое Activity в отдельную Task.
-
-## 16. Dependencies
-
-Включить Dependencies, если есть реальные внутренние блокировки.
-
-```text
-Blocked by
-→ Waiting
-```
-
-Проверить cross-project dependency, если процессы распределены по нескольким Projects.
-
-## 17. Subtasks
-
-Использовать Subtasks только для частей с самостоятельным управлением.
-
-Не строить дерево из каждого технического шага.
-
-## 18. Task Templates
-
-Использовать для типовой разовой работы по событию.
-
-Проверить:
-
-- создание Task из template;
-- Description;
-- Properties;
-- Subtasks;
-- права пользователей.
-
-## 19. Recurring Tasks
-
-Использовать для календарно повторяемой работы.
-
-Public source поддерживает Days / Weeks / Months / Years.
-
-Если процесс зависит от копирования Properties/Subtasks, выполнить runtime test на установленной версии.
-
-Не моделировать через recurrence организационные графики, если сам процесс этого не требует.
-
-## 20. Project Templates + Roles
-
-Использовать только при повторяемой структуре целого Project.
-
-Не считать Project Template полноценным capacity/Planning engine.
-
-## 21. Входящие каналы
-
-После того как ручная модель работает, по потребности проверить:
+Затем по реальной потребности проверяются:
 
 - Email Alias;
-- Website Form → Task;
-- API;
-- webhook / Automation.
+- Website + `website_project`;
+- JSON-2;
+- Automation / webhook.
 
-Автоматический intake не обязан сразу определять Stage, Assignee, Priority и Deadline, если правило неоднозначно.
+Не добавлять Website только ради того, что Portal технически существует.
 
-## 22. List и Kanban
+## 16. List, Kanban и аналитика
 
-Проверить оба режима на реальной работе.
-
-### List
-
-Проверить:
-
-- сортировку;
-- mass edit;
-- Properties;
-- Deadline / Priority;
-- Activities;
-- фильтры;
-- Group By.
-
-### Kanban
-
-Проверить:
-
-- читаемость workflow;
-- работу со Stages;
-- карточки и Properties;
-- фактическую удобность для исполнителей.
-
-Не назначать один вид основным до пользовательского теста.
-
-## 23. Shared Views
-
-Создавать только для устойчивых вопросов.
-
-Примеры:
+На реальном потоке проверить:
 
 ```text
-просроченные
-неназначенные
-Waiting / Blocking
-Urgent
-Late Activities
-Tasks по предметному Property
+List
+Kanban
+Shared Views
+Task Analysis
+Pivot / Graph
+My Dashboard
 ```
 
-Это примеры, а не обязательный список.
+Views и KPI создаются под устойчивые управленческие вопросы, а не под все доступные поля.
 
-## 24. Task Analysis / Pivot / Graph
+## 17. Следующие кандидаты на модули
 
-Сначала проверить, отвечает ли штатная аналитика на реальные вопросы процесса.
-
-Не превращать все доступные measures в KPI.
-
-## 25. My Dashboard
-
-После стабилизации Views и аналитических вопросов проверить `board` / My Dashboard.
-
-Добавлять только те элементы, которые уже доказали полезность в рабочих Views/Pivot/Graph.
-
-Spreadsheet Dashboard не является обязательным Community baseline до отдельной runtime/edition-проверки.
-
-## 26. Automation Rules
-
-Использовать после стабилизации модели.
-
-Подходящие случаи:
-
-- однозначная реакция на field change;
-- time-based механическое действие;
-- webhook integration.
-
-Не строить сложный BPM из Automation Rules, если процесс требует большой матрицы переходов и исключений.
-
-## 27. JSON-2 / API
-
-Для интеграций проверить:
+После принятой master data остаются только процессные кандидаты:
 
 ```text
-POST /json/2/<model>/<method>
-Authorization: Bearer ...
-/doc
+base_automation
+website + website_project
+calendar
+data_recycle
+survey
+purchase
 ```
 
-Использовать отдельного integration user с минимально необходимыми правами.
+Каждый включается только после появления конкретного требования.
 
-Перед custom API-module проверить штатный JSON-2 и фактические models/fields/methods базы.
+Не считать ближайшими кандидатами без нового процесса:
 
-## 28. Runtime checklist
+```text
+hr
+repair
+mrp
+account
+crm / sale
+hr_timesheet
+hr_attendance
+hr_work_entry
+```
 
-До решения «штатного Odoo недостаточно» прогнать реальный сценарий.
+## 18. Runtime checklist
 
-### Предметные данные
+Перед выводом «нужна доработка» проверить минимум:
 
-- import реальных справочников;
+### Master data
+
+- реальные люди;
+- реальную выборку путевой техники;
+- несколько рамок;
+- несколько терминалов Nobilis и их компонентов;
 - External IDs;
-- target-model permissions;
-- качество поиска;
-- объём данных;
-- один человек = один `res.partner`;
-- выдача `res.users` без дублирования карточки человека.
+- уникальность;
+- права;
+- архивирование/активность records.
+
+### Stock
+
+- Package contents;
+- serial traceability;
+- internal transfers;
+- замена компонентов;
+- возврат производителю;
+- `project_stock`;
+- `stock_maintenance`.
 
 ### Tasks
 
-- реалистичный набор Tasks;
-- Stages конкретного процесса;
+- реальные Tasks;
 - Assignees;
+- Stages / State;
 - Deadline;
 - Activities;
 - Dependencies;
@@ -423,63 +393,42 @@ Authorization: Bearer ...
 - Templates;
 - Recurrence.
 
-### Properties
+### Relations
 
-- `Сотрудник → res.partner`;
-- Many2one/Many2many;
-- Filter / Group By;
-- List/Kanban;
-- performance;
-- Import;
-- JSON-2;
-- история изменений, если она критична.
+- `res.partner`;
+- `fleet.vehicle`;
+- `maintenance.equipment`;
+- `stock.package`;
+- `stock.lot`;
+- Many2one / Many2many Properties;
+- поиск / фильтрация / группировка;
+- API / импорт;
+- несколько Projects.
 
 ### Security
 
-- обычные пользователи;
-- дополнительные группы, если они реально нужны;
-- read/write/create/delete;
-- record visibility;
-- master-data access.
+- обычный пользователь;
+- руководитель, если ему нужны отдельные полномочия;
+- администратор;
+- master-data read/write;
+- видимость Tasks и target records.
 
-### Analytics
+## 19. Когда писать custom addon
 
-- Shared Views;
-- Task Analysis;
-- Pivot / Graph;
-- My Dashboard;
-- drill-down;
-- права на данные.
-
-### Intake / integration
-
-Только если нужны процессу:
-
-- Email Alias;
-- Website Form;
-- API;
-- Automation / Webhook.
-
-## 29. Как принимать решение о доработке
-
-Для каждого ограничения пройти последовательность:
+Последовательность:
 
 ```text
-1. Верно ли выбрана сущность?
-2. Есть штатная model?
-3. Есть Property / relation?
-4. Есть bridge module?
-5. Решается Stage / State / Activity / Dependency / Template / Recurrence?
-6. Решается View / Analysis / Dashboard?
-7. Решается Groups / ACL / Record Rules?
-8. Решается Import / API / Automation без скрытого BPM?
-9. Подтверждена ли проблема на реальном пилоте?
+1. Правильно ли выбрана штатная сущность?
+2. Есть ли нативная relation / Property?
+3. Есть ли auto-install bridge?
+4. Решается ли вопрос стандартным workflow / Activity / View?
+5. Подтверждён ли gap реальными данными на стенде?
 ```
 
-Если ответ остаётся `нет`, формулируется конкретный gap и минимальное техническое решение.
+Если gap подтверждён — делается минимальная доработка именно на него.
 
-Не считать custom module поражением. Плохая доработка — это дублирование уже работающего Odoo. Маленькая доработка на доказанный gap — нормальная архитектура.
+Не нужно избегать custom addon любой ценой. Нужно избегать собственной системы поверх уже работающих моделей Odoo.
 
 ---
 
-[← 05 — Процессы](05-processes.md) · [17 — Master data: люди](17-master-data-people.md) · [Главная](../README.md)
+[← 05 — Процессы](05-processes.md) · [16 — Модули](16-community-modules-context.md) · [19 — Master data](19-master-data.md) · [26 — Task ↔ master data](26-task-master-data-relations.md) · [Главная](../README.md)
