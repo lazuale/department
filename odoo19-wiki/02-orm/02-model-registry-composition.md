@@ -1,205 +1,205 @@
-# ORM-02. Per-database model registry и model composition
+# ORM-02. Реестр моделей базы и композиция модели
 
-> Lesson ID: `ORM-02`  
+> ID урока: `ORM-02`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ORM-01`  
-> Canonical owner: backend model registry context; per-database model construction; effective model class  
-> Aspect owner: inheritance mechanics → `EXT-01`  
-> Preview: model inheritance; technical model metadata  
-> Отложено: `_inherit`; `_inherits`; metaclasses; schema synchronization; registry internal lifecycle; workers  
-> Edition scope: platform ORM semantics  
-> Sources: `S1`, `S2`
+> Предпосылки: `ORM-01`  
+> Канонический владелец: серверный контекст реестра моделей; построение моделей для конкретной базы; итоговый класс модели  
+> Владельцы аспектов: механика наследования → `EXT-01`  
+> Предварительно упоминается: наследование моделей; технические метаданные модели  
+> Отложено: `_inherit`; `_inherits`; metaclass; синхронизация схемы; внутренний жизненный цикл реестра; workers  
+> Область редакции: базовая семантика ORM-платформы  
+> Источники: `S1`, `S2`
 
 ## Цель
 
-Теперь, когда `Model`, recordset и Environment уже определены, можно корректно связать Python declarations с per-database ORM model set.
+Теперь, когда `Model`, набор записей (`recordset`) и `Environment` уже определены, можно правильно связать Python-объявления с набором ORM-моделей конкретной базы данных.
 
 Главная граница:
 
 ```text
-Python class/declaration known to runtime
+Python-класс / объявление известно runtime
         ≠
-ORM model available in every database
+ORM-модель доступна в каждой базе данных
 ```
 
 ---
 
-## 1. Models существуют в database context
+## 1. Модели существуют в контексте конкретной базы
 
-**[ODOO][S1]** ORM автоматически instantiates available models once per database. Набор available models зависит от modules, установленных на этой database.
+**[ODOO][S1]** ORM автоматически создаёт доступные модели один раз для каждой базы данных. Набор доступных моделей зависит от модулей, установленных в этой базе.
 
 ```text
-same Odoo runtime
+один runtime Odoo
       │
-      ├── DB A → installed modules A → models A
-      └── DB B → installed modules B → models B
+      ├── База A → установленные модули A → модели A
+      └── База B → установленные модули B → модели B
 ```
 
-**[ВЫВОД]** Model availability — per-database concept, а не просто список Python files/classes server filesystem.
+**[ВЫВОД]** Доступность модели — свойство контекста конкретной базы, а не просто список Python-файлов или классов на сервере.
 
 ---
 
-## 2. Почему ARCH-03 не мог владеть этим concept
+## 2. Почему эта тема не могла принадлежать ARCH-03
 
 `ARCH-03` объясняет только:
 
 ```text
-addon package
-→ __init__.py import chain
-→ Python declarations execute
+пакет addon
+→ цепочка импортов через __init__.py
+→ выполнение Python-объявлений
 ```
 
-Но только после `ORM-01` у нас есть definitions:
+Но только после `ORM-01` у нас есть определения:
 
 - `Model`;
-- recordset;
-- Environment;
+- `recordset`;
+- `Environment`;
 - `env['model.name']`.
 
-Поэтому registry/model composition находится здесь, а не до ORM Core.
+Поэтому реестр моделей и композиция итоговой модели находятся здесь, а не до основ ORM.
 
 ---
 
-## 3. Backend model registry context
+## 3. Серверный реестр моделей
 
-**[ODOO][S1]** Environment предоставляет mapping-like access к models по technical model name:
+**[ODOO][S1]** `Environment` даёт доступ к моделям по их техническому имени:
 
 ```python
 env['res.partner']
 ```
 
-ORM documentation описывает registry/model mapping в database/environment context.
+Документация ORM описывает соответствие имён и моделей в контексте базы и `Environment`.
 
-В курсе термин **backend model registry** означает:
+В этом курсе выражение **«серверный реестр моделей»** означает:
 
-> per-database backend mapping/context доступных ORM models.
+> контекст конкретной базы, в котором технические имена сопоставлены доступным ORM-моделям.
 
-Мы не используем это выражение как обещание exact undocumented internal implementation.
+Мы не используем этот термин как обещание точной недокументированной внутренней реализации.
 
 ---
 
-## 4. Backend registry не равен frontend registry
+## 4. Серверный реестр моделей не равен frontend registry
 
-**[ODOO][S2]** Frontend framework отдельно использует registries для расширения web client.
+**[ODOO][S2]** Frontend framework отдельно использует registries для расширения веб-клиента.
 
 ```text
-backend model registry context
+серверный реестр ORM-моделей
         ≠
-frontend JavaScript registries
+JavaScript registries веб-клиента
 ```
 
 Frontend registries принадлежат `RUN-03`.
 
 ---
 
-## 5. Effective model class может быть composite
+## 5. Итоговый класс модели может быть составным
 
-**[ODOO][S1]** ORM Reference говорит, что actual class model instance строится из Python classes, которые создают и наследуют соответствующую model.
+**[ODOO][S1]** ORM Reference говорит, что фактический класс экземпляра модели строится из Python-классов, которые создают и наследуют соответствующую модель.
 
 Концептуально:
 
 ```text
-module A Python class creates model X
+Python-класс модуля A создаёт модель X
               │
-module B Python class inherits/extends X
+Python-класс модуля B расширяет X
               │
-module C Python class inherits/extends X
+Python-класс модуля C расширяет X
               │
               ▼
-effective model X class in database context
+итоговый класс модели X в контексте базы
 ```
 
-**[ВЫВОД]** Нельзя считать effective ORM model эквивалентом единственного Python class definition одного addon.
+**[ВЫВОД]** Нельзя считать итоговую ORM-модель эквивалентом одного Python-класса из одного addon.
 
-Exact `_inherit`/`_inherits` mechanics принадлежат `EXT-01`.
+Точная механика `_inherit` / `_inherits` принадлежит `EXT-01`.
 
 ---
 
-## 6. Modules и database configuration связывают declarations с effective models
+## 6. Установленные модули связывают Python-объявления с итоговыми моделями базы
 
-Из предыдущих owners:
+Из предыдущих уроков:
 
 ```text
-ARCH-02: database installation/dependency semantics
-ARCH-03: Python import chain
-ORM-01: Model / Environment
+ARCH-02 → установка модулей и зависимости
+ARCH-03 → цепочка Python-импортов
+ORM-01  → Model / Environment
 ```
 
 Теперь можно собрать:
 
 ```text
-addon Python declarations
+Python-объявления addon
         │
-installed module graph of DB X
-        │
-        ▼
-per-database effective models
+граф установленных модулей Базы X
         │
         ▼
-Environment model access / recordsets
+итоговые модели Базы X
+        │
+        ▼
+доступ через Environment / recordsets
 ```
 
-Это conceptual model, не exact loader trace.
+Это концептуальная модель, а не точная трассировка внутреннего загрузчика.
 
 ---
 
-## 7. Multi-database consequence
+## 7. Следствие multi-database
 
-**[ODOO][S1]** Один Odoo process может обслуживать databases с разными installed modules/models.
+**[ODOO][S1]** Один процесс Odoo может обслуживать базы с разными установленными модулями и наборами моделей.
 
-**[ВЫВОД]** Module-dependent/model-dependent state нельзя мыслить как универсальное mutable process-global property.
+**[ВЫВОД]** Состояние, зависящее от установленного модуля или модели, нельзя автоматически мыслить как одно универсальное изменяемое состояние всего Python-процесса.
 
-Это связывает `ARCH-01` multi-database principle с ORM runtime semantics.
+Это связывает принцип multi-database из `ARCH-01` с работой ORM.
 
 ---
 
-## 8. Следующий owner: model metadata/schema
+## 8. Следующий владелец: метаданные модели и схема
 
-Теперь можно отделить ещё одну границу:
+Теперь можно провести ещё одну границу:
 
 ```text
 ORM-02
-= какие effective models доступны в database context
+= какие итоговые модели доступны в контексте базы
 
 ORM-03
-= technical metadata самой model и её SQL/schema semantics
+= технические метаданные самой модели и правила SQL-хранения / схемы
 ```
 
-`_name`, `_table`, `_auto`, `_register`, `_log_access`, schema-level constraints/indexes и связанные storage declarations не должны размываться между registry и Fields.
+`_name`, `_table`, `_auto`, `_register`, `_log_access`, ограничения схемы и индексы не должны смешиваться с темой реестра или полей.
 
 ---
 
 ## 9. Что сознательно не моделируем
 
-Не строим undocumented sequence:
+Не строим недокументированную последовательность вида:
 
 ```text
 scan → import → metaclass hook → registry mutation → schema sync → ...
 ```
 
-До отдельного official evidence нам достаточно contracts:
+Для текущего уровня достаточно документированных контрактов:
 
-- imports execute declarations;
-- models are available per database;
-- Environment maps technical names to models;
-- effective model class may compose multiple Python classes.
+- импорты выполняют Python-объявления;
+- модели доступны в контексте конкретной базы;
+- `Environment` даёт доступ к моделям по техническим именам;
+- итоговый класс модели может состоять из нескольких Python-классов.
 
 ---
 
 ## Минимальная модель
 
 ```text
-Python addon declarations
+Python-объявления addon
         │
         ▼
-Database X installed module set
+набор установленных модулей Базы X
         │
         ▼
-backend per-database model mapping
+серверное сопоставление моделей этой базы
         │
         ▼
-effective ORM model classes
+итоговые ORM-модели
         │
         ▼
 Environment / recordsets
@@ -207,22 +207,22 @@ Environment / recordsets
 
 ## Что нельзя заключать
 
-- every Python model declaration is available in every database — нет;
-- backend registry = frontend registry — нет;
-- one ORM model = one Python class — нет;
-- ORM-02 уже объясняет `_inherit` mechanics — нет;
-- ORM-02 уже объясняет technical table/schema metadata — нет;
-- схема выше является exact internal loader implementation — нет.
+- каждое Python-объявление модели доступно в каждой базе — нет;
+- серверный реестр ORM = frontend registry — нет;
+- одна ORM-модель = один Python-класс — нет;
+- `ORM-02` уже объясняет механику `_inherit` — нет;
+- `ORM-02` уже объясняет метаданные таблицы и схемы — нет;
+- схема выше является точным алгоритмом внутреннего загрузчика — нет.
 
 ## Контрольные вопросы
 
-1. Почему model availability является per-database concept?
-2. Почему ORM registry нельзя корректно объяснить до ORM Core?
-3. Что означает backend model registry в этом курсе?
-4. Почему backend и frontend registries нельзя смешивать?
-5. В каком смысле effective model class может быть composite?
-6. Почему process-global installed-module state опасен при multi-database runtime?
-7. Почему model metadata/schema получает отдельного owner `ORM-03`?
+1. Почему доступность модели определяется в контексте конкретной базы?
+2. Почему реестр ORM нельзя корректно объяснить до `ORM-01`?
+3. Что означает «серверный реестр моделей» в этом курсе?
+4. Почему серверный реестр ORM и frontend registries нельзя смешивать?
+5. В каком смысле итоговый класс модели может быть составным?
+6. Почему глобальное состояние процесса опасно как модель мышления при multi-database?
+7. Почему метаданные модели и схема получили отдельный урок `ORM-03`?
 
 ## Официальные источники
 
