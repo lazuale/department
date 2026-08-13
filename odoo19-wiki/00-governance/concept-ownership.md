@@ -1,64 +1,71 @@
 # Владение понятиями
 
-Этот файл предотвращает повторное определение фундаментальных понятий в разных уроках.
+Этот файл предотвращает повторные canonical definitions и фиксирует, где разрешено развивать отдельные aspects понятия.
 
-Статусы использования:
+## Режимы
 
-- **owner** — единственное место полного определения;
-- **preview** — короткое обозначение до owner-урока;
-- **use** — использование после определения.
+- **canonical owner** — первое полное определение concept;
+- **aspect owner** — подробное определение только явно названного аспекта;
+- **preview** — краткое обозначение до canonical owner;
+- **use** — использование после canonical owner.
 
 ## Карта
 
-| Понятие | Owner |
-|---|---|
-| three-tier architecture | `01-architecture/01-architecture-foundations.md` |
-| Odoo deployment / server runtime / process distinction | `01-architecture/01-architecture-foundations.md` |
-| multi-database property | `01-architecture/01-architecture-foundations.md` |
-| data-driven architecture | `01-architecture/01-architecture-foundations.md` |
-| module / addon | `01-architecture/02-module-system.md` |
-| App | `01-architecture/02-module-system.md` |
-| `addons_path` | `01-architecture/02-module-system.md` |
-| manifest / `__manifest__.py` | `01-architecture/02-module-system.md` |
-| module dependencies / `auto_install` | `01-architecture/02-module-system.md` |
-| module lifecycle | `01-architecture/02-module-system.md` |
-| Python package / `__init__.py` import chain | `01-architecture/03-module-loading.md` |
-| backend model registry context | `01-architecture/03-module-loading.md` |
-| per-database model construction | `01-architecture/03-module-loading.md` |
-| Model / TransientModel / AbstractModel | `02-orm/01-orm-core.md` |
-| record / recordset / singleton | `02-orm/01-orm-core.md` |
-| Environment basic semantics | `02-orm/01-orm-core.md` |
-| browse / exists / ensure_one | `02-orm/01-orm-core.md` |
-| search / basic domain semantics | `02-orm/01-orm-core.md` |
-| CRUD | `02-orm/01-orm-core.md` |
-| field taxonomy / metadata / storage | `02-orm/02-fields.md` |
-| Many2one / One2many / Many2many / commands | `02-orm/03-relations.md` |
-| computed / related / inverse / depends / constraints | `02-orm/04-derived-fields-constraints.md` |
-| transaction / commit / rollback discipline | `02-orm/05-transactions.md` |
-| Odoo module master data / demo data | `03-data-security-ui/01-module-data.md` |
-| external ID / XML ID / `noupdate` | `03-data-security-ui/01-module-data.md` |
-| user / group / ACL / record rule / field access | `03-data-security-ui/02-security.md` |
-| action / menu | `03-data-security-ui/03-actions-menus.md` |
-| view / form/list/search view | `03-data-security-ui/04-views.md` |
-| onchange / pseudo-record | `03-data-security-ui/05-onchange.md` |
-| model inheritance / `_inherit` / `_inherits` | `04-extension/01-model-inheritance.md` |
-| view inheritance | `04-extension/02-view-inheritance.md` |
-| mixins | `04-extension/03-mixins.md` |
-| multi-company semantics | `04-extension/04-multi-company.md` |
-| cache / prefetch / flush / raw SQL / invalidation | `05-runtime/01-advanced-orm.md` |
-| HTTP / RPC | `05-runtime/02-http-rpc.md` |
-| web client / Owl / frontend registries / assets | `05-runtime/03-web-client.md` |
-| testing | `05-runtime/04-testing.md` |
-| upgrades / migrations | `05-runtime/05-upgrades-migrations.md` |
-| workers / multiprocessing / deployment operations | `05-runtime/06-deployment-workers.md` |
-| ERP master data / transactions / reference data classification | `10-business-model/` intro owner, когда предметный слой будет создан |
+| Понятие | Canonical owner | Aspect owners |
+|---|---|---|
+| three-tier architecture | `ARCH-01` | — |
+| deployment / runtime / process distinction | `ARCH-01` | workers/multiprocessing/server operations → `RUN-06` |
+| multi-database property | `ARCH-01` | per-database model mapping → `ORM-02`; company semantics → `EXT-04` |
+| data-driven architecture | `ARCH-01` | module data → `DATA-01`; security data → `SEC-01`; UI records → `UI-01`/`UI-02` |
+| module / addon | `ARCH-02` | server-wide modules → `RUN-06` |
+| App | `ARCH-02` | domain-app semantics → future `11-domain-apps/` |
+| `addons_path` | `ARCH-02` | deployment configuration → `RUN-06` |
+| manifest / `__manifest__.py` | `ARCH-02` | data entries → `DATA-01`; assets → `RUN-03` |
+| module dependencies / `auto_install` | `ARCH-02` | inheritance use → `EXT-01`; integration patterns in domain apps → future business layer |
+| module lifecycle | `ARCH-02` | upgrades/migrations → `RUN-05`; operational CLI → `RUN-06` |
+| server-wide modules / `--load` | `ARCH-02` | runtime/deployment details → `RUN-06` |
+| Python package / `__init__.py` import chain | `ARCH-03` | — |
+| request / RPC execution boundary | `ARCH-04` | transactions → `ORM-06`; public-method security → `SEC-01`; controllers → `RUN-02`; web client services → `RUN-03` |
+| Model / TransientModel / AbstractModel | `ORM-01` | model inheritance/composition → `ORM-02`/`EXT-01` |
+| record / recordset / singleton | `ORM-01` | cache/prefetch/performance → `RUN-01` |
+| Environment basic semantics | `ORM-01` | security → `SEC-01`; company → `EXT-04`; cache/recompute → `RUN-01` |
+| browse / exists / ensure_one | `ORM-01` | — |
+| search / basic domain semantics | `ORM-01` | relation traversal → `ORM-04`; UI domains → `UI-01`/`UI-02` |
+| CRUD | `ORM-01` | security checks → `SEC-01`; transactions → `ORM-06`; performance → `RUN-01` |
+| backend model registry context | `ORM-02` | exact runtime/deployment lifecycle only if documented later → `RUN-06` |
+| per-database model construction / effective model class | `ORM-02` | inheritance mechanics → `EXT-01` |
+| field taxonomy / metadata / storage | `ORM-03` | field access security → `SEC-01`; company-dependent fields → `EXT-04` |
+| Many2one / One2many / Many2many / commands | `ORM-04` | relational domain traversal → `ORM-04` |
+| computed / related / inverse / depends / constraints | `ORM-05` | recomputation/cache consistency → `RUN-01` |
+| transaction / commit / rollback discipline | `ORM-06` | raw SQL/flush/savepoints/performance → `RUN-01` |
+| Odoo module master data / demo data | `DATA-01` | views/actions/security as particular records → their owners |
+| external ID / XML ID / `noupdate` | `DATA-01` | upgrades → `RUN-05` |
+| user as security principal / groups / ACL / record rule / field access | `SEC-01` | `res.users` model semantics → future shared business/system model layer |
+| action / menu | `UI-01` | action-specific domain/context usage → `UI-01` |
+| view / form/list/search view | `UI-02` | view inheritance → `EXT-02` |
+| onchange / pseudo-record | `UI-03` | request/client interaction uses `ARCH-04`/`RUN-03` |
+| model inheritance / `_inherit` / `_inherits` | `EXT-01` | per-database effective class uses `ORM-02` |
+| view inheritance | `EXT-02` | — |
+| mixins | `EXT-03` | domain-specific mixins later |
+| company-context / multi-company semantics | `EXT-04` | `res.company` model semantics → future shared business/system model layer |
+| cache / prefetch / flush / raw SQL / invalidation | `RUN-01` | — |
+| HTTP / controllers / deeper RPC | `RUN-02` | request boundary canonical definition → `ARCH-04` |
+| web client / Owl / frontend registries / assets | `RUN-03` | — |
+| testing | `RUN-04` | transactional test context uses `ORM-06` |
+| upgrades / migrations | `RUN-05` | module lifecycle uses `ARCH-02`; external IDs uses `DATA-01` |
+| workers / multiprocessing / deployment operations | `RUN-06` | process distinction canonical definition → `ARCH-01` |
+| `res.users` as data model | future shared business/system model owner | security-principal aspect → `SEC-01` |
+| `res.company` as data model | future shared business/system model owner | company-context aspect → `EXT-04` |
+| ERP master data / transaction / reference-data classification | future `10-business-model/` intro owner | concrete domain classification in later business lessons |
 
 ## Правило конфликтов
 
-Если новый урок хочет объяснить понятие, уже имеющее owner:
+Если новый урок затрагивает существующий concept:
 
-1. не копировать определение;
-2. сослаться на owner;
-3. описывать только новый аспект, принадлежащий текущему уроку.
+1. проверить canonical owner;
+2. определить, это `use` или новый aspect;
+3. если aspect уже имеет owner — ссылаться на него;
+4. если нового aspect owner ещё нет — сначала изменить эту карту;
+5. не копировать canonical definition.
 
-Если выясняется, что текущий owner выбран неправильно, сначала меняется эта карта и структура курса, затем тексты.
+Если canonical owner выбран неправильно, сначала меняются governance/DAG, затем тексты.
