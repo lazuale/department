@@ -4,25 +4,38 @@
 
 Цель — досконально понять Odoo как платформу и ERP-систему: от runtime/module/ORM architecture до штатных business models и end-to-end процессов.
 
+## Baseline
+
+```text
+Baseline ID: B1
+Зафиксирован: 2026-08-13
+Status: frozen foundation
+```
+
+Baseline B1 фиксирует architecture курса, governance, prerequisite DAG и ownership. Он не перестраивается при каждом новом lesson; основания для изменения перечислены в [baseline.md](00-governance/baseline.md).
+
 ## Governance
 
-Перед уроками действуют обязательные controls:
+Перед lessons действуют обязательные controls:
 
 1. только official Odoo 19.0 documentation;
-2. stable lesson IDs и явные prerequisites;
-3. один canonical owner concept + явные aspect owners;
-4. coverage map против пропусков;
-5. Community/Enterprise status не угадывается;
-6. новый уровень не использует необъяснённые prerequisites.
+2. stable lesson IDs;
+3. один canonical prerequisite graph;
+4. один canonical owner concept + явные aspect owners;
+5. coverage map против пропусков;
+6. Community/Enterprise status не угадывается;
+7. каждый `[ODOO]` claim имеет однозначный `S#`, причём `1 S# = 1 official page`.
 
 Документы:
 
 - [Метод курса](00-governance/method.md)
+- [Канонический prerequisite DAG](00-governance/course-dag.md)
 - [Политика источников](00-governance/source-policy.md)
 - [Владение понятиями](00-governance/concept-ownership.md)
 - [Coverage map](00-governance/coverage-map.md)
 - [Реестр редакций](00-governance/edition-ledger.md)
 - [Глоссарий](00-governance/glossary.md)
+- [Baseline B1](00-governance/baseline.md)
 
 ## Scope
 
@@ -45,11 +58,11 @@ Current docs-only policy позволяет глубоко изучать docume
 
 ## Маркировка
 
-- **[ODOO][S#]** — claim подтверждается указанным official source урока;
-- **[ВЫВОД]** — наше логическое следствие documented mechanisms;
+- **[ODOO][S#]** — claim подтверждается указанной одной official documentation page;
+- **[ВЫВОД]** — логическое следствие documented mechanisms;
 - **[ERP-КЛАССИФИКАЦИЯ]** — внешний business/ERP term.
 
-## Текущие уроки
+## Текущие owner-lessons
 
 ### Architecture
 
@@ -63,26 +76,44 @@ Current docs-only policy позволяет глубоко изучать docume
 - [`ORM-01` ORM Core](02-orm/01-orm-core.md)
 - [`ORM-02` Per-database model registry и composition](02-orm/02-model-registry-composition.md)
 
-## Course DAG
+Следующий planned owner: `ORM-03` — Model metadata / SQL storage / schema declarations.
+
+## Prerequisite graph
+
+**Единственный нормативный graph находится в [`00-governance/course-dag.md`](00-governance/course-dag.md).**
+
+README не определяет собственные зависимости между lessons.
+
+Текущий основной путь после существующих owners:
 
 ```text
-ARCH-01
-   │
-   ├──► ARCH-02 ─► ARCH-03 ─► ORM-01 ─► ORM-02 ─► ORM-03 Fields
-   │                                      │
-   └──► ARCH-04                           ├──► ORM-04 Relations
-            │                             └──► ...
-            ├──► ORM-06 Transactions
-            ├──► SEC-01 Security
-            └──► UI-03 Onchange (after UI-02 Views)
+ORM-01
+  ↓
+ORM-02
+  ↓
+ORM-03 Model metadata / schema
+  ↓
+ORM-04 Fields
+  ↓
+ORM-05 Relations
+  ↓
+ORM-06 Derived fields / Python constraints
 ```
 
-Full planned sequence находится в `00-governance/method.md`.
+`ORM-07 Transactions` имеет отдельные direct prerequisites, зафиксированные только в canonical DAG.
 
 ## Архитектура каталогов
 
 ```text
 00-governance/
+    method
+    course DAG
+    source policy
+    concept ownership
+    coverage map
+    edition ledger
+    glossary
+    baseline
 
 01-architecture/
     ARCH-01 foundation
@@ -93,10 +124,11 @@ Full planned sequence находится в `00-governance/method.md`.
 02-orm/
     ORM-01 Core
     ORM-02 registry/composition
-    ORM-03 Fields
-    ORM-04 Relations
-    ORM-05 Derived fields / constraints
-    ORM-06 Transactions
+    ORM-03 Model metadata / SQL storage / schema declarations
+    ORM-04 Fields
+    ORM-05 Relations
+    ORM-06 Derived fields / Python constraints
+    ORM-07 Transactions
 
 03-data-security-ui/
     DATA-01 Module data
@@ -104,6 +136,7 @@ Full planned sequence находится в `00-governance/method.md`.
     UI-01 Actions and menus
     UI-02 Views
     UI-03 Onchange
+    UI-04 QWeb reports / report actions
 
 04-extension/
     EXT-01 Model inheritance
@@ -114,10 +147,10 @@ Full planned sequence находится в `00-governance/method.md`.
 05-runtime/
     RUN-01 Advanced ORM
     RUN-02 HTTP / controllers
-    RUN-03 Web client / Owl / assets
+    RUN-03 Web client / Owl / assets / frontend QWeb
     RUN-04 Testing
     RUN-05 Upgrades / migrations
-    RUN-06 Deployment / workers
+    RUN-06 Deployment / workers / --load runtime mechanics
 
 10-business-model/
 11-domain-apps/
@@ -134,9 +167,22 @@ Full planned sequence находится в `00-governance/method.md`.
 
 App — user-facing module. Functional area может состоять из нескольких modules.
 
-### database-bound addon ≠ любой runtime module
+### Database installation ≠ server-wide loading
 
-Большинство installed addons bound to a specific database, но CLI Odoo также имеет server-wide modules через `--load`.
+Это **две независимые axes**, а не два непересекающихся класса modules:
+
+```text
+module
+├── database aspect: installed / not installed in DB
+└── runtime aspect: may / may not participate in --load
+```
+
+### Multi-database ≠ multi-company
+
+```text
+multi-database → несколько PostgreSQL database contexts
+multi-company  → company semantics внутри Odoo database/environment
+```
 
 ### Odoo server/runtime ≠ один process
 
@@ -145,6 +191,10 @@ Process architecture и database context не смешиваются.
 ### user/company security-context ≠ data-model semantics
 
 `user` как security principal и `res.users` как model — разные aspects. То же относится к company context и `res.company`.
+
+### RPC transaction claim ≠ generic HTTP transaction claim
+
+Current architecture lesson фиксирует только прямо документированную framework-managed transaction semantics RPC calls. Generic HTTP/controller aspect принадлежит future `RUN-02` и должен подтверждаться отдельно.
 
 ## Официальные отправные точки
 
