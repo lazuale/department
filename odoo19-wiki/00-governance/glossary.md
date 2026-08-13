@@ -1,44 +1,49 @@
 # Глоссарий
 
-Глоссарий — **индекс**, а не второй учебник. Полное canonical definition находится у owner из [concept-ownership.md](concept-ownership.md).
+Глоссарий — **индекс**, а не второй учебник. Полное определение каждого понятия находится в уроке-владельце, указанном в [concept-ownership.md](concept-ownership.md).
 
-| Термин | Коротко | Canonical owner |
+| Термин | Коротко | Канонический владелец |
 |---|---|---|
-| Odoo deployment / runtime | Запущенная серверная среда Odoo; не приравнивается к одному process | `ARCH-01` |
-| database / база данных | PostgreSQL database в Odoo runtime context | `ARCH-01` |
-| module / addon / модуль | Техническая единица расширения Odoo | `ARCH-02` |
-| server-wide module | Module, загружаемый через server-wide `--load`; отличается от большинства database-bound installed addons | `ARCH-02`, runtime aspect `RUN-06` |
-| App / приложение | User-facing module, помеченный как application | `ARCH-02` |
-| `addons_path` | Каталоги поиска addons | `ARCH-02` |
-| manifest | `__manifest__.py`, metadata/dependencies/data declaration module | `ARCH-02` |
-| Python import chain | Импорты addon package через `__init__.py` | `ARCH-03` |
-| request / RPC execution boundary | Граница client/server invocation; deeper controller/frontend semantics позже | `ARCH-04` |
-| model / модель | ORM-модель Odoo | `ORM-01` |
-| record / запись | Конкретная запись модели; представляется singleton recordset | `ORM-01` |
-| recordset / набор записей | Коллекция records одной model; основной рабочий объект ORM | `ORM-01` |
-| Environment / окружение | Runtime context ORM operation | `ORM-01` |
-| backend model registry | Backend per-database model mapping/context | `ORM-02` |
-| field / поле | ORM field; не UI widget | `ORM-03` |
-| relational field | `Many2one`, `One2many`, `Many2many` | `ORM-04` |
-| domain | Декларативное ORM search/filter expression | `ORM-01`; relational/UI aspects — другие owners |
-| transaction | Framework-managed database transaction context | `ORM-06` |
-| Odoo module master data | Official Odoo term для data, устанавливаемых с module; не ERP classification | `DATA-01` |
-| ERP master data | Будущая business classification курса | future business-model owner |
-| external ID / XML ID | Устойчивый identifier module-data record | `DATA-01` |
-| user as security principal | Security identity/permissions aspect пользователя | `SEC-01` |
-| `res.users` | Odoo data model пользователя; business/system semantics изучаются отдельно | future business-model owner |
-| ACL / access right | Model-level access control | `SEC-01` |
-| record rule | Record-level access restriction | `SEC-01` |
-| action | Odoo action mechanism | `UI-01` |
-| view | Представление records для UI | `UI-02` |
-| onchange | Form-view/client mechanism на pseudo-record | `UI-03` |
-| company context / multi-company | Company-scoped runtime/data semantics | `EXT-04` |
-| `res.company` | Odoo data model company; не универсальный parent всех records | future business-model owner |
+| развёртывание / runtime Odoo | Запущенная серверная среда Odoo; не приравнивается к одному процессу | `ARCH-01` |
+| база данных (`database`) | PostgreSQL-база в контексте Odoo | `ARCH-01` |
+| модуль / addon | Техническая единица расширения Odoo | `ARCH-02` |
+| загрузка через `--load` | Отдельный механизм загрузки модулей на уровне runtime; не является взаимоисключающим классом относительно установки в базе | `ARCH-02`; подробности → `RUN-06` |
+| App / приложение | Пользовательский модуль, отмеченный как приложение | `ARCH-02` |
+| `addons_path` | Каталоги, в которых Odoo ищет addons | `ARCH-02` |
+| manifest | `__manifest__.py`: метаданные, зависимости и объявления данных модуля | `ARCH-02` |
+| цепочка Python-импортов | Импорты внутри пакета addon через `__init__.py` | `ARCH-03` |
+| граница запроса / RPC | Граница вызова между клиентом и сервером; подробности контроллеров и frontend идут позже | `ARCH-04` |
+| модель (`Model`) | ORM-модель Odoo | `ORM-01` |
+| запись (`record`) | Конкретная запись модели; представляется singleton `recordset` | `ORM-01` |
+| набор записей (`recordset`) | Коллекция записей одной модели; основной рабочий объект ORM | `ORM-01` |
+| окружение (`Environment`) | Контекст выполнения операций ORM | `ORM-01` |
+| серверный реестр моделей | Сопоставление технических имён и доступных ORM-моделей в контексте конкретной базы | `ORM-02` |
+| поле (`Field`) | ORM-поле; не равно виджету интерфейса | `ORM-04` |
+| поле-связь | `Many2one`, `One2many`, `Many2many` | `ORM-05` |
+| domain | Декларативное выражение ORM для поиска/фильтрации | `ORM-01`; аспекты связей/UI — у других владельцев |
+| транзакция | Управляемый framework транзакционный контекст; базовый документированный RPC-аспект | `ORM-07` |
+| master data модуля Odoo | Официальный термин Odoo для данных, устанавливаемых с модулем; не равен ERP master data | `DATA-01` |
+| ERP master data | Будущая бизнес-классификация курса | будущий владелец в бизнес-модели |
+| внешний ID / XML ID | Устойчивый идентификатор записи данных модуля | `DATA-01` |
+| пользователь как субъект безопасности | Пользователь в аспекте прав и разрешений | `SEC-01` |
+| `res.users` | ORM-модель пользователя; её модель данных будет изучаться отдельно | будущий владелец в бизнес-модели |
+| ACL / право доступа | Контроль доступа на уровне модели | `SEC-01` |
+| record rule | Ограничение доступа на уровне отдельных записей | `SEC-01` |
+| action / действие | Механизм действий Odoo | `UI-01` |
+| view / представление | Представление записей в пользовательском интерфейсе | `UI-02` |
+| `onchange` | Механизм формы/клиента, работающий на псевдозаписи | `UI-03` |
+| контекст компании / multi-company | Логика компаний в данных и окружении Odoo | `EXT-04` |
+| `res.company` | ORM-модель компании; не универсальный родитель всех записей | будущий владелец в бизнес-модели |
 
 ## Языковое правило
 
-При первом содержательном вводе:
+При первом содержательном вводе используем русский термин и при необходимости даём точное английское имя:
 
-> модель (`model`)
+```text
+модель (`Model`)
+поле (`Field`)
+набор записей (`recordset`)
+окружение (`Environment`)
+```
 
-Далее используем русский термин, если речь не идёт о точном API/class/key/technical name.
+Дальше в объяснительном тексте используется русский термин, если речь не идёт о точном имени API, класса, метода, атрибута или технического идентификатора.
