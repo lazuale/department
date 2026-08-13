@@ -1,35 +1,35 @@
-# ARCH-03. Python package и import chain addon
+# ARCH-03. Python-пакет и цепочка импортов addon
 
-> Lesson ID: `ARCH-03`  
+> ID урока: `ARCH-03`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ARCH-02`  
-> Canonical owner: Python package / `__init__.py` import chain  
-> Aspect owner: —  
-> Preview: Python model declarations  
-> Отложено: ORM Model semantics; backend model registry; per-database model construction; inheritance; metaclasses; schema synchronization  
-> Edition scope: platform/module mechanics  
-> Sources: `S1`–`S3`
+> Предпосылки: `ARCH-02`  
+> Канонический владелец: Python-пакет и цепочка импортов через `__init__.py`  
+> Владельцы аспектов: —  
+> Предварительно упоминается: объявления Python-классов моделей  
+> Отложено: семантика ORM-модели; серверный реестр моделей; построение моделей для конкретной базы; наследование; metaclass; синхронизация схемы  
+> Область редакции: механика платформы и модулей  
+> Источники: `S1`–`S3`
 
 ## Цель
 
-Понять только Python-level часть addon loading и не использовать ORM concepts раньше их owner.
+Понять только Python-часть загрузки addon и не использовать понятия ORM раньше их канонических уроков.
 
 Главное различие:
 
 ```text
-addon package существует
+пакет addon существует
         ≠
-Python file импортирован и declarations executed
+Python-файл импортирован и его объявления выполнены
 ```
 
-Per-database model registry и effective model composition **не принадлежат этому уроку**; их owner — `ORM-02` после ORM Core.
+Реестр моделей конкретной базы и итоговая композиция модели **не принадлежат этому уроку**. Их владелец — `ORM-02` после основ ORM.
 
 ---
 
-## 1. Addon shell и Python package
+## 1. Основа addon и Python-пакет
 
-**[ODOO][S1]** Current Server Framework 101 начинает addon с `__init__.py` и `__manifest__.py`.
+**[ODOO][S1]** Current Server Framework 101 начинает addon с файлов `__init__.py` и `__manifest__.py`.
 
 ```text
 module/
@@ -37,31 +37,31 @@ module/
 └── __manifest__.py
 ```
 
-`__init__.py` может оставаться empty до появления Python modules/files.
+`__init__.py` может оставаться пустым, пока в addon нет импортируемых Python-модулей.
 
-**[ODOO][S2]** Architecture Overview показывает, что при наличии Python business objects они организуются в package/subpackages с `__init__.py` import instructions.
+**[ODOO][S2]** Architecture Overview показывает, что Python-объекты addon организуются в пакеты и подпакеты, а `__init__.py` содержит инструкции импорта.
 
 ---
 
-## 2. Manifest и imports — разные механизмы
+## 2. Manifest и Python-импорты — разные механизмы
 
 Из `ARCH-02`:
 
 ```text
 __manifest__.py
-= Odoo metadata / dependencies / declared data
+= метаданные Odoo, зависимости между модулями, объявленные файлы данных
 
 __init__.py
-= Python import chain
+= цепочка Python-импортов внутри addon
 ```
 
-**[ВЫВОД]** Manifest не заменяет Python imports, а Python import не заменяет manifest dependency.
+**[ВЫВОД]** Manifest не заменяет Python-импорты, а Python-импорт не заменяет зависимость `depends` в manifest.
 
 ---
 
-## 3. Типичный import chain
+## 3. Типичная цепочка импортов
 
-Когда появляются Python model files, tutorial использует цепочку вида:
+Когда появляются Python-файлы моделей, tutorial использует цепочку вида:
 
 ```python
 # module/__init__.py
@@ -83,69 +83,68 @@ models/__init__.py
 models/example.py
         │
         ▼
-Python declarations execute
+выполняются Python-объявления
 ```
 
-**[ODOO][S2][S3]** `__init__.py` содержит import instructions для Python files/subpackages addon.
+**[ODOO][S2][S3]** `__init__.py` содержит инструкции импорта Python-файлов и подпакетов addon.
 
 ---
 
-## 4. `.py` file сам по себе не исполняется только из-за расположения
+## 4. Наличие `.py`-файла не означает его выполнение
 
 ```text
-models/example.py exists
+models/example.py существует
         │
         ▼
-import chain reaches file?
-     ┌──────┴──────┐
-    no             yes
-    │               │
-not executed     declarations execute
-through that     in Python runtime
-package chain
+доходит ли до него цепочка импортов?
+     ┌──────────┴──────────┐
+    нет                   да
+     │                     │
+файл не выполняется    объявления выполняются
+через эту цепочку      в Python runtime
 ```
 
-**[ВЫВОД]** Filesystem organization и executed Python declaration — разные states.
+**[ВЫВОД]** Физическое расположение файла и выполнение его Python-объявлений — разные состояния.
 
 ---
 
-## 5. Intra-module import и inter-module dependency
+## 5. Импорт внутри addon и зависимость между addons
 
 ```text
-INTRA-MODULE
-__init__.py → Python imports
+ВНУТРИ ОДНОГО ADDON
+__init__.py → Python-импорты
 
-INTER-MODULE
-__manifest__.py `depends` → Odoo dependency graph
+МЕЖДУ МОДУЛЯМИ ODOO
+__manifest__.py `depends` → граф зависимостей модулей
 ```
 
-**[ODOO][S3]** Manifest dependencies должны быть loaded before dependent module и используются для module-level dependencies.
+**[ODOO][S3]** Зависимости manifest должны быть загружены раньше зависимого модуля и используются на уровне модульной системы Odoo.
 
-**[ВЫВОД]** Нельзя объяснять `depends` обычным Python import и нельзя считать прямой import соседнего addon заменой declared dependency.
+**[ВЫВОД]** Нельзя объяснять `depends` обычным Python-импортом и нельзя считать прямой импорт соседнего addon заменой объявленной зависимости.
 
 ---
 
 ## 6. Где заканчивается этот урок
 
-После ARCH-03 мы знаем:
+После `ARCH-03` мы знаем:
 
 ```text
-addon skeleton
+структура addon
     │
-    ├── manifest → Odoo module declaration
-    └── __init__ → Python import path
+    ├── manifest → объявление модуля для Odoo
+    └── __init__ → путь Python-импортов
                        │
                        ▼
-                Python declarations
+                 Python-объявления
 ```
 
 Но мы **ещё не определили**:
 
 - что такое ORM `Model`;
-- что такое recordset;
-- что означает model instance;
-- как выглядит per-database model mapping;
-- как несколько Python classes составляют effective ORM model.
+- что такое набор записей (`recordset`);
+- что означает экземпляр модели в контексте Odoo;
+- как выглядит набор моделей конкретной базы;
+- как несколько Python-классов участвуют в построении итоговой ORM-модели.
 
 Это сознательно оставлено для `ORM-01` и `ORM-02`.
 
@@ -153,19 +152,19 @@ addon skeleton
 
 ## Что нельзя заключать
 
-- каждый `.py` file addon automatically executes — нет;
-- manifest импортирует Python files — нет;
-- Python import = Odoo module dependency — нет;
-- после ARCH-03 уже понятен backend model registry — нет;
-- после ARCH-03 уже понятна inheritance composition ORM models — нет.
+- каждый `.py`-файл addon выполняется автоматически — нет;
+- manifest импортирует Python-файлы — нет;
+- Python-импорт равен зависимости Odoo-модуля — нет;
+- после `ARCH-03` уже понятен серверный реестр моделей — нет;
+- после `ARCH-03` уже понятна композиция модели через наследование — нет.
 
 ## Контрольные вопросы
 
 1. Чем `__manifest__.py` отличается от `__init__.py`?
-2. Почему empty `__init__.py` нужен уже в minimal addon shell current tutorial?
-3. Что такое intra-module import chain?
-4. Почему file presence не равно executed declaration?
-5. Чем Python import chain отличается от manifest `depends`?
+2. Почему `__init__.py` нужен уже в минимальной структуре addon?
+3. Что такое цепочка импортов внутри addon?
+4. Почему наличие файла не означает выполнение его объявлений?
+5. Чем Python-импорт отличается от `depends` в manifest?
 
 ## Официальные источники
 
