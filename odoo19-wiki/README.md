@@ -51,6 +51,7 @@
 ### 01. Платформа
 
 - [Урок 1. Что такое Odoo: архитектурный фундамент](01-platform/01-architecture-foundations.md)
+- [Урок 2. Модульная система: addons path, manifest, зависимости и загрузка](01-platform/02-module-system.md)
 
 Следующие уроки добавляются последовательно после проверки предыдущих. Курс намеренно не пытается заранее зафиксировать всю предметную модель Odoo.
 
@@ -76,6 +77,8 @@
 ## Официальные отправные точки
 
 - Architecture Overview: https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/01_architecture.html
+- Module Manifests: https://www.odoo.com/documentation/19.0/developer/reference/backend/module.html
+- Source install: https://www.odoo.com/documentation/19.0/administration/on_premise/source.html
 - ORM API: https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
 - Building a Module: https://www.odoo.com/documentation/19.0/developer/tutorials/backend.html
 - Actions: https://www.odoo.com/documentation/19.0/developer/reference/backend/actions.html
