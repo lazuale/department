@@ -11,7 +11,8 @@
 **[Click-only пилот →](docs/06-workspace.md)**  
 **[Реестр master data →](docs/19-master-data.md)**  
 **[Master data: люди →](docs/24-master-data-people.md)**  
-**[Master data: техника и оборудование →](docs/25-master-data-assets.md)**
+**[Master data: техника и оборудование →](docs/25-master-data-assets.md)**  
+**[Связь Task с master data →](docs/26-task-master-data-relations.md)**
 
 ## Три слоя
 
@@ -116,21 +117,35 @@ Chatter
 
 ## Связь Task с предметными объектами
 
-Odoo 19 Properties поддерживают relational-типы.
+Источник истины остаётся в предметной модели. Task хранит только связь с объектом, когда она нужна конкретной работе.
 
-Поэтому сначала проверяется штатная click-only связь с уже выбранной предметной моделью:
+Штатные исполнители:
 
 ```text
-Property[ТС]           → Many2one(fleet.vehicle)
-Property[Сотрудник]    → Many2one(res.partner)
-Property[Рамка]        → Many2one(maintenance.equipment)
+project.task.user_ids
+→ res.users
 ```
 
-Для Inventory-объектов Nobilis способ связи с Task определяется конкретным процессом; источник истины по комплекту, серийным частям, местонахождению и движениям остаётся в Stock.
+Предметные связи нативного click-only пилота:
 
-Источник истины остаётся в предметной модели. Task не копирует справочник.
+```text
+Property[Заявитель]       → Many2one(res.partner)
+Property[Связанные люди]  → Many2many(res.partner)
+Property[Техника]         → Many2one / Many2many(fleet.vehicle)
+Property[Рамка]           → Many2one(maintenance.equipment)
+Property[Терминал]        → Many2one(stock.package)
+Property[Комплектующие]   → Many2many(stock.lot)
+```
 
-Отсутствие отдельного Python-поля в `project.task` само по себе не является основанием для custom module.
+`project.task.partner_id` не переиспользуется как универсальный «Заявитель»: его штатная семантика в Project — Customer.
+
+Task не копирует ФИО, госномер, VIN, инвентарный номер, серийники или текущий состав Package. Для Nobilis источником истины по составу, местонахождению и движениям остаётся Stock.
+
+Relational Properties определяются на уровне Project. Поэтому они приняты как базовый механизм пилота, но до окончательного production-решения проверяются поиск, аналитика, импорт, API, работа при нескольких Projects и права на target records.
+
+Обычные ORM-поля в `project.task` добавляются только при доказанном gap. Само отсутствие schema field не является основанием для custom module.
+
+Подробно: [26 — Связь Task с master data](docs/26-task-master-data-relations.md).
 
 ## Как выбирать сущность
 
@@ -269,6 +284,7 @@ Domain relational Property помогает выбирать records, но не 
 - [19 — Реестр master data](docs/19-master-data.md)
 - [24 — Master data: люди](docs/24-master-data-people.md)
 - [25 — Master data: техника и оборудование](docs/25-master-data-assets.md)
+- [26 — Связь Task с master data](docs/26-task-master-data-relations.md)
 
 ### Технические аудиты
 
