@@ -1,64 +1,64 @@
-# Канонический prerequisite DAG
+# Канонический граф предпосылок
 
 Этот файл — **единственный нормативный источник зависимостей между уроками**.
 
-README, оглавления и текстовые схемы курса могут визуализировать порядок, но не создают собственные prerequisites.
+README, оглавления и текстовые схемы могут показывать порядок, но не создают собственные предпосылки.
 
-`GOV` — root pseudo-node: governance действует до начала учебных уроков.
+`GOV` — корневой псевдоузел: общие правила курса действуют до начала учебных уроков.
 
 ## Правила
 
-- prerequisite означает, что concept из указанного lesson должен быть понят до текущего lesson;
-- перечисляются минимальные прямые prerequisites, а не все транзитивные ancestors;
-- новый lesson ID сначала добавляется сюда и в `concept-ownership.md`, затем создаётся content file;
-- изменение уже опубликованной зависимости после freeze требует основания из `baseline.md`.
+- предпосылка означает, что понятие из указанного урока должно быть понятно до текущего урока;
+- указываются минимальные прямые предпосылки, а не все транзитивные предки;
+- новый ID урока сначала добавляется сюда и в `concept-ownership.md`, затем создаётся файл урока;
+- изменение уже опубликованной зависимости после заморозки требует основания из `baseline.md`.
 
-## Architecture / ORM
+## Архитектура / ORM
 
-| Lesson ID | Прямые prerequisites | Назначение |
+| ID урока | Прямые предпосылки | Назначение |
 |---|---|---|
-| `ARCH-01` | `GOV` | architectural foundation |
-| `ARCH-02` | `ARCH-01` | module system |
-| `ARCH-03` | `ARCH-02` | Python package / import chain |
-| `ARCH-04` | `ARCH-01` | request / RPC execution boundary |
-| `ORM-01` | `ARCH-03` | ORM Core |
-| `ORM-02` | `ORM-01` | per-database model registry / composition |
-| `ORM-03` | `ORM-02` | model metadata / SQL storage / schema declarations |
-| `ORM-04` | `ORM-03` | fields |
-| `ORM-05` | `ORM-04` | relations |
-| `ORM-06` | `ORM-05` | computed / related / inverse / Python constraints |
-| `ORM-07` | `ORM-01`, `ARCH-04` | transaction discipline |
+| `ARCH-01` | `GOV` | архитектурный фундамент |
+| `ARCH-02` | `ARCH-01` | модульная система |
+| `ARCH-03` | `ARCH-02` | Python-пакет / цепочка импортов |
+| `ARCH-04` | `ARCH-01` | граница запроса / RPC |
+| `ORM-01` | `ARCH-03` | основы ORM |
+| `ORM-02` | `ORM-01` | реестр моделей конкретной базы / композиция модели |
+| `ORM-03` | `ORM-02` | метаданные модели / SQL-хранение / схема |
+| `ORM-04` | `ORM-03` | поля |
+| `ORM-05` | `ORM-04` | связи |
+| `ORM-06` | `ORM-05` | вычисляемые / связанные / inverse / Python-ограничения |
+| `ORM-07` | `ORM-01`, `ARCH-04` | дисциплина транзакций |
 
-## Data / Security / UI
+## Данные / безопасность / интерфейс
 
-| Lesson ID | Прямые prerequisites | Назначение |
+| ID урока | Прямые предпосылки | Назначение |
 |---|---|---|
-| `DATA-01` | `ARCH-02`, `ORM-01` | module data / external IDs / noupdate |
-| `SEC-01` | `ORM-01`, `ARCH-04` | users/groups/access rights/record rules/field access |
-| `UI-01` | `DATA-01`, `ORM-01` | actions and menus |
-| `UI-02` | `UI-01`, `ORM-04` | views |
-| `UI-03` | `UI-02`, `ARCH-04`, `ORM-04` | onchange / pseudo-record |
-| `UI-04` | `UI-01`, `UI-02` | QWeb reports / report actions |
+| `DATA-01` | `ARCH-02`, `ORM-01` | данные модуля / внешние ID / `noupdate` |
+| `SEC-01` | `ORM-01`, `ARCH-04` | пользователи / группы / права доступа / record rules / доступ к полям |
+| `UI-01` | `DATA-01`, `ORM-01` | действия и меню |
+| `UI-02` | `UI-01`, `ORM-04` | представления |
+| `UI-03` | `UI-02`, `ARCH-04`, `ORM-04` | `onchange` / псевдозапись |
+| `UI-04` | `UI-01`, `UI-02` | QWeb-отчёты / действия отчётов |
 
-## Extension
+## Расширение
 
-| Lesson ID | Прямые prerequisites | Назначение |
+| ID урока | Прямые предпосылки | Назначение |
 |---|---|---|
-| `EXT-01` | `ORM-02`, `ARCH-02` | model inheritance |
-| `EXT-02` | `UI-02` | view inheritance |
+| `EXT-01` | `ORM-02`, `ARCH-02` | наследование моделей |
+| `EXT-02` | `UI-02` | наследование представлений |
 | `EXT-03` | `EXT-01` | mixins |
-| `EXT-04` | `SEC-01`, `ORM-04` | multi-company / company context |
+| `EXT-04` | `SEC-01`, `ORM-04` | multi-company / контекст компании |
 
-## Runtime / engineering
+## Runtime / инженерная часть
 
-| Lesson ID | Прямые prerequisites | Назначение |
+| ID урока | Прямые предпосылки | Назначение |
 |---|---|---|
-| `RUN-01` | `ORM-07`, `ORM-06` | advanced ORM / cache / prefetch / raw SQL / invalidation |
-| `RUN-02` | `ARCH-04` | HTTP / controllers / deeper RPC |
-| `RUN-03` | `ARCH-04`, `UI-02` | web client / Owl / frontend registries / assets / frontend QWeb |
-| `RUN-04` | `ORM-07`, `ARCH-02` | testing |
-| `RUN-05` | `ARCH-02`, `DATA-01`, `ORM-03` | upgrades / migrations |
-| `RUN-06` | `ARCH-01`, `ARCH-02` | deployment / workers / `--load` runtime mechanics / operations |
+| `RUN-01` | `ORM-07`, `ORM-06` | продвинутая ORM / кэш / prefetch / raw SQL / invalidation |
+| `RUN-02` | `ARCH-04` | HTTP / контроллеры / углублённый RPC |
+| `RUN-03` | `ARCH-04`, `UI-02` | веб-клиент / Owl / frontend registries / assets / QWeb |
+| `RUN-04` | `ORM-07`, `ARCH-02` | тестирование |
+| `RUN-05` | `ARCH-02`, `DATA-01`, `ORM-03` | обновления / миграции |
+| `RUN-06` | `ARCH-01`, `ARCH-02` | развёртывание / workers / механизм `--load` / эксплуатация |
 
 ## Текущий базовый граф
 
@@ -94,14 +94,14 @@ ORM-05
 ORM-06
 ```
 
-Ветви UI, extension и runtime используют таблицы выше; ASCII-схема не заменяет их.
+Ветви интерфейса, расширения и runtime определяются таблицами выше; ASCII-схема не заменяет их.
 
 ## Проверка перед новым уроком
 
-Перед созданием lesson:
+Перед созданием урока:
 
-1. его stable ID существует здесь;
-2. каждый prerequisite уже существует или имеет согласованный planned owner;
-3. нет cycle;
-4. concept ownership соответствует prerequisite direction;
-5. README не содержит альтернативного graph.
+1. его стабильный ID существует здесь;
+2. каждая предпосылка уже существует или имеет согласованного запланированного владельца;
+3. в графе нет цикла;
+4. карта владельцев понятий соответствует направлению зависимостей;
+5. README не содержит альтернативного графа.
