@@ -1,45 +1,45 @@
-# ORM-04. Fields
+# ORM-04. Поля
 
-> Lesson ID: `ORM-04`  
+> ID урока: `ORM-04`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ORM-03`  
-> Canonical owner: field definition; generic field attributes; non-relational field types; automatic fields; field storage semantics  
-> Aspect owner: field access security → `SEC-01`; company-dependent fields → `EXT-04`; field performance/index tuning → `RUN-01`; field extension/incremental definition → `EXT-01`  
-> Preview: relational fields; computed/related fields  
-> Отложено: Many2one/One2many/Many2many/Command; compute/related/inverse/depends; `selection_add` extension mechanics; company consistency; ACL/group semantics; cache/prefetch  
-> Edition scope: platform ORM semantics; concrete application entitlement здесь не определяется  
-> Sources: `S1`, `S2`
+> Предпосылки: `ORM-03`  
+> Канонический владелец: определение поля; общие параметры поля; несвязные типы полей; автоматические поля; правила хранения значений  
+> Владельцы аспектов: доступ к полям → `SEC-01`; поля, зависящие от компании → `EXT-04`; производительность и индексы → `RUN-01`; расширение существующих полей → `EXT-01`  
+> Предварительно упоминается: поля-связи; вычисляемые и связанные поля  
+> Отложено: `Many2one` / `One2many` / `Many2many` / `Command`; `compute` / `related` / `inverse` / `depends`; `selection_add`; multi-company; безопасность; кэш и предзагрузка  
+> Область редакции: базовая семантика ORM; доступность конкретных приложений здесь не определяется  
+> Источники: `S1`, `S2`
 
 ## Цель
 
 Понять поле как часть ORM-модели, а не как элемент формы.
 
-После `ORM-03` мы уже различаем model metadata и SQL/schema declarations. Теперь добавляем следующий слой:
+После `ORM-03` мы уже различаем метаданные модели и объявления SQL-схемы. Теперь добавляется следующий слой:
 
 ```text
-ORM MODEL
+ORM-МОДЕЛЬ
    │
-   ├── model metadata / schema       → ORM-03
+   ├── метаданные модели / схема      → ORM-03
    │
-   └── FIELDS                        → ORM-04
-         ├── type
-         ├── label/help
-         ├── required/default
-         ├── storage/index/copy
-         ├── access/company hooks
-         └── value semantics
+   └── поля                           → ORM-04
+         ├── тип значения
+         ├── подпись и подсказка
+         ├── обязательность и значение по умолчанию
+         ├── хранение, индексирование, копирование
+         ├── точки подключения безопасности / компании
+         └── правила работы со значением
 ```
 
-Relational и derived fields будут отдельными owners.
+Поля-связи и производные поля имеют отдельных владельцев и в этом уроке не раскрываются полностью.
 
 ---
 
-## 1. Field — ORM descriptor
+## 1. `Field` — дескриптор ORM
 
-**[ODOO][S1]** `odoo.fields.Field` содержит definition поля и управляет доступом и присваиванием соответствующего значения на records.
+**[ODOO][S1]** `odoo.fields.Field` содержит определение поля и управляет чтением и присваиванием соответствующего значения у записей.
 
-Поле объявляется class attribute модели:
+Поле объявляется атрибутом класса модели:
 
 ```python
 from odoo import fields, models
@@ -51,28 +51,28 @@ class Example(models.Model):
     active = fields.Boolean(default=True)
 ```
 
-Из `ORM-01` уже известно, что values читаются через record/recordset API:
+Из `ORM-01` уже известно, что значения читаются через запись или набор записей (`recordset`):
 
 ```python
 record.name
 record['name']
 ```
 
-**[ВЫВОД]** Field одновременно является частью Python ORM definition и контрактом работы значения record. Он не равен HTML input, XML `<field>` или JavaScript widget.
+**[ВЫВОД]** Поле одновременно является частью определения ORM-модели и правилом работы со значением записи. Оно не равно HTML-полю ввода, XML-узлу `<field>` или JavaScript-виджету.
 
 ---
 
-## 2. Field name — Python class attribute и ORM field name
+## 2. Имя поля — часть пространства имён Python-класса
 
-**[ODOO][S1]** Fields определяются как attributes model class.
+**[ODOO][S1]** Поля определяются как атрибуты класса модели.
 
 ```python
 name = fields.Char()
 ```
 
-Здесь `name` становится technical field name.
+Здесь `name` становится техническим именем поля.
 
-**[ODOO][S1]** Нельзя определять field и method с одинаковым именем: позднее class attribute silently overwrite предыдущий.
+**[ODOO][S1]** Нельзя определять поле и метод с одинаковым именем: более поздний атрибут класса перезапишет предыдущий.
 
 ```python
 name = fields.Char()
@@ -81,52 +81,52 @@ def name(self):
     ...
 ```
 
-— плохая и фактически конфликтующая definition.
+Такое определение конфликтует само с собой.
 
-**[ВЫВОД]** Namespace fields и methods внутри model class требует дисциплины: technical field name является реальной частью Python class namespace.
+**[ВЫВОД]** Техническое имя поля — не условная подпись для интерфейса, а реальная часть пространства имён Python-класса модели.
 
 ---
 
-## 3. `string` — пользовательская метка, не technical name
+## 3. `string` — пользовательская подпись, а не техническое имя
 
-**[ODOO][S1]** Если `string` не указан, ORM формирует user-visible label из field name; параметр `string` позволяет его переопределить.
+**[ODOO][S1]** Если `string` не указан, Odoo формирует видимую пользователю подпись из имени поля. Параметр `string` позволяет задать её явно.
 
 ```python
-internal_code = fields.Char(string='Internal Code')
+internal_code = fields.Char(string='Внутренний код')
 ```
 
 Различаем:
 
 ```text
 internal_code
-= technical field name
+= техническое имя поля
 
-Internal Code
-= user-facing label
+Внутренний код
+= пользовательская подпись
 ```
 
-**[ВЫВОД]** Переименование `string` не переименовывает technical field в ORM.
+**[ВЫВОД]** Изменение `string` не переименовывает поле в ORM.
 
 ---
 
 ## 4. `help`
 
-**[ODOO][S1]** `help` задаёт user-visible tooltip/описание поля.
+**[ODOO][S1]** `help` задаёт пользовательскую подсказку или описание поля.
 
 ```python
 code = fields.Char(
-    string='Code',
-    help='Stable external code',
+    string='Код',
+    help='Стабильный внешний код',
 )
 ```
 
-`help` является metadata field, а не validation rule.
+`help` — метаданные для объяснения поля, а не правило проверки данных.
 
 ---
 
-## 5. `readonly`: особенно опасная граница
+## 5. `readonly`: важная граница
 
-**[ODOO][S1]** Generic field parameter `readonly=True` влияет только на UI. Программное присваивание всё равно возможно для stored или inversable field.
+**[ODOO][S1]** Параметр `readonly=True` влияет только на пользовательский интерфейс. Программная запись значения всё равно возможна для хранимого поля или поля с обратным вычислением (`inverse`).
 
 ```python
 code = fields.Char(readonly=True)
@@ -135,38 +135,38 @@ code = fields.Char(readonly=True)
 не означает:
 
 ```text
-server-side immutable field
+поле невозможно изменить на сервере
 ```
 
-**[ВЫВОД]** `readonly` нельзя использовать как security/business-integrity barrier.
+**[ВЫВОД]** `readonly` нельзя использовать как механизм безопасности или обеспечения целостности бизнес-правил.
 
-Полные security semantics принадлежат `SEC-01`.
+Полная модель безопасности принадлежит `SEC-01`.
 
 ---
 
 ## 6. `required`
 
-**[ODOO][S1]** `required=True` означает, что значение field обязательно.
+**[ODOO][S1]** `required=True` означает, что поле обязательно должно иметь значение.
 
 ```python
 name = fields.Char(required=True)
 ```
 
-Это ORM field requirement, а не просто визуальная пометка формы.
+Это свойство ORM-поля, а не просто визуальная звёздочка в форме.
 
-При этом конкретное business правило вида:
+При этом условное правило вида:
 
-> поле обязательно только при определённом состоянии
+> поле обязательно только в определённом состоянии
 
-не следует автоматически путать с постоянным field-level `required=True`.
+не следует автоматически сводить к постоянному `required=True` на уровне поля.
 
-Conditional UI behavior будет изучаться вместе с Views.
+Условное поведение интерфейса будет разбираться вместе с представлениями.
 
 ---
 
-## 7. `default`: значение или callable
+## 7. `default`: значение по умолчанию
 
-**[ODOO][S1]** Default field value можно задать literal value или callable/function.
+**[ODOO][S1]** Значение по умолчанию можно задать непосредственно или через вызываемую функцию.
 
 ```python
 active = fields.Boolean(default=True)
@@ -181,128 +181,118 @@ def _default_name(self):
 name = fields.Char(default=lambda self: self._default_name())
 ```
 
-**[ВЫВОД]** Default — способ получить исходное значение при создании, а не database/business invariant.
-
-Наличие default не означает, что пользователь/код впоследствии не сможет записать другое значение.
+**[ВЫВОД]** Значение по умолчанию определяет исходное значение при создании записи. Оно не является неизменяемым правилом базы или бизнеса.
 
 ---
 
-## 8. `store`: stored и non-stored — разные semantics
+## 8. `store`: хранимое и нехранимое поле
 
-**[ODOO][S1]** Generic `store` определяет, хранится ли field в database. Для обычных fields default — `True`; для computed fields default другой и будет разобран в `ORM-06`.
+**[ODOO][S1]** Параметр `store` определяет, хранится ли значение поля в базе данных. Для обычных полей значение по умолчанию — `True`; у вычисляемых полей поведение другое и будет разобрано в `ORM-06`.
 
-Минимально:
+Минимальная модель:
 
 ```text
-stored field
-→ value имеет database storage semantics
+хранимое поле
+→ значение имеет постоянное хранение в базе
 
-non-stored field
-→ value не читается как обычная stored column value
+нехранимое поле
+→ значение не читается как обычное сохранённое значение колонки
 ```
 
-**[ВЫВОД]** Нельзя считать каждый ORM field физической колонкой model table.
+**[ВЫВОД]** Нельзя считать каждое ORM-поле физической колонкой таблицы модели.
 
-Это продолжает принцип из `ORM-03`:
+Продолжаем принцип из `ORM-03`:
 
 ```text
-ORM model ≠ SQL table
-ORM field ≠ обязательно SQL column
+ORM-модель ≠ SQL-таблица
+ORM-поле   ≠ обязательно SQL-колонка
 ```
 
 ---
 
-## 9. `index`: field-level index declaration
+## 9. `index`: индекс на уровне поля
 
-**[ODOO][S1]** Generic field parameter `index` управляет database index для field. Документация перечисляет варианты, включая:
+**[ODOO][S1]** Параметр `index` управляет индексированием поля в базе данных. Документация перечисляет варианты, включая:
 
 - `True` / `"btree"`;
 - `"btree_not_null"`;
 - `"trigram"`;
 - `False` / `None`.
 
-Для non-stored/virtual fields параметр не даёт обычного database index effect.
+Для нехранимого поля обычный индекс базы данных не имеет смысла.
 
 ```python
 code = fields.Char(index=True)
 ```
 
-**[ВЫВОД]** Field-level `index=` и schema-level `models.Index(...)` из `ORM-03` — связанные, но разные declaration mechanisms.
+**[ВЫВОД]** `index=` на поле и `models.Index(...)` из `ORM-03` — разные способы объявления индексов.
 
-Как выбирать index в production — owner `RUN-01`, а не этот урок.
+Как выбирать индексы для производительности, будет разбираться в `RUN-01`.
 
 ---
 
 ## 10. `copy`
 
-**[ODOO][S1]** `copy` определяет, копируется ли значение field при duplication record.
+**[ODOO][S1]** `copy` определяет, переносится ли значение поля при дублировании записи.
 
-Default зависит от характера field: для normal fields обычно `True`, для некоторых relational/computed/property/related cases — `False`.
+Для обычных полей значение обычно копируется, но для некоторых связей, вычисляемых, property- и related-полей поведение отличается.
 
-Полную специфику этих типов мы не переносим сюда раньше их owners.
+Эта специфика будет разобрана в соответствующих уроках.
 
-**[ВЫВОД]** Duplicate record — не raw clone каждой ORM value.
+**[ВЫВОД]** Дублирование записи в Odoo не следует понимать как слепое копирование каждого значения ORM.
 
 ---
 
-## 11. `groups`: только архитектурная граница
+## 11. `groups`: доступ к полю
 
-**[ODOO][S1]** Generic `groups` принимает comma-separated XML IDs groups и ограничивает field access указанными groups.
+**[ODOO][S1]** Параметр `groups` принимает XML ID групп и ограничивает доступ к полю указанными группами.
 
 ```python
 secret = fields.Char(groups='base.group_system')
 ```
 
-Но полное определение:
+Но полное определение пользователей, групп, ACL, record rules и взаимодействия ограничений принадлежит `SEC-01`.
 
-- group;
-- user security principal;
-- ACL;
-- record rule;
-- field access interaction
-
-принадлежит `SEC-01`.
-
-**[ВЫВОД]** Field может иметь собственный security-access aspect, но `groups=` не является полной моделью безопасности Odoo.
+**[ВЫВОД]** У поля есть собственный аспект контроля доступа, но `groups=` не является полной моделью безопасности Odoo.
 
 ---
 
-## 12. `company_dependent`: только preview
+## 12. `company_dependent`: значение зависит от компании
 
-**[ODOO][S1]** `company_dependent=True` означает, что value поля зависит от current company; Odoo 19 ORM Reference документирует хранение таких values в `jsonb` dict с company id как key и fallback через `ir.default`.
+**[ODOO][S1]** `company_dependent=True` означает, что эффективное значение поля зависит от текущей компании. В Odoo 19 такие значения хранятся в `jsonb` с идентификаторами компаний и могут использовать значения по умолчанию через `ir.default`.
 
-Это важный факт, но ownership full semantics — `EXT-04`.
+Минимально:
 
 ```text
-same record
-+ same technical field
-+ different company context
-→ potentially different effective value
+одна запись
++ одно техническое поле
++ разные контексты компании
+→ значение может различаться
 ```
 
-**[ВЫВОД]** `company_dependent` не означает «просто добавить company_id column к record».
+**[ВЫВОД]** `company_dependent` не означает «добавить к записи ещё одну колонку `company_id`».
 
-Multi-company semantics здесь сознательно не раскрываются дальше.
+Полная модель multi-company принадлежит `EXT-04`.
 
 ---
 
-## 13. `search`: field может участвовать в search semantics не только как column
+## 13. `search`: поиск может не сводиться к колонке
 
-**[ODOO][S1]** Generic field parameter `search` может указывать method, который переписывает search condition field в replacement domain.
+**[ODOO][S1]** Параметр `search` может указывать метод, который преобразует условие поиска по полю в другой домен (`domain`).
 
-Это особенно важно для fields, чьи values не сводятся к прямому SQL-column lookup.
+Это важно для полей, значение которых нельзя свести к прямому условию по одной SQL-колонке.
 
-Full computed/search mechanics будут в `ORM-06`.
+Полное устройство поиска для вычисляемых полей будет разбираться в `ORM-06`.
 
-**[ВЫВОД]** Domain criterion по field не обязательно означает буквальный SQL predicate по одноимённой колонке.
+**[ВЫВОД]** Условие домена по полю не обязательно превращается в буквальное SQL-условие по одноимённой колонке.
 
 ---
 
 ## 14. `aggregator` и `group_expand`
 
-**[ODOO][S1]** Field metadata содержит aggregation/grouping hooks.
+**[ODOO][S1]** Поле может содержать настройки, влияющие на группировку и агрегирование.
 
-`aggregator` задаёт default aggregate function, используемую web client при группировке. Documentation перечисляет, например:
+`aggregator` задаёт агрегирующую функцию по умолчанию. В документации перечислены, например:
 
 ```text
 count
@@ -315,69 +305,67 @@ avg
 sum
 ```
 
-`group_expand` позволяет расширять набор groups для grouped views; для Selection поддерживается специальное поведение.
+`group_expand` позволяет расширять набор групп, возвращаемых при группировке.
 
-**[ВЫВОД]** Field metadata может влиять не только на storage, но и на generic grouping/aggregation behavior.
+**[ВЫВОД]** Метаданные поля могут влиять не только на хранение значения, но и на стандартное поведение группировки и аналитики.
 
-Detailed UI/read_group mechanics остаются будущим owners.
+Подробное устройство интерфейса и grouped views будет разбираться позже.
 
 ---
 
 # Часть II. Типы полей
 
-## 15. Учебная таксономия этого урока
+## 15. Учебная карта типов
 
-Official ORM Reference документирует несколько families field mechanics. Для текущего owner мы разбираем **non-relational fields**, а не пытаемся захватить будущие уроки.
+В этом уроке рассматриваются **несвязные поля**. Связи и производные поля вынесены дальше по графу курса.
 
 ```text
 Field
 │
-├── scalar/basic
+├── базовые значения
 │   ├── Boolean
 │   ├── Char
 │   ├── Text
 │   ├── Integer
 │   └── Float
 │
-├── semantic/specialized scalar
+├── специализированные значения
 │   ├── Monetary
 │   ├── Selection
 │   ├── Date
 │   └── Datetime
 │
-├── content
+├── содержимое
 │   ├── Binary
 │   ├── Image
 │   └── Html
 │
-├── relational              → ORM-05
+├── связи                    → ORM-05
 │
-└── computed / related      → ORM-06
+└── вычисляемые / связанные → ORM-06
 ```
 
-**[ВЫВОД]** Это учебная карта ownership, а не утверждение, что Python class hierarchy Odoo обязана буквально иметь такое дерево.
+**[ВЫВОД]** Это учебная классификация, а не утверждение о буквальной иерархии Python-классов внутри Odoo.
 
 ---
 
 ## 16. `Boolean`
 
-**[ODOO][S1]** `fields.Boolean` инкапсулирует `bool`.
+**[ODOO][S1]** `fields.Boolean` представляет логическое значение `bool`.
 
 ```python
 active = fields.Boolean(default=True)
 ```
 
-Использовать Boolean логично для бинарного признака, а не для lifecycle с множеством состояний.
-
-Последнее уже business-model decision, а не правило framework.
+Булево поле естественно подходит для двоичного признака. Использовать его как замену многоэтапному жизненному циклу — уже решение конкретной бизнес-модели, а не правило framework.
 
 ---
 
 ## 17. `Char`
 
-**[ODOO][S1]** `fields.Char` — string field для относительно короткого текста, обычно single-line в clients.
+**[ODOO][S1]** `fields.Char` предназначен для строкового значения, обычно короткого текста.
 
-Специфические parameters включают:
+Специфические параметры включают:
 
 - `size`;
 - `trim`;
@@ -387,45 +375,43 @@ active = fields.Boolean(default=True)
 code = fields.Char(size=32, trim=True)
 ```
 
-**[ODOO][S1]** В Odoo 19 trim behavior согласован между web client create/write flow и server import behavior.
-
-**[ВЫВОД]** `Char` — data type/field semantics; конкретный widget отображения является отдельным UI layer.
+**[ВЫВОД]** `Char` определяет тип и правила значения. Конкретный способ отображения относится к пользовательскому интерфейсу.
 
 ---
 
 ## 18. `Text`
 
-**[ODOO][S1]** `fields.Text` похож на Char, но предназначен для более длинного содержимого, не имеет `size` и обычно отображается multiline.
+**[ODOO][S1]** `fields.Text` предназначен для более длинного текста и, в отличие от `Char`, не использует ограничение `size`.
 
 ```python
 notes = fields.Text()
 ```
 
-`Text` также может использовать translation semantics.
+`Text` также поддерживает переводимое содержимое.
 
 ---
 
 ## 19. `Integer`
 
-**[ODOO][S1]** `fields.Integer` инкапсулирует Python `int`.
+**[ODOO][S1]** `fields.Integer` представляет Python-значение `int`.
 
 ```python
 priority = fields.Integer()
 ```
 
-**[ВЫВОД]** Integer field не означает автоматически sequence, priority или count. Business meaning определяется model semantics.
+**[ВЫВОД]** Сам тип `Integer` не означает автоматически «приоритет», «номер», «счётчик» или «порядок». Смысл задаёт модель.
 
 ---
 
-## 20. `Float` и precision
+## 20. `Float` и точность
 
-**[ODOO][S1]** `fields.Float` инкапсулирует float; precision настраивается через `digits`.
+**[ODOO][S1]** `fields.Float` представляет число с плавающей точкой; точность задаётся через `digits`.
 
 ```python
 quantity = fields.Float(digits=(16, 3))
 ```
 
-ORM Reference также предоставляет helpers:
+ORM предоставляет вспомогательные методы:
 
 ```text
 fields.Float.round()
@@ -433,34 +419,34 @@ fields.Float.is_zero()
 fields.Float.compare()
 ```
 
-**[ODOO][S1]** Для quantity, связанной с unit of measure, документация рекомендует сравнивать/округлять с корректной precision/rounding соответствующей UoM.
+**[ODOO][S1]** Для количества, связанного с единицей измерения, документация рекомендует использовать корректную точность и правило округления этой единицы измерения.
 
-**[ВЫВОД]** Сравнение business quantities простым `a == b` может быть семантически неправильным, если domain использует собственную precision.
+**[ВЫВОД]** Для бизнес-количеств прямое сравнение `a == b` может быть семантически неверным, если предметная область использует собственное округление.
 
 ---
 
 ## 21. `Monetary`
 
-**[ODOO][S1]** `fields.Monetary` представляет float amount в определённой currency. Decimal precision и currency symbol берутся через `currency_field`, по умолчанию `currency_id`.
+**[ODOO][S1]** `fields.Monetary` представляет денежную сумму в определённой валюте. Валюта определяется через `currency_field`, по умолчанию — `currency_id`.
 
 ```python
 amount = fields.Monetary(currency_field='currency_id')
 ```
 
-`currency_field` ссылается на Many2one к currency model; relation semantics будут в `ORM-05`.
+`currency_field` ссылается на поле `Many2one` к модели валюты; устройство этой связи будет разобрано в `ORM-05`.
 
-**[ВЫВОД]** Денежное значение в Odoo — не просто Float с символом валюты в UI: field semantics явно связывают amount с currency field.
+**[ВЫВОД]** Денежное поле — не просто `Float` с символом валюты в интерфейсе: сумма явно связана с полем валюты.
 
 ---
 
 ## 22. `Selection`
 
-**[ODOO][S1]** `fields.Selection` представляет exclusive choice между допустимыми values.
+**[ODOO][S1]** `fields.Selection` задаёт выбор одного значения из закрытого набора.
 
 ```python
 state = fields.Selection([
-    ('draft', 'Draft'),
-    ('done', 'Done'),
+    ('draft', 'Черновик'),
+    ('done', 'Готово'),
 ])
 ```
 
@@ -468,66 +454,64 @@ state = fields.Selection([
 
 ```text
 'draft'
-= stored/technical selection value
+= техническое сохраняемое значение
 
-'Draft'
-= user-facing label
+'Черновик'
+= пользовательская подпись
 ```
 
-`selection` может быть list, callable или method name.
+Набор вариантов может быть задан списком, вызываемой функцией или именем метода.
 
-`selection_add` и `ondelete` нужны при расширении существующего Selection; detailed extension mechanics принадлежат `EXT-01`.
+`selection_add` и `ondelete` нужны при расширении существующего `Selection`; этот аспект принадлежит `EXT-01`.
 
-**[ВЫВОД]** Selection удобен для закрытого набора values, но наличие Selection само по себе не делает универсальный workflow engine.
+**[ВЫВОД]** `Selection` удобен для фиксированного набора значений, но сам по себе не создаёт универсальный workflow-механизм.
 
 ---
 
-## 23. `Date` и `Datetime` — не одно и то же
+## 23. `Date` и `Datetime` — разные типы
 
-**[ODOO][S1]** ORM Reference отдельно подчёркивает корректное использование Dates и Datetimes.
+**[ODOO][S1]** ORM отдельно различает дату и дату-время.
 
-Допустимые assignments включают:
+Допустимые значения включают:
 
 - Python `date` / `datetime`;
-- server-format string;
+- строку серверного формата;
 - `False` / `None`.
 
-Formats:
+Форматы:
 
 ```text
 Date      YYYY-MM-DD
 Datetime  YYYY-MM-DD HH:MM:SS
 ```
 
-**[ODOO][S1]** Date следует сравнивать с date objects, Datetime — с datetime objects; comparison строк Date и Datetime documentation прямо не рекомендует из-за неожиданных результатов.
+**[ODOO][S1]** Даты следует сравнивать с объектами `date`, а дату-время — с `datetime`. Сравнение строковых представлений `Date` и `Datetime` не рекомендуется.
 
 ---
 
-## 24. Datetime и timezone
+## 24. `Datetime` и часовые пояса
 
-**[ODOO][S1]** Datetime values хранятся в database как `timestamp without timezone`, в UTC; timezone conversion управляется client side.
+**[ODOO][S1]** Значения `Datetime` хранятся в базе как `timestamp without timezone` по соглашению UTC; преобразование в часовой пояс пользователя выполняется на стороне клиента.
 
 ```text
-DATABASE DATETIME
+ЗНАЧЕНИЕ DATETIME В БАЗЕ
         ↓
-UTC storage convention
+соглашение UTC
         ↓
-client-side timezone conversion
+преобразование для пользователя
 ```
 
-**[ВЫВОД]** Нельзя сохранять разные local-time conventions в Datetime field и ожидать, что PostgreSQL timezone column сам решит semantics Odoo.
-
-Timezone-aware user behavior будет использовано позже, но этот storage fact является частью field semantics.
+**[ВЫВОД]** Нельзя хранить в одном поле разные локальные соглашения о времени и рассчитывать, что тип PostgreSQL сам исправит смысл данных.
 
 ---
 
-## 25. Date/Datetime helpers
+## 25. Вспомогательные функции `Date` / `Datetime`
 
-**[ODOO][S1]** Date и Datetime classes предоставляют helpers для conversion и period operations, включая:
+**[ODOO][S1]** Классы `Date` и `Datetime` предоставляют методы для преобразования и работы с периодами, среди которых:
 
 ```text
 today
-context_today (Date)
+context_today
 to_date
 to_datetime
 to_string
@@ -537,33 +521,33 @@ add
 subtract
 ```
 
-Не все helpers одинаковы для обоих classes; при использовании всегда проверяется конкретный API Reference.
+Набор доступных методов у двух классов не полностью одинаков; перед использованием проверяется конкретный API.
 
-**[ВЫВОД]** Для Odoo date/time logic предпочтительно опираться на documented field/date helpers, а не изобретать собственные string manipulations.
+**[ВЫВОД]** Для дат и времени в Odoo лучше использовать документированные методы ORM, а не строить собственную обработку строк.
 
 ---
 
 ## 26. `Binary`
 
-**[ODOO][S1]** `fields.Binary` хранит binary content, например file.
+**[ODOO][S1]** `fields.Binary` хранит двоичное содержимое, например файл.
 
-Ключевой parameter:
+Ключевой параметр:
 
 ```text
-attachment=True  (default)
+attachment=True  # значение по умолчанию
 ```
 
-определяет, хранится ли content через `ir_attachment` либо в column model table.
+определяет, хранится ли содержимое через `ir_attachment` или непосредственно в колонке таблицы модели.
 
-**[ВЫВОД]** Даже stored ORM field не обязательно означает, что payload физически хранится прямо в table текущей model.
-
-Это ещё один пример, почему ORM storage semantics нельзя сводить к «одно поле = одна колонка с value».
+**[ВЫВОД]** Даже хранимое ORM-поле не гарантирует, что его содержимое физически находится в таблице текущей модели.
 
 ---
 
 ## 27. `Image`
 
-**[ODOO][S1]** `fields.Image` расширяет Binary и добавляет image-specific validation/resizing parameters, включая:
+**[ODOO][S1]** `fields.Image` расширяет `Binary` и добавляет проверки и изменение размеров изображения.
+
+Основные параметры:
 
 - `max_width`;
 - `max_height`;
@@ -573,15 +557,15 @@ attachment=True  (default)
 image = fields.Image(max_width=1920, max_height=1080)
 ```
 
-**[ВЫВОД]** Image — не только UI widget для Binary; field type имеет собственную server-side content semantics.
+**[ВЫВОД]** `Image` — не просто другой виджет для `Binary`: тип поля имеет собственное серверное поведение для изображений.
 
 ---
 
 ## 28. `Html`
 
-**[ODOO][S1]** `fields.Html` представляет HTML content и имеет sanitation parameters.
+**[ODOO][S1]** `fields.Html` хранит HTML-содержимое и имеет параметры очистки (`sanitize`).
 
-Например:
+Среди них:
 
 ```text
 sanitize
@@ -589,57 +573,58 @@ sanitize_overridable
 sanitize_tags
 sanitize_attributes
 sanitize_style
-...
 ```
 
-Default sanitation включена.
+Очистка по умолчанию включена.
 
-**[ВЫВОД]** Html field отличается от plain Text не только способом отображения: type содержит специальные content-sanitization semantics.
+**[ВЫВОД]** `Html` отличается от обычного `Text` не только способом отображения: у типа есть собственные правила обработки HTML.
 
-Security implications sanitation не заменяют общий Security owner.
+Это не отменяет общую модель безопасности, которая будет разобрана в `SEC-01`.
 
 ---
 
-# Часть III. Automatic и reserved fields
+# Часть III. Автоматические и зарезервированные поля
 
 ## 29. `id`
 
-**[ODOO][S1]** `Model.id` — identifier field record.
+**[ODOO][S1]** `Model.id` — идентификатор записи.
 
-Для singleton recordset можно получить:
+Для одиночной записи:
 
 ```python
 record.id
 ```
 
-Если recordset не singleton, обращение к `id` не является способом получить список IDs; для этого из `ORM-01` используется:
+Для набора записей используется:
 
 ```python
 records.ids
 ```
 
+Это различие уже вводилось в `ORM-01`.
+
 ---
 
 ## 30. `display_name`
 
-**[ODOO][S1]** `display_name` — automatic name field, показываемое web client по умолчанию.
+**[ODOO][S1]** `display_name` — автоматическое поле с отображаемым именем записи, которое веб-клиент использует по умолчанию.
 
-Default behavior связан с `_rec_name`, уже рассмотренным в `ORM-03`, и может кастомизироваться через `_compute_display_name`.
+Его стандартное поведение связано с `_rec_name`, рассмотренным в `ORM-03`, и может быть переопределено через `_compute_display_name`.
 
 ```text
-_rec_name metadata      → ORM-03
-         │
-         ▼
-display_name field      → ORM-04
+_rec_name        → метаданные модели, ORM-03
+     │
+     ▼
+display_name     → автоматическое поле, ORM-04
 ```
 
-**[ВЫВОД]** `_rec_name` и `display_name` нельзя считать одним и тем же объектом.
+**[ВЫВОД]** `_rec_name` и `display_name` — связанные, но разные сущности.
 
 ---
 
-## 31. Access Log fields
+## 31. Поля журнала доступа
 
-**[ODOO][S1]** Если `_log_access` enabled, ORM автоматически ведёт access-log fields:
+**[ODOO][S1]** Если `_log_access` включён, ORM автоматически ведёт:
 
 ```text
 create_date
@@ -648,29 +633,20 @@ write_date
 write_uid
 ```
 
-`ORM-03` уже определил `_log_access` как model-level switch.
+`ORM-03` уже определил `_log_access` как настройку модели.
 
-Теперь связь:
+- `create_date` / `write_date` используют семантику `Datetime`;
+- `create_uid` / `write_uid` являются связями с пользователями; детали связей → `ORM-05`.
 
-```text
-_log_access
-    │
-    ▼
-automatic Access Log fields
-```
-
-- `create_date` / `write_date` — Datetime semantics;
-- `create_uid` / `write_uid` — relations к users, relation details → `ORM-05`.
-
-**[ВЫВОД]** Эти fields являются framework-maintained technical metadata records, а не бизнес-полями автора/исполнителя документа.
+**[ВЫВОД]** Это технические поля журнала ORM. Их нельзя автоматически трактовать как бизнес-поля «автор документа», «исполнитель» или «согласовавший».
 
 ---
 
-## 32. Reserved field names создают framework behavior
+## 32. Зарезервированные имена включают особое поведение
 
-**[ODOO][S1]** ORM Reference документирует ряд reserved field names, наличие которых включает specific framework behavior.
+**[ODOO][S1]** ORM документирует ряд имён полей, наличие которых включает специальное поведение framework.
 
-К ним относятся, среди прочего:
+Среди них:
 
 ```text
 active
@@ -680,60 +656,58 @@ parent_path
 company_id
 ```
 
-Это не означает, что все models обязаны иметь эти fields.
+Это не означает, что каждая модель обязана иметь эти поля.
 
 ---
 
 ## 33. `active`
 
-**[ODOO][S1]** Field name `active` используется framework для active/archive behavior; соответствующие model helpers умеют архивировать/разархивировать records.
+**[ODOO][S1]** Поле `active` используется стандартным механизмом активности/архивации записей.
 
-**[ВЫВОД]** `active=False` — framework archival pattern, а не универсальное business state «закрыт» или «удалён».
+**[ВЫВОД]** `active=False` — технический шаблон архивирования, а не универсальное бизнес-состояние «закрыто» или «удалено».
 
 ---
 
 ## 34. `state`
 
-**[ODOO][S1]** Reserved `state` связывается с lifecycle stages object и Selection semantics.
+**[ODOO][S1]** Зарезервированное имя `state` связано с представлением состояния объекта и обычно используется вместе с `Selection`.
 
-Но это **не** доказательство существования единой универсальной Odoo state machine для всех models.
+Но это **не** доказывает существование одной универсальной машины состояний для всех моделей Odoo.
 
-**[ВЫВОД]** У разных applications могут быть собственные lifecycle semantics даже при использовании field name `state`.
+**[ВЫВОД]** Разные приложения могут иметь совершенно разную логику жизненного цикла даже при одинаковом имени поля `state`.
 
 ---
 
-## 35. `parent_id` / `parent_path`
+## 35. `parent_id` и `parent_path`
 
-**[ODOO][S1]** `parent_id` является default field для `_parent_name`, а `parent_path` используется вместе с `_parent_store=True` для optimized hierarchy и domain operators `child_of` / `parent_of`.
+**[ODOO][S1]** `parent_id` по умолчанию используется как родительское поле для `_parent_name`, а `parent_path` вместе с `_parent_store=True` поддерживает оптимизированную иерархию и операторы домена `child_of` / `parent_of`.
 
-Model-level attributes уже разобраны в `ORM-03`.
-
-Relation/domain details принадлежат `ORM-05`.
+Настройки модели уже рассмотрены в `ORM-03`; устройство связей и доменов будет продолжено в `ORM-05`.
 
 ---
 
 ## 36. `company_id`
 
-**[ODOO][S1]** `company_id` является основным field name, используемым Odoo multi-company behavior и consistency checks.
+**[ODOO][S1]** `company_id` — основное зарезервированное имя, которое используется механизмами multi-company и проверками согласованности компании.
 
-Но полная semantics:
+Но полная модель:
 
-- shared vs company-specific record;
-- allowed/active companies;
+- общие и привязанные к компании записи;
+- разрешённые и активные компании;
 - `check_company`;
-- company-dependent values
+- `company_dependent`;
 
 принадлежит `EXT-04`.
 
-**[ВЫВОД]** В этом уроке `company_id` — reserved framework hook, а не разрешение преждевременно строить multi-company model.
+**[ВЫВОД]** В этом уроке `company_id` фиксируется только как специальное имя framework. Это не повод преждевременно моделировать multi-company.
 
 ---
 
-# Часть IV. Границы со следующими owners
+# Часть IV. Границы со следующими уроками
 
-## 37. Relational fields — уже видим, но не определяем
+## 37. Поля-связи
 
-ORM Reference документирует:
+ORM документирует:
 
 ```text
 Many2one
@@ -742,17 +716,17 @@ Many2many
 Command
 ```
 
-Canonical owner — `ORM-05`.
+Их канонический владелец — `ORM-05`.
 
-Здесь достаточно понимать:
+На текущем уровне достаточно понимать:
 
-> relational field является Field, но его value semantics выражаются recordsets/relations, поэтому он требует отдельного урока.
+> поле-связь остаётся полем ORM, но его значение выражает связь между записями и поэтому требует отдельной модели мышления.
 
 ---
 
-## 38. Computed и related — не часть текущего owner
+## 38. Вычисляемые и связанные поля
 
-Generic Field имеет parameters вроде:
+У `Field` есть параметры:
 
 ```text
 compute
@@ -763,132 +737,128 @@ inverse
 related
 ```
 
-Они официально документированы в Field API, но canonical semantics принадлежат `ORM-06`.
+Они документированы в API полей, но их каноническая семантика принадлежит `ORM-06`.
 
-**[ВЫВОД]** Reference page организована по API, а учебный курс — по dependency ownership. Мы не обязаны преподавать всё, что находится рядом на одной странице документации.
+**[ВЫВОД]** То, что несколько механизмов находятся рядом на одной странице API, не означает, что их нужно преподавать в одном уроке.
 
 ---
 
-## 39. Field-level `groups` не заменяет Security
-
-Ещё раз граница:
+## 39. `groups` не заменяет безопасность
 
 ```text
-field groups metadata
+groups на поле
         │
         ▼
-security aspect of field
+ограничение доступа к конкретному полю
 
-НО
+но
 
-ACL + record rules + users/groups + sudo + public methods
+пользователи + группы + ACL + record rules + sudo + публичные методы
         │
         ▼
 SEC-01
 ```
 
-Поле не владеет общей security model.
-
 ---
 
-## 40. `company_dependent` не заменяет Multi-company
+## 40. `company_dependent` не заменяет multi-company
 
 ```text
-Field.company_dependent
+company_dependent
         │
-        └── storage/value hook
+        └── правило значения конкретного поля
 
-Multi-company
+multi-company
         │
-        └── broader Environment/record/company semantics
+        └── более широкая семантика Environment, записей и компаний
 ```
 
-Owner второго — `EXT-04`.
+Владелец второго уровня — `EXT-04`.
 
 ---
 
-## 41. Field и View field node — разные concepts
+## 41. Поле модели и узел `<field>` в представлении — разные вещи
 
 ```python
 name = fields.Char(required=True)
 ```
 
-— ORM field definition.
+— определение ORM-поля.
 
 ```xml
 <field name="name"/>
 ```
 
-— UI view node, который только ссылается на model field.
+— узел представления, который ссылается на поле модели.
 
-**[ВЫВОД]** Один и тот же technical field может отображаться по-разному в разных views; его ORM identity при этом не меняется.
+**[ВЫВОД]** Одно техническое поле может отображаться по-разному в разных представлениях, не меняя своей идентичности в ORM.
 
-Views принадлежат `UI-02`.
+Представления принадлежат `UI-02`.
 
 ---
 
-## 42. Минимальная mental model
+## 42. Минимальная модель
 
 ```text
-                         ORM FIELD
-                            │
-        ┌───────────────────┼────────────────────┐
-        │                   │                    │
-   definition metadata   value type          storage/runtime
-        │                   │                    │
- string/help             Char/Text          store
- required/default        Integer/Float      index
- readonly                Boolean            copy
- groups                  Selection          company hook
- ...                     Date/Datetime      search/group hooks
-                         Monetary
-                         Binary/Image/Html
-                            │
-                            ├── relations → ORM-05
-                            └── derived    → ORM-06
+                           ORM-ПОЛЕ
+                              │
+        ┌─────────────────────┼──────────────────────┐
+        │                     │                      │
+     метаданные            тип значения          хранение и поведение
+        │                     │                      │
+ string / help            Char / Text           store
+ required / default       Integer / Float       index
+ readonly                 Boolean               copy
+ groups                   Selection             company_dependent
+ ...                      Date / Datetime       search / grouping
+                          Monetary
+                          Binary / Image / Html
+                              │
+                              ├── связи       → ORM-05
+                              └── производные → ORM-06
 ```
 
 ---
 
 ## Что нельзя заключать
 
-- Field = form widget — нет;
-- `string` = technical field name — нет;
-- `readonly=True` = server-side immutability/security — нет;
-- default = invariant — нет;
-- every field = SQL column — нет;
-- stored Binary payload всегда находится прямо в model table — нет;
-- Float equality можно всегда проверять обычным Python `==` без domain precision — нет;
-- Monetary = обычный Float с символом валюты — нет;
-- Date = Datetime без времени — недостаточно как semantics;
-- `state` = универсальный Odoo workflow engine — нет;
-- `active=False` = business deletion — нет;
+- `Field` = виджет формы — нет;
+- `string` = техническое имя поля — нет;
+- `readonly=True` = неизменяемость или безопасность на сервере — нет;
+- `default` = неизменяемое правило — нет;
+- каждое поле = SQL-колонка — нет;
+- содержимое `Binary` всегда хранится прямо в таблице модели — нет;
+- `Float` всегда можно сравнивать обычным Python `==` без учёта точности — нет;
+- `Monetary` = обычный `Float` с символом валюты — нет;
+- `Date` и `Datetime` взаимозаменяемы — нет;
+- `state` = универсальный workflow Odoo — нет;
+- `active=False` = бизнес-удаление — нет;
 - `company_id` уже объясняет multi-company — нет;
-- `groups=` уже объясняет security — нет;
-- этот урок уже определяет relations/computed fields — нет.
+- `groups=` уже объясняет всю безопасность — нет;
+- этот урок уже определяет связи и вычисляемые поля — нет.
 
 ## Контрольные вопросы
 
 1. Что такое `Field` в ORM?
-2. Почему field и method не должны иметь одинаковое имя?
-3. Чем `string` отличается от technical field name?
-4. Почему `readonly=True` не является security barrier?
-5. Чем default отличается от invariant?
+2. Почему поле и метод не должны иметь одинаковое имя?
+3. Чем `string` отличается от технического имени поля?
+4. Почему `readonly=True` не является барьером безопасности?
+5. Чем значение по умолчанию отличается от инварианта?
 6. Что означает `store`?
-7. Чем field-level `index=` отличается от schema-level `models.Index`?
-8. Какие semantics несёт `company_dependent` и почему full owner другой?
-9. В чём разница Char и Text?
-10. Почему Float требует внимания к precision?
-11. Чем Monetary отличается от Float?
-12. Что хранит Selection: technical value или label?
-13. Как Odoo 19 хранит Datetime относительно timezone?
-14. Чем Binary storage может отличаться от обычной table column?
-15. Что добавляет Image поверх Binary?
-16. Почему Html имеет отдельные sanitation semantics?
-17. Что такое `display_name` и чем он связан с `_rec_name`?
-18. Какие Access Log fields создаются framework при `_log_access`?
-19. Какие reserved field names важно знать на этом уровне?
-20. Почему relational и computed fields вынесены в следующие owners?
+7. Чем `index=` отличается от `models.Index(...)`?
+8. Что означает `company_dependent` и почему полная тема multi-company находится в другом уроке?
+9. В чём различие `Char` и `Text`?
+10. Почему для `Float` важна точность?
+11. Чем `Monetary` отличается от `Float`?
+12. Что хранит `Selection`: техническое значение или пользовательскую подпись?
+13. Как Odoo 19 хранит `Datetime` относительно часовых поясов?
+14. Почему `Binary` не всегда хранит содержимое прямо в таблице модели?
+15. Что `Image` добавляет поверх `Binary`?
+16. Почему `Html` имеет собственные правила очистки?
+17. Что такое `display_name` и как оно связано с `_rec_name`?
+18. Какие поля журнала доступа создаёт ORM при `_log_access`?
+19. Какие зарезервированные имена полей важно знать на этом уровне?
+20. Почему поля-связи и вычисляемые поля вынесены дальше?
 
 ## Официальные источники
 
