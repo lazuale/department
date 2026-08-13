@@ -3,10 +3,10 @@
 > Lesson ID: `ORM-02`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ARCH-01`, `ARCH-02`, `ARCH-03`, `ORM-01`  
+> Prerequisites: `ORM-01`  
 > Canonical owner: backend model registry context; per-database model construction; effective model class  
 > Aspect owner: inheritance mechanics → `EXT-01`  
-> Preview: model inheritance  
+> Preview: model inheritance; technical model metadata  
 > Отложено: `_inherit`; `_inherits`; metaclasses; schema synchronization; registry internal lifecycle; workers  
 > Edition scope: platform ORM semantics  
 > Sources: `S1`, `S2`
@@ -121,7 +121,7 @@ Exact `_inherit`/`_inherits` mechanics принадлежат `EXT-01`.
 Из предыдущих owners:
 
 ```text
-ARCH-02: database-bound installed module graph
+ARCH-02: database installation/dependency semantics
 ARCH-03: Python import chain
 ORM-01: Model / Environment
 ```
@@ -154,7 +154,23 @@ Environment model access / recordsets
 
 ---
 
-## 8. Что сознательно не моделируем
+## 8. Следующий owner: model metadata/schema
+
+Теперь можно отделить ещё одну границу:
+
+```text
+ORM-02
+= какие effective models доступны в database context
+
+ORM-03
+= technical metadata самой model и её SQL/schema semantics
+```
+
+`_name`, `_table`, `_auto`, `_register`, `_log_access`, schema-level constraints/indexes и связанные storage declarations не должны размываться между registry и Fields.
+
+---
+
+## 9. Что сознательно не моделируем
 
 Не строим undocumented sequence:
 
@@ -195,6 +211,7 @@ Environment / recordsets
 - backend registry = frontend registry — нет;
 - one ORM model = one Python class — нет;
 - ORM-02 уже объясняет `_inherit` mechanics — нет;
+- ORM-02 уже объясняет technical table/schema metadata — нет;
 - схема выше является exact internal loader implementation — нет.
 
 ## Контрольные вопросы
@@ -205,6 +222,7 @@ Environment / recordsets
 4. Почему backend и frontend registries нельзя смешивать?
 5. В каком смысле effective model class может быть composite?
 6. Почему process-global installed-module state опасен при multi-database runtime?
+7. Почему model metadata/schema получает отдельного owner `ORM-03`?
 
 ## Официальные источники
 
