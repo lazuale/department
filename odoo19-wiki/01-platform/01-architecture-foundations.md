@@ -2,112 +2,169 @@
 
 ## Цель урока
 
-Понять Odoo до знакомства с предметными приложениями. После этого урока должны быть различимы уровни `database`, `module`, `model`, `record`, `recordset`, `view`, `action` и пользовательское приложение.
+Построить минимальную, но непротиворечивую модель Odoo до знакомства с предметными приложениями.
+
+После урока должны быть различимы:
+
+- Odoo server process;
+- database;
+- module/addon;
+- App;
+- ORM model;
+- record/recordset;
+- action/view/menu как пользовательский слой.
+
+Fields, security, inheritance, multi-company и внутренняя loading mechanics здесь только обозначаются и будут отдельными уроками.
 
 ---
 
-## 1. Odoo — многоуровневое приложение
+## 1. Odoo — three-tier application
 
-**[ODOO]** Odoo использует многоуровневую архитектуру и в официальном Architecture Overview описывается как three-tier application:
-
-- presentation tier — HTML5, JavaScript и CSS;
-- logic tier — Python;
-- data tier — PostgreSQL.
-
-Минимальная схема:
+**[ODOO]** Официальный Architecture Overview описывает Odoo как three-tier application:
 
 ```text
-ПОЛЬЗОВАТЕЛЬ
-     │
-     ▼
 Presentation tier
-HTML / JavaScript / CSS
-     │
-     ▼
+HTML5 / JavaScript / CSS
+        │
+        ▼
 Logic tier
-Python / Odoo framework
-     │
-     ▼
+Python / Odoo server
+        │
+        ▼
 Data tier
 PostgreSQL
 ```
 
-**[ВЫВОД]** Экран Odoo нельзя считать самой бизнес-моделью. Пользовательский интерфейс — представление и управление логикой, а сохраняемые данные и бизнес-поведение живут на других уровнях.
+**[ВЫВОД]** Экран Odoo нельзя считать самой бизнес-моделью. UI, server-side business logic и persistence — разные уровни системы.
 
 Официальный источник:
 https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/01_architecture.html
 
 ---
 
-## 2. База данных — контекст установленной системы
+## 2. Один Odoo instance может обслуживать несколько databases
 
-**[ODOO]** ORM автоматически инстанцирует модели для каждой базы данных. Набор доступных моделей зависит от модулей, установленных в этой базе.
+**[ODOO]** Server Framework 101 отдельно предупреждает, что один Odoo instance может запускать несколько databases параллельно внутри одного Python process.
 
-Следовательно, полезная начальная модель:
+**[ODOO]** На этих databases могут быть установлены разные modules.
+
+Минимальная модель:
 
 ```text
-Odoo installation
-      │
-      └── Database
-             │
-             └── installed modules
-                    │
-                    └── available models
+                 ODOO SERVER PROCESS
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+     Database A      Database B      Database C
+          │              │              │
+    module set A     module set B     module set C
 ```
 
-**[ВЫВОД]** Нельзя говорить о полном наборе моделей «Odoo вообще» без учёта установленных модулей конкретной базы. Установка модуля может изменить доступный model registry.
+**[ВЫВОД]** Набор прикладной функциональности — свойство не только файлов сервера, но и состояния конкретной database.
+
+Отсюда позже станет понятным, почему Odoo запрещает опираться на mutable global variables, зависящие от установленных modules.
 
 Официальный источник:
-https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
+https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/03_basicmodel.html
 
 ---
 
-## 3. Module — техническая единица расширения Odoo
+## 3. Всё расширение Odoo упаковывается в modules
 
-**[ODOO]** Odoo-модуль объявляется Python-пакетом с файлом `__manifest__.py`. Manifest содержит метаданные модуля и, среди прочего, его зависимости и файлы данных.
+**[ODOO]** Официальная документация говорит: server и client extensions packaged as modules, которые optionally loaded in a database.
 
-Упрощённо:
+Module — набор функций и данных, направленный на определённую цель. Он может:
+
+- добавить новую business logic;
+- изменить существующую business logic;
+- добавить data files;
+- добавить views;
+- добавить controllers;
+- добавить static web data;
+- содержать только часть этих элементов.
+
+**[ODOO]** Термин `addon` используется как синоним module.
+
+**[ВЫВОД]** Module — базовая техническая единица композиции Odoo, но не обязательно отдельный бизнес-объект или отдельный экран.
+
+Официальный источник:
+https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/01_architecture.html
+
+---
+
+## 4. App — не синоним module и не синоним функциональной области
+
+**[ODOO]** Основные user-facing modules помечаются и показываются как Apps, но большинство Odoo modules не являются Apps.
+
+Manifest имеет отдельный признак `application`.
+
+Поэтому:
 
 ```text
-module/
-├── __manifest__.py
-├── models/
-├── views/
-├── data/
-├── security/
-└── ...
+MODULE
+├── application=True
+│      └── user-facing App
+│
+└── application=False
+       └── technical/supporting module
 ```
 
-Manifest может задавать зависимости:
+В этом курсе:
 
-```python
-'depends': ['base']
+```text
+App
+= user-facing Odoo module
+
+Functional area
+= наша аналитическая категория,
+  которая может состоять из нескольких modules
 ```
 
-**[ODOO]** Зависимые модули должны быть загружены до модуля, который от них зависит.
-
-**[ВЫВОД]** Модуль — не то же самое, что отдельная бизнес-сущность. Один модуль может:
-
-- создать модели;
-- расширить модели другого модуля;
-- загрузить records;
-- добавить views;
-- добавить actions;
-- определить security;
-- вообще существовать преимущественно ради данных.
+**[ВЫВОД]** Фраза «Sales как функциональная область» и конкретный App/module — не обязательно одно и то же понятие.
 
 Официальные источники:
 
+- https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/01_architecture.html
 - https://www.odoo.com/documentation/19.0/developer/reference/backend/module.html
-- https://www.odoo.com/documentation/19.0/developer/tutorials/backend.html
 
 ---
 
-## 4. Model — основной объект ORM
+## 5. Module является Python package, когда содержит Python business objects
 
-**[ODOO]** Odoo называет ORM ключевым компонентом платформы. Бизнес-объекты объявляются Python-классами, наследующими модели ORM.
+**[ODOO]** Odoo module объявляется manifest-файлом `__manifest__.py`.
 
-Основные типы:
+Если module содержит Python business objects, они организуются как Python package с `__init__.py`, который импортирует Python files/module packages.
+
+Упрощённая структура из Architecture Overview:
+
+```text
+module/
+├── models/
+│   ├── *.py
+│   └── __init__.py
+├── data/
+│   └── *.xml
+├── __init__.py
+└── __manifest__.py
+```
+
+На практике module также может иметь `views/`, `security/`, `controllers/`, `static/` и другие каталоги в зависимости от содержания.
+
+**[ВЫВОД]** `__manifest__.py` объявляет Odoo module, а `__init__.py` относится к Python import structure. Эти механизмы связаны, но не выполняют одну и ту же роль.
+
+Подробная loading/import mechanics будет отдельным уроком.
+
+Официальный источник:
+https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/01_architecture.html
+
+---
+
+## 6. ORM model — основной серверный бизнес-объект
+
+**[ODOO]** Business objects объявляются Python classes, наследующими ORM model classes.
+
+Формальные базовые типы:
 
 ```text
 BaseModel
@@ -116,147 +173,76 @@ BaseModel
 └── AbstractModel
 ```
 
-### Model
+- `Model` — обычные database-persisted models;
+- `TransientModel` — временные records, которые сохраняются в БД, но автоматически vacuumed;
+- `AbstractModel` — общие abstract superclasses для переиспользования behavior.
 
-**[ODOO]** Основной суперкласс обычных моделей, сохраняемых в базе данных.
+**[ВЫВОД]** Термины «справочник», «документ», «master data» и «transaction» не являются альтернативными формальными типами ORM.
 
-### TransientModel
-
-**[ODOO]** Модель для временных данных. Данные хранятся в базе, но периодически автоматически очищаются.
-
-### AbstractModel
-
-**[ODOO]** Абстрактная модель для общего поведения, предназначенного для использования наследующими моделями.
-
-Минимальный пример обычной модели из принципа ORM:
-
-```python
-from odoo import models
-
-class TestModel(models.Model):
-    _name = 'test.model'
-```
-
-**[ВЫВОД]** `master data`, `transaction`, `document`, `reference data` — не альтернативные формальные типы ORM. Это возможная бизнес-классификация конкретных моделей и records.
-
-Официальные источники:
-
-- https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/03_basicmodel.html
-- https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
+Официальный источник:
+https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
 
 ---
 
-## 5. Record и recordset
+## 7. Available models зависят от database
 
-**[ODOO]** Экземпляр модели в ORM представлен через recordset. Recordset — упорядоченная коллекция records одной модели.
+**[ODOO]** Odoo автоматически instantiates every model once per database.
 
-**[ODOO]** Даже одна запись представляется recordset из одного элемента.
+**[ODOO]** Эти instances представляют models, доступные в конкретной database, и зависят от modules, установленных на этой database.
 
-Модель в голове:
+**[ODOO]** Actual class каждой model instance строится из Python classes, которые создают и наследуют соответствующую model.
 
-```text
-MODEL
-  │
-  ├── record 1
-  ├── record 2
-  └── record 3
-
-recordset = выбранный набор records этой модели
-```
-
-Например концептуально:
+Минимальная схема:
 
 ```text
-model: res.partner
-
-recordset:
-[partner 7, partner 21, partner 45]
+Database
+   │
+   ▼
+Installed modules
+   │
+   ├── create Model X
+   ├── extend Model X
+   └── create Model Y
+          │
+          ▼
+Effective models available
+in this database
 ```
 
-**[ВЫВОД]** Нужно различать определение объекта и конкретные данные:
+**[ВЫВОД]** Нельзя корректно описать итоговую model, посмотрев только на один Python class одного addon.
+
+Официальный источник:
+https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
+
+---
+
+## 8. Record и recordset
+
+**[ODOO]** Model instance является recordset — ordered collection of records этой модели.
+
+**[ODOO]** Record не имеет отдельного object representation: одна запись представляется recordset из одного record.
 
 ```text
 Model
-= структура + поведение
-
-Record
-= конкретный экземпляр данных
-
-Recordset
-= набор records одной model
+  │
+  └── Recordset
+       ├── 0 records
+       ├── 1 record  = singleton recordset
+       └── N records
 ```
+
+Подробная recordset semantics будет в ORM Core.
 
 Официальный источник:
 https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
 
 ---
 
-## 6. Установленные модули формируют итоговую модель
+## 9. UI layer не равен предметной модели
 
-**[ODOO]** ORM поддерживает несколько механизмов наследования и расширения моделей. В частности, модель можно расширить in-place через `_inherit` без создания новой `_name`.
+Odoo module может загружать views, actions и menus как data/configuration records.
 
-Концептуально:
-
-```text
-Module A
-   │
-   └── creates Model X
-           ├── field A
-           └── method A
-
-Module B
-   │
-   └── extends Model X
-           ├── + field B
-           └── + method/behavior B
-```
-
-**[ВЫВОД]** Итоговая модель, которой пользуется человек в работающей базе, может быть результатом вклада нескольких установленных модулей.
-
-Это один из важнейших принципов Odoo: расширение существующей модели является штатным механизмом архитектуры, а не исключением.
-
-Официальный источник:
-https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
-
----
-
-## 7. Odoo в значительной степени data-driven
-
-**[ODOO]** Официальные developer tutorials характеризуют Odoo как highly data driven. Модули загружают records через data files; такие файлы могут быть XML или CSV и объявляются в manifest.
-
-**[ODOO]** Actions и menus также являются обычными records базы данных, обычно объявляемыми в data files.
-
-Пример логики:
-
-```text
-XML / CSV data
-      │
-      ▼
-Database records
-      │
-      ├── business/configuration data
-      ├── security records
-      ├── actions
-      └── menus
-```
-
-**[ВЫВОД]** В Odoo граница между «данными приложения» и «описанием части поведения интерфейса» не совпадает с интуитивным делением на таблицы и программный код. Значительная часть конфигурации самой системы представлена records.
-
-Официальные источники:
-
-- https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/04_securityintro.html
-- https://www.odoo.com/documentation/19.0/developer/tutorials/define_module_data.html
-- https://www.odoo.com/documentation/19.0/developer/tutorials/backend.html
-
----
-
-## 8. Action связывает пользовательское действие с поведением клиента
-
-**[ODOO]** Actions определяют поведение системы в ответ на действия пользователя. Action может храниться в базе или возвращаться как словарь.
-
-**[ODOO]** Window actions используются для открытия представлений модели в web client.
-
-Концептуально:
+На минимальном уровне достаточно понимать:
 
 ```text
 Menu / button
@@ -265,150 +251,108 @@ Menu / button
 Action
       │
       ▼
-Model + requested view modes
+Model + View
       │
       ▼
-Web client renders UI
+Web client
 ```
 
-**[ВЫВОД]** Наличие отдельного пункта меню не доказывает наличие отдельной независимой предметной модели. Menu может лишь запускать action, работающий с уже существующей моделью.
+**[ВЫВОД]** Отдельный пункт меню не доказывает наличие отдельной независимой ORM-модели или отдельного business domain.
+
+Actions/views/menus будут отдельным уроком после data files и security.
+
+Официальные источники:
+
+- https://www.odoo.com/documentation/19.0/developer/reference/backend/actions.html
+- https://www.odoo.com/documentation/19.0/developer/tutorials/define_module_data.html
+
+---
+
+## 10. Community и Enterprise на уровне архитектуры
+
+**[ODOO]** Odoo существует в Community и Enterprise editions.
+
+**[ODOO]** С технической точки зрения Enterprise functionality представляет дополнительные modules, установленные поверх modules Community version.
+
+**[ВЫВОД]** Общая серверная архитектура остаётся модульной; различие редакций в значительной степени выражается составом доступных modules.
+
+Это не означает, что любая функция общей документации доступна в Community. Edition каждого спорного приложения/feature проверяется отдельно.
 
 Официальный источник:
-https://www.odoo.com/documentation/19.0/developer/reference/backend/actions.html
+https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/01_architecture.html
 
 ---
 
-## 9. App, module и model — не синонимы
-
-После предыдущих разделов можно зафиксировать первое важное различие.
+## 11. Первая непротиворечивая модель Odoo
 
 ```text
-APP
-= пользовательская функциональная область
-
-MODULE
-= техническая единица поставки и расширения
-
-MODEL
-= зарегистрированная ORM-модель
-
-RECORD
-= конкретные данные модели
-
-RECORDSET
-= набор records одной модели
-
-ACTION / VIEW / MENU
-= механизмы представления и взаимодействия
+                        ODOO SERVER PROCESS
+                                │
+                    ┌───────────┴───────────┐
+                    │                       │
+               Database A              Database B
+                    │                       │
+             installed modules        installed modules
+                    │                       │
+                    ▼                       ▼
+             effective models         effective models
+                    │
+                    ▼
+              records/recordsets
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+   business behavior       data/UI/security
+                            resources
+                                │
+                                ▼
+                           web client
 ```
 
-**[ВЫВОД]** Ошибка «одно приложение = одна модель = одна таблица = один экран» несовместима с модульной архитектурой Odoo.
+А на файловом уровне server видит modules через `addons_path`; это будет разобрано в уроке 2.
 
 ---
 
-## 10. Минимальная архитектурная модель Odoo после первого урока
+## 12. Что из этого урока нельзя заключать
 
-```text
-                        ODOO
-                          │
-                          ▼
-                       DATABASE
-                          │
-                          ▼
-                  INSTALLED MODULES
-                          │
-            ┌─────────────┴─────────────┐
-            │                           │
-            ▼                           ▼
-      define / extend              load records
-          MODELS                        │
-            │                           │
-            ▼                           │
-       MODEL REGISTRY                   │
-            │                           │
-            ▼                           │
-     RECORDS / RECORDSETS ◄─────────────┘
-            │
-            ├────────► security/configuration
-            │
-            └────────► actions / views / menus
-                              │
-                              ▼
-                         WEB CLIENT
-                              │
-                              ▼
-                            USER
-```
+### Нельзя: «Odoo — это набор независимых Apps»
 
-Это не полная архитектура Odoo. Здесь сознательно пока не разобраны:
+Apps являются верхним user-facing слоем модульной системы.
 
-- fields и relational fields;
-- Environment;
-- domains;
-- computed fields;
-- constraints;
-- onchange;
-- ACL и record rules;
-- views подробно;
-- inheritance подробно;
-- mixins;
-- multi-company;
-- frontend framework;
-- HTTP/controllers;
-- конкретные бизнес-модели.
+### Нельзя: «один App = один model»
 
-Они должны изучаться следующими уроками, а не сваливаться в один обзор.
+Module может создавать и расширять несколько models, а dependencies могут добавлять дополнительные modules.
+
+### Нельзя: «одна database = один Odoo process»
+
+Один instance может обслуживать несколько databases.
+
+### Нельзя: «module лежит на диске — значит установлен»
+
+Filesystem availability и database installation state — разные уровни.
+
+### Нельзя: «menu = business object»
+
+Menu — часть UI/navigation layer.
+
+### Нельзя: «model = ровно одна SQL table»
+
+Model — объект ORM с behavior, fields и extensions; физическое хранение будет разбираться отдельно.
 
 ---
 
-## 11. Что после этого урока считать ошибкой
+## 13. Контрольные вопросы
 
-### Ошибка 1
-
-> «Odoo — это набор независимых приложений».
-
-Слишком грубо: приложения работают поверх общей модульной платформы и общей ORM.
-
-### Ошибка 2
-
-> «Экран показывает внутреннюю архитектуру».
-
-Нет. Экран формируется через views/actions и может показывать модель, расширенную несколькими модулями.
-
-### Ошибка 3
-
-> «У каждого бизнес-понятия должна быть отдельная модель».
-
-Из архитектуры Odoo это не следует. Сначала надо проверить существующие модели и механизмы их расширения.
-
-### Ошибка 4
-
-> «Module = Model».
-
-Нет. Модуль может определять и расширять несколько моделей и загружать другие типы records.
-
-### Ошибка 5
-
-> «Record — отдельный Python-объект вне recordset».
-
-В ORM Odoo одиночная запись представляется singleton recordset.
-
----
-
-## 12. Контрольные вопросы
-
-Перед следующим уроком нужно уметь без интерфейса объяснить:
-
-1. Какие три уровня выделяет официальная архитектура Odoo?
-2. Чем module отличается от model?
-3. От чего зависит набор зарегистрированных моделей базы?
-4. Чем record отличается от model?
-5. Что такое recordset?
-6. Какие три базовых типа моделей описывает ORM?
-7. Почему один модуль может изменить модель другого модуля?
-8. Почему menu нельзя считать бизнес-моделью?
-9. Почему пользовательское приложение нельзя автоматически приравнять к техническому модулю?
-10. Почему нельзя начинать архитектурный анализ Odoo с одного только интерфейса?
+1. Какие три tier выделяет официальная архитектура Odoo?
+2. Может ли один Odoo instance обслуживать несколько databases?
+3. Могут ли эти databases иметь разные installed modules?
+4. Что такое module/addon?
+5. Чем App отличается от module?
+6. Зачем module нужны `__manifest__.py` и `__init__.py`?
+7. Какие три базовых ORM model classes существуют?
+8. Почему available models зависят от конкретной database?
+9. Что означает singleton recordset?
+10. Почему menu/action/view нельзя считать самой предметной моделью?
 
 ---
 
@@ -423,14 +367,8 @@ ACTION / VIEW / MENU
 3. ORM API  
    https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
 
-4. Building a Module  
-   https://www.odoo.com/documentation/19.0/developer/tutorials/backend.html
+4. Module Manifests  
+   https://www.odoo.com/documentation/19.0/developer/reference/backend/module.html
 
-5. Define module data  
-   https://www.odoo.com/documentation/19.0/developer/tutorials/define_module_data.html
-
-6. Actions  
+5. Actions  
    https://www.odoo.com/documentation/19.0/developer/reference/backend/actions.html
-
-7. Security — A Brief Introduction  
-   https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/04_securityintro.html
