@@ -1,115 +1,116 @@
-# ARCH-04. Request / RPC execution boundary
+# ARCH-04. Граница запроса / RPC
 
-> Lesson ID: `ARCH-04`  
+> ID урока: `ARCH-04`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ARCH-01`  
-> Canonical owner: request / RPC execution boundary  
-> Aspect owner: —  
-> Preview: public methods; RPC transaction semantics; controller routes; frontend ORM/RPC services  
-> Отложено: HTTP routing; controller API; authentication details; generic HTTP transaction semantics; transaction internals; frontend services; external API product semantics  
-> Edition scope: platform client/server semantics; не entitlement claim конкретного feature  
-> Sources: `S1`–`S6`
+> Предпосылки: `ARCH-01`  
+> Канонический владелец: граница запроса / RPC между клиентом и сервером  
+> Владельцы аспектов: —  
+> Предварительно упоминается: публичные методы; транзакции RPC; маршруты контроллеров; клиентские сервисы ORM/RPC  
+> Отложено: HTTP-маршрутизация; API контроллеров; аутентификация; общая семантика транзакций HTTP; внутреннее устройство транзакций; frontend-сервисы; внешние API  
+> Область редакции: базовая клиент-серверная семантика платформы; доступность конкретных функций здесь не определяется  
+> Источники: `S1`–`S6`
 
 ## Цель
 
 Понять одну раннюю архитектурную границу:
 
 ```text
-client / caller
+клиент / вызывающая сторона
       │
       ▼
-request / RPC boundary
+граница запроса / RPC
       │
       ▼
-server-side Odoo execution
+серверное выполнение Odoo
 ```
 
-Этот урок нужен до Security, Transactions и Onchange, но не пытается заранее преподавать controllers или frontend framework.
+Этот урок нужен до безопасности, транзакций и `@api.onchange`, но не пытается заранее преподавать контроллеры или frontend framework.
 
 ---
 
-## 1. Odoo — client/server system
+## 1. Odoo — клиент-серверная система
 
-**[ODOO][S1]** Odoo architecture разделяет presentation tier и Python logic tier.
+**[ODOO][S1]** Архитектура Odoo разделяет уровень представления и уровень логики на Python.
 
-**[ODOO][S2]** Frontend documentation предоставляет RPC mechanism для запросов web client к server; для работы с models frontend рекомендует ORM service, а low-level `rpc` service — прежде всего для controller routes.
+**[ODOO][S2]** Документация frontend предоставляет RPC-механизм для запросов веб-клиента к серверу. Для работы с моделями клиент использует ORM service, а низкоуровневый `rpc` service — прежде всего для маршрутов контроллеров.
 
 Минимально:
 
 ```text
-Web client / other caller
+веб-клиент / другая вызывающая сторона
         │
         ▼
-request / RPC
+запрос / RPC
         │
         ▼
-Odoo server execution
+выполнение на сервере Odoo
 ```
 
-**[ВЫВОД]** Business method invocation в Odoo нельзя мыслить только как локальный Python function call: значимая часть user interaction пересекает client/server boundary.
+**[ВЫВОД]** Вызов бизнес-метода в Odoo нельзя мыслить только как локальный вызов Python-функции: значимая часть пользовательских действий пересекает границу клиент/сервер.
 
 ---
 
-## 2. RPC здесь — архитектурный термин, не название одного external API
+## 2. RPC здесь — архитектурное понятие, а не название одного внешнего API
 
-В Odoo 19 существуют разные RPC/request contexts.
+В Odoo 19 существует несколько контекстов запросов/RPC.
 
 Например:
 
-- web client вызывает server-side behavior;
-- frontend `orm`/`rpc` services работают через network boundary;
-- controllers имеют routes;
-- external integration APIs имеют отдельную version/product semantics.
+- веб-клиент вызывает серверное поведение;
+- клиентские `orm`/`rpc` services работают через сетевую границу;
+- контроллеры имеют маршруты;
+- внешние API интеграции имеют собственную версионную и продуктовую семантику.
 
-**[ODOO][S6]** External XML-RPC/JSON-RPC endpoints в Odoo 19 имеют собственную deprecation/version story и не должны автоматически смешиваться с controller JSON-RPC or generic client/server request semantics.
+**[ODOO][S6]** Внешние XML-RPC/JSON-RPC endpoints в Odoo 19 имеют отдельную историю версий и устаревания. Их нельзя автоматически смешивать с JSON-RPC контроллеров или общим понятием клиент-серверного запроса.
 
-**[ВЫВОД]** В этом курсе `request/RPC boundary` — общий execution concept. Конкретный external API изучается отдельно, если понадобится.
-
----
-
-## 3. Public server methods являются security boundary
-
-Security details принадлежат `SEC-01`, но архитектурный факт нужен заранее.
-
-**[ODOO][S3]** Security Reference предупреждает: public methods могут быть вызваны через RPC с caller-controlled parameters; methods с именем, начинающимся `_`, не вызываются таким же образом из action button/external API.
-
-**[ВЫВОД]** Server method, доступный через request/RPC boundary, должен рассматривать caller input как недоверенный. Полные ACL/record-rule semantics будут позже.
+**[ВЫВОД]** В этом курсе «граница запроса/RPC» — общее понятие выполнения между клиентом и сервером. Конкретные внешние API изучаются отдельно.
 
 ---
 
-## 4. Framework-managed transaction: documented RPC context
+## 3. Публичные серверные методы образуют границу безопасности
 
-Transaction semantics принадлежат `ORM-07`.
+Подробности безопасности принадлежат `SEC-01`, но архитектурный факт нужен заранее.
 
-**[ODOO][S4]** Coding Guidelines описывает framework-provided transactional context именно для **RPC calls**: cursor создаётся для call, при успешном завершении framework делает commit, при exception — rollback.
+**[ODOO][S3]** Security Reference предупреждает: публичные методы могут быть вызваны через RPC с параметрами, которые контролирует вызывающая сторона. Методы с именем, начинающимся с `_`, не вызываются таким же образом из action button или внешнего API.
 
-Здесь это только preview:
+**[ВЫВОД]** Публичный серверный метод должен считать входные параметры недоверенными. Полные правила ACL и record rules будут разобраны позже.
+
+---
+
+## 4. Транзакция, которой управляет framework: документированный RPC-контекст
+
+Полная семантика транзакций принадлежит `ORM-07`.
+
+**[ODOO][S4]** Coding Guidelines описывает транзакционный контекст, который framework предоставляет именно для **RPC-вызовов**: для вызова создаётся cursor, при успешном завершении выполняется commit, при исключении — rollback.
+
+Здесь это только предварительная модель:
 
 ```text
-RPC call
+RPC-вызов
    │
    ▼
-server execution inside framework-managed transaction
+серверное выполнение внутри транзакции,
+которой управляет framework
    │
-success / exception
+успех / исключение
    │
-   └── exact commit/rollback discipline → ORM-07
+   └── точная дисциплина commit/rollback → ORM-07
 ```
 
-**[ВЫВОД]** Документированную RPC transaction semantics нельзя заменять общей фразой «любой request автоматически имеет ровно такую же transaction model» без отдельного evidence.
+**[ВЫВОД]** Документированное поведение транзакции RPC нельзя без отдельного доказательства расширять до утверждения «любой HTTP-запрос работает абсолютно так же».
 
-Generic HTTP/controller transaction aspect будет разобран в `RUN-02` только в пределах того, что прямо подтверждает HTTP documentation.
+Общий HTTP/контроллерный аспект будет разобран в `RUN-02` только в пределах официальной документации HTTP.
 
 ---
 
-## 5. Почему Onchange зависит от этой границы
+## 5. Почему `@api.onchange` зависит от этой границы
 
-Onchange owner — `UI-03`.
+Владелец `@api.onchange` — `UI-03`.
 
-**[ODOO][S5]** ORM Reference описывает `@api.onchange` как form-view mechanism на pseudo-record; assignments возвращаются client.
+**[ODOO][S5]** ORM Reference описывает `@api.onchange` как механизм формы, работающий на псевдозаписи; изменения значений возвращаются клиенту.
 
-**[ВЫВОД]** Onchange — не просто server-side helper method. Он участвует в client/server interaction и поэтому требует сначала понимать request boundary и form views.
+**[ВЫВОД]** `@api.onchange` — не просто вспомогательный Python-метод на сервере. Он участвует в обмене клиент/сервер, поэтому до него нужно понимать границу запроса и формы.
 
 ---
 
@@ -117,24 +118,24 @@ Onchange owner — `UI-03`.
 
 Этот урок не определяет:
 
-- route decorators;
-- HTTP authentication modes;
-- JSON payload formats;
-- frontend service lifecycle;
-- external JSON-2 API;
-- exact transaction/savepoint semantics;
-- generic HTTP request transaction semantics;
-- ACL/record rules;
-- onchange pseudo-record details.
+- декораторы маршрутов;
+- режимы HTTP-аутентификации;
+- форматы JSON;
+- жизненный цикл frontend-сервисов;
+- внешний JSON-2 API;
+- точное устройство транзакций и savepoints;
+- общую семантику транзакций любого HTTP-запроса;
+- ACL и record rules;
+- подробности псевдозаписей `@api.onchange`.
 
-Owners:
+Владельцы:
 
 ```text
-RPC Transactions   → ORM-07
-Security           → SEC-01
-Onchange           → UI-03
-HTTP/controllers   → RUN-02
-Frontend services  → RUN-03
+транзакции RPC        → ORM-07
+безопасность          → SEC-01
+onchange              → UI-03
+HTTP / контроллеры    → RUN-02
+frontend-сервисы      → RUN-03
 ```
 
 ---
@@ -142,37 +143,37 @@ Frontend services  → RUN-03
 ## Минимальная модель
 
 ```text
-USER / CLIENT / CALLER
+ПОЛЬЗОВАТЕЛЬ / КЛИЕНТ / ВЫЗЫВАЮЩАЯ СТОРОНА
         │
         ▼
-REQUEST / RPC BOUNDARY
+ГРАНИЦА ЗАПРОСА / RPC
         │
         ▼
-SERVER-SIDE EXECUTION
+СЕРВЕРНОЕ ВЫПОЛНЕНИЕ
         │
-        ├── security aspect → SEC-01
-        ├── documented RPC transaction aspect → ORM-07
-        ├── HTTP/controller details → RUN-02
-        └── frontend interaction → RUN-03 / UI-03
+        ├── аспект безопасности → SEC-01
+        ├── транзакция RPC      → ORM-07
+        ├── HTTP/контроллеры    → RUN-02
+        └── frontend / onchange → RUN-03 / UI-03
 ```
 
 ## Что нельзя заключать
 
-- RPC = только legacy external XML-RPC — нет;
-- public method parameters можно автоматически доверять — нет;
-- после ARCH-04 уже изучены ACL/record rules — нет;
-- Coding Guidelines claim для RPC автоматически доказывает идентичную transaction semantics любого generic HTTP request — нет;
-- после ARCH-04 уже изучена transaction implementation — нет;
-- onchange является обычным database-record CRUD method — нет.
+- RPC = только устаревающий внешний XML-RPC — нет;
+- параметрам публичного метода можно автоматически доверять — нет;
+- после `ARCH-04` уже изучены ACL и record rules — нет;
+- описание транзакции RPC автоматически доказывает такое же поведение любого HTTP-запроса — нет;
+- после `ARCH-04` уже изучена внутренняя реализация транзакций — нет;
+- `@api.onchange` является обычным CRUD-методом записи — нет.
 
 ## Контрольные вопросы
 
-1. Что означает request/RPC boundary в архитектуре курса?
-2. Почему это шире, чем legacy external RPC API?
-3. Почему public methods создают security concern?
-4. Для какого execution context Coding Guidelines прямо описывает framework-managed transaction?
-5. Почему generic HTTP transaction semantics оставлены RUN-02?
-6. Почему Onchange нельзя полноценно изучить как изолированный Python decorator?
+1. Что означает граница запроса/RPC в архитектуре курса?
+2. Почему это понятие шире устаревающего внешнего RPC API?
+3. Почему публичные методы создают риск безопасности?
+4. Для какого контекста Coding Guidelines прямо описывает управляемую framework транзакцию?
+5. Почему общая семантика HTTP-транзакций оставлена `RUN-02`?
+6. Почему `@api.onchange` нельзя полноценно изучать как изолированный Python-декоратор?
 
 ## Официальные источники
 
