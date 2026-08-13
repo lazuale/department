@@ -36,7 +36,9 @@ RUN-01
 BUS-01
 ```
 
-`Prerequisites` записываются только этими ID. Это позволяет проверять dependency graph и менять файловую структуру без разрушения логики курса.
+`GOV` — зарезервированный **root pseudo-node**. Это не lesson и не учебная тема: он означает, что global governance уже действует. Первый урок может иметь `Prerequisites: GOV`; остальные prerequisites должны ссылаться на stable lesson IDs.
+
+Это позволяет проверять dependency graph и менять файловую структуру без разрушения логики курса.
 
 ## Владение понятиями: canonical owner и aspect owners
 
