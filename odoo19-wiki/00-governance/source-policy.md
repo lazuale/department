@@ -1,16 +1,16 @@
 # Политика источников
 
-## Scope
+## Область
 
 Для фактических утверждений используются только официальные материалы **Odoo 19.0**.
 
 Допустимые семейства источников:
 
 - Developer Reference;
-- актуальный Server Framework 101 и другие current official tutorials;
+- актуальный Server Framework 101 и другие текущие официальные tutorials;
 - Administration documentation;
 - User Documentation;
-- official Contributing / Coding Guidelines, когда речь о development/runtime conventions.
+- официальные Contributing / Coding Guidelines, когда речь идёт о правилах разработки или работы runtime.
 
 Не используются как основание курса:
 
@@ -19,55 +19,55 @@
 - Stack Overflow;
 - статьи интеграторов;
 - сторонние addons;
-- документация других версий, если claim относится к Odoo 19.0;
+- документация других версий, если утверждение относится к Odoo 19.0;
 - `saas-19.x` как замена ветке 19.0;
-- deprecated tutorial, если current Reference или Server Framework 101 покрывает тот же вопрос.
+- устаревший tutorial, если актуальные Reference или Server Framework 101 покрывают тот же вопрос.
 
-## Product scope
+## Продуктовая область
 
-Baseline курса — **Odoo 19.0 Community self-hosted**.
+Базовый контур курса — **Odoo 19.0 Community self-hosted**.
 
-Odoo Online и Odoo.sh могут изучаться позже как отдельные deployment/product contexts, но их поведение не переносится автоматически на Community self-hosted.
+Odoo Online и Odoo.sh могут изучаться позже как отдельные контексты продукта/развёртывания, но их поведение не переносится автоматически на Community self-hosted.
 
-## Приоритет по типу вопроса
+## Приоритет источников по типу вопроса
 
-### API / ORM / backend semantics
+### API / ORM / серверная семантика
 
 Основной источник: **Developer Reference**.
 
-Tutorial используется для объяснения и learning flow, но не переопределяет более точную current Reference semantics.
+Tutorial используется для объяснения и последовательности обучения, но не переопределяет более точную актуальную семантику Reference.
 
-### Архитектурная mental model
+### Архитектурная модель
 
-Основной источник: **current Server Framework 101** плюс relevant Developer Reference.
+Основной источник: **актуальный Server Framework 101** плюс релевантный Developer Reference.
 
-### Deployment / CLI / workers / server-wide loading
+### Развёртывание / CLI / workers / загрузка через `--load`
 
-Основной источник: **Administration documentation** и **Developer CLI Reference**.
+Основные источники: **Administration documentation** и **Developer CLI Reference**.
 
-### User-facing business behavior
+### Пользовательское бизнес-поведение
 
-Основной источник: **User Documentation** конкретного application/feature.
+Основной источник: **User Documentation** конкретного приложения или функции.
 
-### Development conventions / transaction discipline
+### Правила разработки / дисциплина транзакций
 
-Основной источник: official **Contributing / Coding Guidelines**, если Developer Reference не описывает вопрос полнее.
+Основной источник: официальные **Contributing / Coding Guidelines**, если Developer Reference не описывает вопрос полнее.
 
-## Если official sources различаются по детализации
+## Если официальные источники отличаются по детализации
 
-Для API semantics:
+Для семантики API действует правило:
 
 ```text
-более точный current Reference
+более точный актуальный Reference
         >
-упрощённый current Tutorial
+упрощённый актуальный Tutorial
 ```
 
-Tutorial при этом может быть лучшим источником объяснения purpose/learning sequence.
+Tutorial при этом может быть лучшим источником для объяснения назначения и порядка изучения.
 
-## Если documentation не позволяет установить факт
+## Если документация не позволяет установить факт
 
-Пишем:
+Пишем прямо:
 
 > Официальная документация Odoo 19.0 не позволяет надёжно установить это утверждение.
 
@@ -75,25 +75,25 @@ Tutorial при этом может быть лучшим источником �
 
 ## Community / Enterprise
 
-Наличие общей documentation page не является edition evidence.
+Наличие общей страницы документации не является доказательством доступности функции в конкретной редакции.
 
-Для конкретных module/feature edition evidence хранится в [edition-ledger.md](edition-ledger.md).
+Для конкретных модулей и функций доказательства по редакциям хранятся в [edition-ledger.md](edition-ledger.md).
 
-## Ограничение documentation-only
+## Ограничение режима «только документация»
 
-Current governance сознательно не использует official source code/manifests как normative evidence.
+Текущие правила сознательно не используют официальный исходный код и manifest-файлы как нормативный источник фактов.
 
 Следствие:
 
-- documented platform semantics можно изучать глубоко;
-- user-facing documented behavior можно проверять;
-- но exhaustive Community addon inventory **не гарантируется**.
+- документированную семантику платформы можно изучать глубоко;
+- документированное пользовательское поведение можно проверять;
+- но исчерпывающий технический список Community addons **не гарантируется**.
 
-Если потребуется технически полный Community whitelist, policy должна быть отдельно изменена до использования official source/manifests.
+Если потребуется полный технический перечень Community, политика должна быть отдельно изменена до использования официального исходного кода/manifest-файлов.
 
-## Source IDs в уроках
+## ID источников в уроках
 
-Каждый claim **[ODOO] обязан** иметь хотя бы один local source ID.
+Каждое утверждение **[ODOO] обязано** иметь хотя бы один локальный ID источника.
 
 ```text
 **[ODOO][S1]** ...
@@ -102,7 +102,7 @@ Current governance сознательно не использует official sou
 ### Жёсткое правило
 
 ```text
-1 source ID = 1 official documentation page
+1 ID источника = 1 страница официальной документации
 ```
 
 Недопустимо:
@@ -119,31 +119,31 @@ S4 = Security Reference
 S5 = Coding Guidelines
 ```
 
-Если один claim опирается на несколько страниц:
+Если одно утверждение опирается на несколько страниц:
 
 ```text
 **[ODOO][S3][S4]** ...
 ```
 
-Один official page может подтверждать много claims внутри lesson.
+Одна официальная страница может подтверждать много утверждений внутри урока.
 
-Для `[ВЫВОД]` source ID прямо в marker не обязателен, но supporting `[ODOO]` claims должны быть однозначно traceable.
+Для `[ВЫВОД]` ID источника прямо в метке не обязателен, но исходные утверждения `[ODOO]` должны быть однозначно прослеживаемы.
 
-## Source list урока
+## Список источников урока
 
-Внизу каждого lesson:
+Внизу каждого урока:
 
 ```text
-S1 — Exact page title
+S1 — Точное название страницы
      https://www.odoo.com/documentation/19.0/...
 
-S2 — Exact page title
+S2 — Точное название страницы
      https://www.odoo.com/documentation/19.0/...
 ```
 
-Один `S#` не может содержать два URL разных official pages.
+Один `S#` не может содержать два URL разных официальных страниц.
 
-Если несколько страниц имеют близкую тему, им всё равно назначаются разные IDs.
+Если несколько страниц посвящены близкой теме, им всё равно назначаются разные ID.
 
 ## Дата проверки
 
@@ -153,18 +153,18 @@ S2 — Exact page title
 Проверено: YYYY-MM-DD
 ```
 
-При существенной правке дата меняется только после повторной проверки ключевых claims по current Odoo 19.0 documentation.
+При существенной правке дата меняется только после повторной проверки ключевых утверждений по актуальной документации Odoo 19.0.
 
-## Coverage
+## Полнота покрытия
 
-Источниковая полнота отслеживается не количеством ссылок в lesson, а [coverage-map.md](coverage-map.md), который сопоставляет major official documentation surfaces с owner-уроками и статусами.
+Полнота источников отслеживается не количеством ссылок в уроке, а [coverage-map.md](coverage-map.md), который сопоставляет крупные разделы официальной документации с владельцами и статусами.
 
 ## Исходный код Odoo
 
-Official Odoo source code **не используется как основной источник фактов** при current policy.
+Официальный исходный код Odoo **не используется как основной источник фактов** при текущей политике.
 
-Любое изменение этого правила должно сначала изменить governance, source policy и scope evidence в edition ledger.
+Любое изменение этого правила должно сначала изменить общие правила курса, политику источников и доказательную модель в реестре редакций.
 
 ## Baseline B1
 
-После фиксации [Baseline B1](baseline.md) изменение evidence policy является изменением baseline scope и требует процедуры из `baseline.md`.
+После фиксации [Baseline B1](baseline.md) изменение политики доказательств считается изменением области baseline и требует процедуры из `baseline.md`.
