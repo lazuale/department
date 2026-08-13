@@ -1,139 +1,139 @@
-# Coverage map Odoo 19.0
+# Карта покрытия Odoo 19.0
 
 Цель этого файла — защищать курс не от дублей, а от **пропусков**.
 
-Он сопоставляет major official documentation surfaces с lesson owners и статусом покрытия.
+Он сопоставляет крупные разделы официальной документации с владельцами уроков и статусом покрытия.
 
 ## Допустимые статусы
 
-Используются только пять значений:
+Используются только пять машинно-стабильных значений:
 
-- `covered` — owner-урок существует и проверен;
-- `in progress` — owner существует, material ещё развивается;
-- `planned` — owner назначен, lesson ещё не создан;
-- `intentionally deferred` — тема сознательно отложена до prerequisites/следующей фазы;
-- `out of scope` — явно исключено baseline scope.
+- `covered` — урок-владелец существует и проверен;
+- `in progress` — владелец существует, материал ещё развивается;
+- `planned` — владелец назначен, урок ещё не создан;
+- `intentionally deferred` — тема сознательно отложена до нужных предпосылок или следующей фазы;
+- `out of scope` — тема явно исключена из текущей области курса.
 
-Нельзя создавать произвольные статусы вроде `covered at architecture level`. Частичное или aspect-specific coverage описывается в колонке `Owner / scope`.
+Нельзя создавать произвольные статусы вроде `covered at architecture level`. Частичное покрытие или отдельный аспект описывается в колонке «Владелец / область».
 
-> Coverage map не заменяет official documentation index. Перед завершением каждого крупного блока он сверяется с актуальным Odoo 19.0 Documentation.
+> Карта покрытия не заменяет индекс официальной документации. Перед завершением каждого крупного блока она сверяется с актуальной документацией Odoo 19.0.
 
-## Governance / architecture
+## Правила курса / архитектура
 
-| Official surface / concept | Owner / scope | Status |
+| Раздел документации / понятие | Владелец / область | Статус |
 |---|---|---|
 | Server Framework 101 — Architecture Overview | `ARCH-01` | covered |
-| Server Framework 101 — A New Application / addon skeleton | `ARCH-02` | covered |
+| Server Framework 101 — A New Application / базовая структура addon | `ARCH-02` | covered |
 | Module manifests | `ARCH-02` | covered |
-| CLI — addons path / database-bound lifecycle / `--load` distinction | architecture aspect `ARCH-02` | covered |
-| CLI — workers / multiprocessing / detailed runtime `--load` operation | runtime aspect `RUN-06` | planned |
-| Python package / import chain | `ARCH-03` | covered |
-| Client/server request and RPC execution boundary | `ARCH-04` | covered |
+| CLI — `addons_path`, жизненный цикл установки в базе, различие `--load` | архитектурный аспект `ARCH-02` | covered |
+| CLI — workers, multiprocessing, подробная работа `--load` | runtime-аспект `RUN-06` | planned |
+| Python-пакет / цепочка импортов | `ARCH-03` | covered |
+| граница клиент/сервер и RPC | `ARCH-04` | covered |
 
 ## Backend / ORM Reference
 
-| Official surface / concept | Owner / scope | Status |
+| Раздел документации / понятие | Владелец / область | Статус |
 |---|---|---|
-| Model / TransientModel / AbstractModel | `ORM-01` | covered |
-| records / recordsets / singleton | `ORM-01` | covered |
-| Environment — basic semantics | `ORM-01` | covered |
-| browse / exists / ensure_one / search / domain basics | `ORM-01` | covered |
-| create / read / write / unlink | `ORM-01` | covered |
-| backend model registry / per-database effective model composition | `ORM-02` | covered |
-| model technical metadata (`_name`, `_description`, `_auto`, `_table`, `_register`, `_log_access`, `_rec_name`, `_order`, hierarchy/UI-related options) | `ORM-03` | covered |
-| SQL/schema declarations: `Constraint`, `Index`, `UniqueIndex` and related model-storage semantics | `ORM-03` | covered |
-| inheritance-specific model attributes (`_inherit`, `_inherits`) | `EXT-01` | planned |
-| multi-company model attribute (`_check_company_auto`) | `EXT-04` | planned |
-| Field descriptor / generic attributes / non-relational field types / automatic and reserved fields / field storage semantics | `ORM-04` | covered |
-| field security aspect (`groups`) | `SEC-01` | planned |
-| company-dependent field semantics | `EXT-04` | planned |
-| field-level performance/index tuning | `RUN-01` | planned |
-| Many2one / One2many / Many2many / commands | `ORM-05` | planned |
-| computed / related / inverse / depends / Python constraints | `ORM-06` | planned |
-| RPC transaction / commit / rollback discipline | `ORM-07`, prerequisite `ARCH-04` | planned |
-| Environment security/company transformations | `SEC-01`, `EXT-04` aspects | planned |
-| cache / prefetch / flush / raw SQL / invalidation | `RUN-01` | planned |
-| performance guidance | `RUN-01` | planned |
-| advanced/implementation caveats | `RUN-01` or dedicated reference notes | intentionally deferred |
+| `Model` / `TransientModel` / `AbstractModel` | `ORM-01` | covered |
+| записи / `recordset` / singleton | `ORM-01` | covered |
+| `Environment` — базовая семантика | `ORM-01` | covered |
+| `browse()` / `exists()` / `ensure_one()` / `search()` / основы domain | `ORM-01` | covered |
+| `create()` / `read()` / `write()` / `unlink()` | `ORM-01` | covered |
+| серверный реестр моделей / композиция итоговой модели конкретной базы | `ORM-02` | covered |
+| технические метаданные модели (`_name`, `_description`, `_auto`, `_table`, `_register`, `_log_access`, `_rec_name`, `_order`, иерархические/UI-связанные параметры) | `ORM-03` | covered |
+| объявления SQL-схемы: `Constraint`, `Index`, `UniqueIndex` и связанные правила хранения | `ORM-03` | covered |
+| атрибуты наследования (`_inherit`, `_inherits`) | `EXT-01` | planned |
+| атрибут multi-company (`_check_company_auto`) | `EXT-04` | planned |
+| `Field`: общие параметры, несвязные типы, автоматические/зарезервированные поля, правила хранения | `ORM-04` | covered |
+| безопасность поля (`groups`) | `SEC-01` | planned |
+| `company_dependent` | `EXT-04` | planned |
+| настройка индексов/производительности на уровне поля | `RUN-01` | planned |
+| `Many2one` / `One2many` / `Many2many` / `Command` | `ORM-05` | planned |
+| вычисляемые / связанные / `inverse` / `depends` / Python-ограничения | `ORM-06` | planned |
+| транзакция RPC / `commit` / `rollback` | `ORM-07`, предпосылка `ARCH-04` | planned |
+| изменения `Environment` в аспектах безопасности и компаний | аспекты `SEC-01`, `EXT-04` | planned |
+| кэш / prefetch / `flush` / raw SQL / invalidation | `RUN-01` | planned |
+| рекомендации по производительности | `RUN-01` | planned |
+| продвинутые особенности реализации | `RUN-01` или отдельные справочные заметки | intentionally deferred |
 
-## Module data / actions / security
+## Данные модуля / действия / безопасность
 
-| Official surface / concept | Owner / scope | Status |
+| Раздел документации / понятие | Владелец / область | Статус |
 |---|---|---|
-| Data files — XML / CSV | `DATA-01` | planned |
-| external IDs / XML IDs | `DATA-01` | planned |
-| `noupdate` / data update semantics | `DATA-01` | planned |
-| Odoo module master data / demo data | `DATA-01` | planned |
-| backend actions | `UI-01` | planned |
-| menus | `UI-01` | planned |
-| access rights / groups / record rules / field access | `SEC-01` | planned |
-| unsafe public methods / RPC security aspect | `SEC-01`, prerequisite `ARCH-04` | planned |
+| файлы данных XML / CSV | `DATA-01` | planned |
+| внешние ID / XML ID | `DATA-01` | planned |
+| `noupdate` / семантика обновления данных | `DATA-01` | planned |
+| master data / demo data модуля Odoo | `DATA-01` | planned |
+| серверные действия | `UI-01` | planned |
+| меню | `UI-01` | planned |
+| права доступа / группы / record rules / доступ к полям | `SEC-01` | planned |
+| небезопасные публичные методы / RPC-аспект безопасности | `SEC-01`, предпосылка `ARCH-04` | planned |
 
-## User interface / frontend
+## Пользовательский интерфейс / frontend
 
-| Official surface / concept | Owner / scope | Status |
+| Раздел документации / понятие | Владелец / область | Статус |
 |---|---|---|
-| view records | `UI-02` | planned |
-| view architectures: form/list/search and common semantics | `UI-02` | planned |
-| `@api.onchange` / pseudo-record | `UI-03`, prerequisites `ARCH-04`, `UI-02`, `ORM-04` | planned |
-| QWeb reports / report actions | `UI-04` | planned |
-| generic/frontend QWeb templates | `RUN-03` aspect | planned |
-| HTTP controllers / routes | `RUN-02` | planned |
-| frontend RPC / ORM services | `RUN-03`, boundary canonical owner `ARCH-04` | planned |
-| Owl components | `RUN-03` | planned |
+| записи представлений | `UI-02` | planned |
+| архитектура представлений form/list/search и общая семантика | `UI-02` | planned |
+| `@api.onchange` / псевдозапись | `UI-03`, предпосылки `ARCH-04`, `UI-02`, `ORM-04` | planned |
+| QWeb-отчёты / действия отчётов | `UI-04` | planned |
+| общий/frontend QWeb | аспект `RUN-03` | planned |
+| HTTP-контроллеры / маршруты | `RUN-02` | planned |
+| frontend RPC / ORM services | `RUN-03`, каноническая граница → `ARCH-04` | planned |
+| компоненты Owl | `RUN-03` | planned |
 | frontend registries | `RUN-03` | planned |
 | frontend services / hooks / patching | `RUN-03` | planned |
 | assets | `RUN-03` | planned |
 
-## Extension mechanisms
+## Механизмы расширения
 
-| Official surface / concept | Owner / scope | Status |
+| Раздел документации / понятие | Владелец / область | Статус |
 |---|---|---|
-| model inheritance / `_inherit` / `_inherits` | `EXT-01` | planned |
-| view inheritance | `EXT-02` | planned |
+| наследование моделей / `_inherit` / `_inherits` | `EXT-01` | planned |
+| наследование представлений | `EXT-02` | planned |
 | mixins | `EXT-03` | planned |
-| multi-company guidelines / company-dependent values / consistency | `EXT-04` | planned |
+| multi-company: значения по компаниям, согласованность, рекомендации | `EXT-04` | planned |
 
-## Runtime / engineering
+## Runtime / инженерная часть
 
-| Official surface / concept | Owner / scope | Status |
+| Раздел документации / понятие | Владелец / область | Статус |
 |---|---|---|
-| Coding Guidelines — RPC transactional discipline | `ORM-07`, prerequisite `ARCH-04` | planned |
-| generic HTTP request/controller transaction aspect | `RUN-02`, only when directly documented | planned |
-| Performance reference | `RUN-01` | planned |
-| HTTP reference | `RUN-02` | planned |
+| Coding Guidelines — дисциплина транзакций RPC | `ORM-07`, предпосылка `ARCH-04` | planned |
+| общий транзакционный аспект HTTP-запросов/контроллеров | `RUN-02`, только если прямо документирован | planned |
+| Performance Reference | `RUN-01` | planned |
+| HTTP Reference | `RUN-02` | planned |
 | Testing framework | `RUN-04` | planned |
-| Upgrade scripts / upgrade utils | `RUN-05` | planned |
-| CLI / workers / multiprocessing / server-wide runtime details | `RUN-06` | planned |
-| source/package installation | `RUN-06` | planned |
-| Odoo Online-specific operations | separate future context | out of scope |
-| Odoo.sh-specific operations | separate future context | out of scope |
+| upgrade scripts / upgrade utils | `RUN-05` | planned |
+| CLI / workers / multiprocessing / server-wide runtime | `RUN-06` | planned |
+| установка из source/package | `RUN-06` | planned |
+| специфическая эксплуатация Odoo Online | отдельный будущий контекст | out of scope |
+| специфическая эксплуатация Odoo.sh | отдельный будущий контекст | out of scope |
 
-## Reports / other backend reference surfaces
+## Отчёты / другие разделы backend reference
 
-| Official surface / concept | Owner / scope | Status |
+| Раздел документации / понятие | Владелец / область | Статус |
 |---|---|---|
-| QWeb reports / report actions | `UI-04` | planned |
-| standard-module developer reference | business/domain phase | intentionally deferred |
-| external JSON-2 API | integration/runtime phase if needed | intentionally deferred |
-| legacy external XML-RPC / JSON-RPC APIs | historical/version note only unless needed | intentionally deferred |
+| QWeb-отчёты / действия отчётов | `UI-04` | planned |
+| developer reference штатных модулей | предметная/бизнес-фаза | intentionally deferred |
+| внешний JSON-2 API | интеграционная/runtime-фаза при необходимости | intentionally deferred |
+| устаревающие внешние XML-RPC / JSON-RPC API | историческая/версионная заметка при необходимости | intentionally deferred |
 
-## Business layer
+## Бизнес-слой
 
-| Official surface | Owner / scope | Status |
+| Раздел | Владелец / область | Статус |
 |---|---|---|
-| shared/system business models (`res.partner`, `res.users`, `res.company`, products, etc.) | future `10-business-model/` owners | planned |
-| user documentation by domain application | future `11-domain-apps/` owners | planned |
-| cross-application end-to-end processes | future `12-end-to-end/` owners | planned |
-| exhaustive Community addon inventory | requires source-policy change if official source manifests become necessary | intentionally deferred |
+| общие/системные модели (`res.partner`, `res.users`, `res.company`, продукты и т. п.) | будущие владельцы `10-business-model/` | planned |
+| пользовательская документация предметных приложений | будущие владельцы `11-domain-apps/` | planned |
+| сквозные процессы между приложениями | будущие владельцы `12-end-to-end/` | planned |
+| исчерпывающий технический список Community addons | требует изменения политики источников, если понадобятся официальные manifest-файлы | intentionally deferred |
 
 ## Правило завершения блока
 
 Перед тем как считать крупный блок завершённым:
 
-1. открыть актуальный official Odoo 19.0 documentation index;
-2. проверить relevant sections;
-3. каждой relevant теме назначить owner/scope и один допустимый status;
-4. неизвестные пробелы не оставлять без строки;
-5. новые owners сначала внести в `concept-ownership.md` и `course-dag.md`;
+1. открыть актуальный индекс официальной документации Odoo 19.0;
+2. проверить релевантные разделы;
+3. каждой релевантной теме назначить владельца/область и один допустимый статус;
+4. не оставлять неизвестные пробелы без строки;
+5. новых владельцев сначала внести в `concept-ownership.md` и `course-dag.md`;
 6. после Baseline B1 структурные изменения проверять по `baseline.md`.
