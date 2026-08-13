@@ -4,27 +4,39 @@
 
 ## Что здесь хранится
 
-- [Метод курса](method.md) — scope, stable IDs, dependency order и правила качества;
-- [Политика источников](source-policy.md) — official sources, приоритет и traceability;
+- [Метод курса](method.md) — scope, stable IDs и правила качества;
+- [Канонический prerequisite DAG](course-dag.md) — единственный нормативный graph зависимостей lessons;
+- [Политика источников](source-policy.md) — official sources, приоритет и строгая `[ODOO][S#]` traceability;
 - [Владение понятиями](concept-ownership.md) — canonical owner и aspect owners;
-- [Coverage map](coverage-map.md) — official documentation surface → lesson owner → status;
+- [Coverage map](coverage-map.md) — official documentation surface → owner/scope → status;
 - [Реестр редакций](edition-ledger.md) — отдельно platform edition facts и feature/module availability;
-- [Глоссарий](glossary.md) — короткий индекс терминов.
+- [Глоссарий](glossary.md) — короткий индекс терминов;
+- [Baseline B1](baseline.md) — замороженный фундамент и правила его изменения.
 
 ## Базовая модель
 
 ```text
 Source policy
       ↓
-Coverage map ─────► не даёт потерять тему
+Coverage map ───────► не даёт потерять тему
       ↓
-Concept ownership ─► не даёт определить её дважды
+Concept ownership ──► не даёт определить concept дважды
       ↓
-Stable-ID DAG ─────► не даёт использовать concept раньше prerequisite
+Course DAG ─────────► не даёт использовать concept раньше prerequisite
       ↓
 Lesson
       ↓
-Edition ledger ────► не даёт угадать Community/Enterprise
+Edition ledger ─────► не даёт угадать Community/Enterprise
 ```
+
+## Baseline status
+
+```text
+Baseline: B1
+Date:     2026-08-13
+Status:   frozen foundation
+```
+
+После B1 baseline не перестраивается из-за stylistic preference или появления очередного lesson. Основания для structural change перечислены только в `baseline.md`.
 
 Governance не должен превращаться во вторую энциклопедию Odoo.
