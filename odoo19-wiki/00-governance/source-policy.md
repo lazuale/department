@@ -41,7 +41,7 @@ Tutorial используется для объяснения и learning flow, 
 
 Основной источник: **current Server Framework 101** плюс relevant Developer Reference.
 
-### Deployment / CLI / workers / server-wide modules
+### Deployment / CLI / workers / server-wide loading
 
 Основной источник: **Administration documentation** и **Developer CLI Reference**.
 
@@ -93,23 +93,57 @@ Current governance сознательно не использует official sou
 
 ## Source IDs в уроках
 
-Каждый урок назначает локальные source IDs:
-
-```text
-S1 — ORM API
-S2 — Security Reference
-S3 — Coding Guidelines
-```
-
-Claims оформляются:
+Каждый claim **[ODOO] обязан** иметь хотя бы один local source ID.
 
 ```text
 **[ODOO][S1]** ...
 ```
 
-Один source ID может подтверждать несколько claims.
+### Жёсткое правило
 
-Для `[ВЫВОД]` source ID не обязателен прямо в marker, но supporting `[ODOO]` claims должны быть traceable.
+```text
+1 source ID = 1 official documentation page
+```
+
+Недопустимо:
+
+```text
+S3 = ORM API + Security Reference + Coding Guidelines
+```
+
+Нужно:
+
+```text
+S3 = ORM API
+S4 = Security Reference
+S5 = Coding Guidelines
+```
+
+Если один claim опирается на несколько страниц:
+
+```text
+**[ODOO][S3][S4]** ...
+```
+
+Один official page может подтверждать много claims внутри lesson.
+
+Для `[ВЫВОД]` source ID прямо в marker не обязателен, но supporting `[ODOO]` claims должны быть однозначно traceable.
+
+## Source list урока
+
+Внизу каждого lesson:
+
+```text
+S1 — Exact page title
+     https://www.odoo.com/documentation/19.0/...
+
+S2 — Exact page title
+     https://www.odoo.com/documentation/19.0/...
+```
+
+Один `S#` не может содержать два URL разных official pages.
+
+Если несколько страниц имеют близкую тему, им всё равно назначаются разные IDs.
 
 ## Дата проверки
 
@@ -123,10 +157,14 @@ Claims оформляются:
 
 ## Coverage
 
-Источниковая полнота отслеживается не количеством ссылок в уроке, а [coverage-map.md](coverage-map.md), который сопоставляет major official documentation surfaces с owner-уроками и статусами.
+Источниковая полнота отслеживается не количеством ссылок в lesson, а [coverage-map.md](coverage-map.md), который сопоставляет major official documentation surfaces с owner-уроками и статусами.
 
 ## Исходный код Odoo
 
 Official Odoo source code **не используется как основной источник фактов** при current policy.
 
 Любое изменение этого правила должно сначала изменить governance, source policy и scope evidence в edition ledger.
+
+## Baseline B1
+
+После фиксации [Baseline B1](baseline.md) изменение evidence policy является изменением baseline scope и требует процедуры из `baseline.md`.
