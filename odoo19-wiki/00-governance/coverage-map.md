@@ -21,9 +21,9 @@
 | Server Framework 101 — Architecture Overview | `ARCH-01` | covered |
 | Server Framework 101 — A New Application / addon skeleton | `ARCH-02` | covered |
 | Module manifests | `ARCH-02` | covered |
-| CLI — addons path / module lifecycle / server-wide modules | `ARCH-02`, aspect `RUN-06` | in progress |
-| Python package / import chain | `ARCH-03` | in progress |
-| Client/server request and RPC execution boundary | `ARCH-04` | planned |
+| CLI — addons path / database-bound lifecycle / server-wide `--load` distinction | `ARCH-02`, runtime aspect `RUN-06` | covered at architecture level |
+| Python package / import chain | `ARCH-03` | covered |
+| Client/server request and RPC execution boundary | `ARCH-04` | covered |
 
 ## Backend / ORM Reference
 
@@ -34,7 +34,7 @@
 | Environment — basic semantics | `ORM-01` | covered |
 | browse / exists / ensure_one / search / domain basics | `ORM-01` | covered |
 | create / read / write / unlink | `ORM-01` | covered |
-| backend model registry / per-database effective model composition | `ORM-02` | planned |
+| backend model registry / per-database effective model composition | `ORM-02` | covered |
 | field classes / attributes / storage / automatic fields | `ORM-03` | planned |
 | Many2one / One2many / Many2many / commands | `ORM-04` | planned |
 | computed / related / inverse / depends / constraints | `ORM-05` | planned |
@@ -55,7 +55,7 @@
 | backend actions | `UI-01` | planned |
 | menus | `UI-01` | planned |
 | access rights / groups / record rules / field access | `SEC-01` | planned |
-| unsafe public methods / RPC security boundary | `SEC-01`, prerequisite `ARCH-04` | planned |
+| unsafe public methods / RPC security aspect | `SEC-01`, prerequisite `ARCH-04` | planned |
 
 ## User interface / frontend
 
@@ -63,9 +63,9 @@
 |---|---|---|
 | view records | `UI-02` | planned |
 | view architectures: form/list/search and common semantics | `UI-02` | planned |
-| `@api.onchange` / pseudo-record | `UI-03` | planned |
+| `@api.onchange` / pseudo-record | `UI-03`, prerequisites `ARCH-04`, `UI-02` | planned |
 | HTTP controllers / routes | `RUN-02` | planned |
-| frontend RPC / ORM services | `RUN-03` | planned |
+| frontend RPC / ORM services | `RUN-03`, boundary canonical owner `ARCH-04` | planned |
 | Owl components | `RUN-03` | planned |
 | frontend registries | `RUN-03` | planned |
 | frontend services / hooks / patching | `RUN-03` | planned |
@@ -85,12 +85,12 @@
 
 | Official surface / concept | Lesson | Status |
 |---|---|---|
-| Coding Guidelines — transactional discipline | `ORM-06` | planned |
+| Coding Guidelines — transactional discipline | `ORM-06`, prerequisite `ARCH-04` | planned |
 | Performance reference | `RUN-01` | planned |
 | HTTP reference | `RUN-02` | planned |
 | Testing framework | `RUN-04` | planned |
 | Upgrade scripts / upgrade utils | `RUN-05` | planned |
-| CLI / workers / multiprocessing | `RUN-06` | planned |
+| CLI / workers / multiprocessing / server-wide runtime details | `RUN-06` | planned |
 | source/package installation | `RUN-06` | planned |
 | Odoo Online-specific operations | separate future context | out of scope |
 | Odoo.sh-specific operations | separate future context | out of scope |
