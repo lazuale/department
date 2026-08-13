@@ -6,8 +6,8 @@
 > Prerequisites: `ARCH-01`  
 > Canonical owner: request / RPC execution boundary  
 > Aspect owner: —  
-> Preview: public methods; transactions; controller routes; frontend ORM/RPC services  
-> Отложено: HTTP routing; controller API; authentication details; transaction internals; frontend services; external API product semantics  
+> Preview: public methods; RPC transaction semantics; controller routes; frontend ORM/RPC services  
+> Отложено: HTTP routing; controller API; authentication details; generic HTTP transaction semantics; transaction internals; frontend services; external API product semantics  
 > Edition scope: platform client/server semantics; не entitlement claim конкретного feature  
 > Sources: `S1`–`S6`
 
@@ -78,26 +78,28 @@ Security details принадлежат `SEC-01`, но архитектурны�
 
 ---
 
-## 4. Framework-managed transaction начинается вокруг execution boundary
+## 4. Framework-managed transaction: documented RPC context
 
-Transaction semantics принадлежат `ORM-06`.
+Transaction semantics принадлежат `ORM-07`.
 
-**[ODOO][S4]** Coding Guidelines описывает framework-provided transactional context для RPC calls: cursor создаётся для call, при успешном завершении framework делает commit, при exception — rollback.
+**[ODOO][S4]** Coding Guidelines описывает framework-provided transactional context именно для **RPC calls**: cursor создаётся для call, при успешном завершении framework делает commit, при exception — rollback.
 
 Здесь это только preview:
 
 ```text
-RPC/request call
-      │
-      ▼
-server execution inside framework transaction
-      │
-   success / exception
-      │
-      └── exact commit/rollback discipline → ORM-06
+RPC call
+   │
+   ▼
+server execution inside framework-managed transaction
+   │
+success / exception
+   │
+   └── exact commit/rollback discipline → ORM-07
 ```
 
-**[ВЫВОД]** Transactions в Odoo нельзя изучать как независимый PostgreSQL topic без request execution context.
+**[ВЫВОД]** Документированную RPC transaction semantics нельзя заменять общей фразой «любой request автоматически имеет ровно такую же transaction model» без отдельного evidence.
+
+Generic HTTP/controller transaction aspect будет разобран в `RUN-02` только в пределах того, что прямо подтверждает HTTP documentation.
 
 ---
 
@@ -121,13 +123,14 @@ Onchange owner — `UI-03`.
 - frontend service lifecycle;
 - external JSON-2 API;
 - exact transaction/savepoint semantics;
+- generic HTTP request transaction semantics;
 - ACL/record rules;
 - onchange pseudo-record details.
 
 Owners:
 
 ```text
-Transactions       → ORM-06
+RPC Transactions   → ORM-07
 Security           → SEC-01
 Onchange           → UI-03
 HTTP/controllers   → RUN-02
@@ -148,8 +151,8 @@ REQUEST / RPC BOUNDARY
 SERVER-SIDE EXECUTION
         │
         ├── security aspect → SEC-01
-        ├── transaction aspect → ORM-06
-        ├── controllers → RUN-02
+        ├── documented RPC transaction aspect → ORM-07
+        ├── HTTP/controller details → RUN-02
         └── frontend interaction → RUN-03 / UI-03
 ```
 
@@ -158,6 +161,7 @@ SERVER-SIDE EXECUTION
 - RPC = только legacy external XML-RPC — нет;
 - public method parameters можно автоматически доверять — нет;
 - после ARCH-04 уже изучены ACL/record rules — нет;
+- Coding Guidelines claim для RPC автоматически доказывает идентичную transaction semantics любого generic HTTP request — нет;
 - после ARCH-04 уже изучена transaction implementation — нет;
 - onchange является обычным database-record CRUD method — нет.
 
@@ -166,8 +170,9 @@ SERVER-SIDE EXECUTION
 1. Что означает request/RPC boundary в архитектуре курса?
 2. Почему это шире, чем legacy external RPC API?
 3. Почему public methods создают security concern?
-4. Почему Transactions зависят от execution boundary?
-5. Почему Onchange нельзя полноценно изучить как изолированный Python decorator?
+4. Для какого execution context Coding Guidelines прямо описывает framework-managed transaction?
+5. Почему generic HTTP transaction semantics оставлены RUN-02?
+6. Почему Onchange нельзя полноценно изучить как изолированный Python decorator?
 
 ## Официальные источники
 
