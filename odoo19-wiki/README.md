@@ -76,8 +76,9 @@ Current docs-only policy позволяет глубоко изучать docume
 - [`ORM-01` ORM Core](02-orm/01-orm-core.md)
 - [`ORM-02` Per-database model registry и composition](02-orm/02-model-registry-composition.md)
 - [`ORM-03` Model metadata, SQL storage и schema declarations](02-orm/03-model-metadata-schema.md)
+- [`ORM-04` Fields](02-orm/04-fields.md)
 
-Следующий planned owner: `ORM-04` — Fields.
+Следующий planned owner: `ORM-05` — Relations.
 
 ## Prerequisite graph
 
