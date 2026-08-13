@@ -1,102 +1,100 @@
-# ORM-03. Model metadata, SQL storage и schema declarations
+# ORM-03. Метаданные модели, SQL-хранение и объявления схемы
 
-> Lesson ID: `ORM-03`  
+> ID урока: `ORM-03`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ORM-02`  
-> Canonical owner: model technical metadata; SQL storage options; schema-level `Constraint` / `Index` / `UniqueIndex` declarations  
-> Aspect owner: migrations/schema changes → `RUN-05`; performance aspects of indexes → `RUN-01`; inheritance attributes → `EXT-01`; multi-company metadata → `EXT-04`  
-> Preview: fields; automatic/access-log fields  
-> Отложено: field taxonomy; relational fields; `_inherit`/`_inherits`; company consistency; migration mechanics; performance tuning; raw SQL  
-> Edition scope: platform ORM semantics; concrete application entitlement здесь не определяется  
-> Sources: `S1`, `S2`, `S3`
+> Предпосылки: `ORM-02`  
+> Канонический владелец: технические метаданные модели; параметры SQL-хранения; объявления `Constraint` / `Index` / `UniqueIndex` на уровне схемы  
+> Владельцы аспектов: миграции и изменение схемы → `RUN-05`; производительность индексов → `RUN-01`; атрибуты наследования → `EXT-01`; multi-company metadata → `EXT-04`  
+> Предварительно упоминается: поля; автоматические поля и журнал доступа  
+> Отложено: типы полей; поля-связи; `_inherit` / `_inherits`; согласованность компаний; миграции; настройка производительности; raw SQL  
+> Область редакции: базовая семантика ORM; доступность конкретных приложений здесь не определяется  
+> Источники: `S1`, `S2`, `S3`
 
 ## Цель
 
-После `ORM-01` мы знаем, что такое Model/recordset/Environment, а после `ORM-02` — что effective models существуют в per-database ORM context.
+После `ORM-01` мы знаем, что такое `Model`, набор записей (`recordset`) и `Environment`, а после `ORM-02` — что итоговый набор моделей формируется в контексте конкретной базы.
 
-Теперь нужно понять ещё один отдельный слой:
+Теперь нужно выделить ещё один слой:
 
 ```text
-MODEL
+МОДЕЛЬ
   │
-  ├── technical identity / metadata
-  ├── SQL persistence policy
-  ├── table-level behavior
-  └── schema declarations
+  ├── техническая идентичность и метаданные
+  ├── политика SQL-хранения
+  ├── поведение на уровне таблицы
+  └── объявления схемы
 ```
 
-Этот слой нельзя смешивать ни с field API, ни с inheritance, ни с migration tooling.
+Этот слой нельзя смешивать ни с API полей, ни с наследованием, ни с механизмами миграций.
 
 ---
 
-## 1. Model class настраивается не только fields и methods
+## 1. Модель настраивается не только полями и методами
 
-**[ODOO][S1]** ORM Reference документирует ряд model attributes, которые определяют technical identity, persistence и default behavior модели.
+**[ODOO][S1]** ORM Reference документирует ряд атрибутов модели, определяющих её техническую идентичность, хранение и стандартное поведение.
 
-**[ODOO][S2]** Server Framework 101 отдельно подчёркивает, что models настраиваются attributes в class definition, а `_name` является ключевым атрибутом модели.
-
-Минимально:
+**[ODOO][S2]** Server Framework 101 отдельно показывает настройку модели атрибутами класса; `_name` является ключевым атрибутом новой модели.
 
 ```python
 from odoo import models
 
 class Example(models.Model):
     _name = 'example.model'
-    _description = 'Example Model'
+    _description = 'Пример модели'
 ```
 
-**[ВЫВОД]** Model definition в Odoo — это не только набор `fields.*`: сама model имеет metadata/configuration attributes.
+**[ВЫВОД]** Определение модели Odoo — это не только набор `fields.*`: у самой модели есть собственные технические параметры.
 
 ---
 
-## 2. `_name` — technical model name
+## 2. `_name` — техническое имя модели
 
-**[ODOO][S1]** `_name` задаёт имя model в dot-notation / module namespace.
+**[ODOO][S1]** `_name` задаёт имя модели в точечной нотации.
 
-**[ODOO][S2]** Для новой обычной model tutorial называет `_name` обязательным и использует его как имя model в системе.
+**[ODOO][S2]** Для новой обычной модели tutorial использует `_name` как её системное имя.
 
 ```python
 _name = 'example.model'
 ```
 
-Это имя используется ORM/API как technical identity:
+Это имя используется ORM/API как технический идентификатор:
 
 ```python
 env['example.model']
 ```
 
-Из `ORM-01` уже известно, что `env['model.name']` возвращает recordset соответствующей model.
+Из `ORM-01` уже известно, что `env['model.name']` даёт доступ к соответствующей модели в текущем `Environment`.
 
-**[ВЫВОД]** `_name` — не UI label и не SQL table name как таковой. Это technical identity ORM model.
+**[ВЫВОД]** `_name` — не пользовательская подпись и не имя SQL-таблицы как таковое. Это техническая идентичность ORM-модели.
 
 ---
 
-## 3. `_description` — informal/human-readable model name
+## 3. `_description` — человекочитаемое описание модели
 
-**[ODOO][S1]** `_description` — informal name model.
+**[ODOO][S1]** `_description` задаёт неформальное имя/описание модели.
 
 ```python
-_description = 'Example Model'
+_description = 'Пример модели'
 ```
 
 Различаем:
 
 ```text
 _name
-= technical ORM identity
+= технический идентификатор ORM
 
 _description
-= informal/human-readable description
+= человекочитаемое описание
 ```
 
-**[ВЫВОД]** Нельзя использовать `_description` как replacement technical name модели.
+**[ВЫВОД]** `_description` не заменяет техническое имя модели.
 
 ---
 
-## 4. `_auto` определяет automatic table creation
+## 4. `_auto` управляет автоматическим созданием таблицы
 
-**[ODOO][S1]** Для regular `Model` `_auto` имеет значение `True`; этот атрибут определяет, должна ли ORM создавать database table автоматически.
+**[ODOO][S1]** Для обычного `Model` `_auto=True`; этот атрибут определяет, должна ли ORM автоматически создавать таблицу базы данных.
 
 При:
 
@@ -104,7 +102,7 @@ _description
 _auto = True
 ```
 
-обычная persistence model использует ORM-managed table creation.
+обычная постоянная модель использует автоматическое создание таблицы ORM.
 
 При:
 
@@ -112,63 +110,63 @@ _auto = True
 _auto = False
 ```
 
-ORM не должна автоматически создавать table; documentation указывает переопределить `init()` для создания database table, если table всё же нужна.
+ORM не создаёт таблицу автоматически. Если таблица всё же нужна, документация указывает создавать её отдельно, например через `init()`.
 
-**[ODOO][S1]** Для model без собственной table documentation рекомендует `AbstractModel`.
+**[ODOO][S1]** Если модели вообще не нужна собственная таблица, документация рекомендует рассматривать `AbstractModel`.
 
-**[ВЫВОД]** `_auto=False` не означает автоматически «эта model вообще не имеет storage». Это означает, что automatic table creation ORM отключена; дальнейшая storage strategy требует отдельного определения.
+**[ВЫВОД]** `_auto=False` не означает «у модели гарантированно нет хранения». Это означает только отключение автоматического создания таблицы ORM.
 
 ---
 
-## 5. `_table` — SQL table name, когда model использует table
+## 5. `_table` — имя SQL-таблицы
 
-**[ODOO][S1]** `_table` задаёт SQL table name, используемое model при `_auto`.
+**[ODOO][S1]** `_table` задаёт имя SQL-таблицы, которую использует модель.
 
-Минимальная граница:
+Разделяем:
 
 ```text
-ORM model name
+техническое имя ORM-модели
 _name = 'example.model'
 
-SQL persistence name
+имя SQL-таблицы
 _table = ...
 ```
 
-**[ODOO][S2]** Tutorial показывает обычный случай: достаточно объявить `_name`, после чего ORM создаёт соответствующую database table для regular model.
+**[ODOO][S2]** В обычном случае достаточно объявить `_name`, после чего ORM по своим соглашениям создаёт таблицу для постоянной модели.
 
-**[ВЫВОД]** Model name и table name связаны framework conventions, но являются разными concepts. Нельзя строить универсальную формулу:
+**[ВЫВОД]** Имя модели и имя таблицы связаны соглашениями framework, но это разные понятия. Универсальная формула
 
 ```text
-ORM model = SQL table
+ORM-модель = SQL-таблица
 ```
 
-Это уже было запрещено в `ORM-01`; здесь мы видим техническую причину глубже.
+неверна.
 
 ---
 
-## 6. `_register` — registry visibility, а не installation state
+## 6. `_register` — участие класса в регистрации модели, а не состояние установки модуля
 
-**[ODOO][S1]** `_register` относится к registry visibility; documentation также говорит, что для class, которую не следует instantiate/register как model, `_register` можно установить в `False`.
+**[ODOO][S1]** `_register` относится к регистрации класса как ORM-модели; для класса, который не должен регистрироваться как модель, значение можно установить в `False`.
 
 Это **не** то же самое, что:
 
 ```text
-module installed / not installed
+модуль установлен / не установлен
 ```
 
-и не то же самое, что database lifecycle module из `ARCH-02`.
+и не то же самое, что жизненный цикл модулей из `ARCH-02`.
 
-**[ВЫВОД]** `_register` — model-class/runtime metadata. Не используем его как surrogate module state.
+**[ВЫВОД]** `_register` — метаданные класса модели. Нельзя использовать его как замену состоянию установленного модуля.
 
-Exact internal registry mechanics остаются за пределами этого урока.
+Точная внутренняя механика реестра сознательно остаётся за пределами урока.
 
 ---
 
-## 7. `_log_access` управляет access-log fields на уровне model
+## 7. `_log_access` управляет техническим журналом доступа
 
-**[ODOO][S1]** `_log_access` определяет, должна ли ORM автоматически создавать/обновлять Access Log fields.
+**[ODOO][S1]** `_log_access` определяет, должна ли ORM автоматически создавать и обновлять поля журнала доступа.
 
-К ним относятся, например:
+К ним относятся:
 
 ```text
 create_date
@@ -177,97 +175,95 @@ write_date
 write_uid
 ```
 
-**[ODOO][S1]** Значение `_log_access` по умолчанию связано с `_auto`; для `TransientModel` `_log_access` должен быть enabled.
+**[ODOO][S1]** Значение `_log_access` по умолчанию связано с `_auto`; для `TransientModel` журнал доступа должен быть включён.
 
-**[ODOO][S2]** Tutorial показывает, что обычная persistent model получает дополнительные automatic fields в table, хотя разработчик их явно не объявлял.
+**[ODOO][S2]** Tutorial показывает, что обычная постоянная модель получает автоматические поля, даже если разработчик не объявлял их явно.
 
-Полная semantics automatic fields принадлежит `ORM-04 Fields`.
+Полная семантика автоматических полей принадлежит `ORM-04`.
 
-**[ВЫВОД]** Access-log columns — пример того, как model-level metadata влияет на physical schema без явного field declaration в конкретном class body.
+**[ВЫВОД]** Это пример того, как метаданные модели влияют на физическую схему без явного объявления каждого поля в теле класса.
 
 ---
 
-## 8. `_rec_name` определяет representative field для labeling records
+## 8. `_rec_name` задаёт основное поле для отображения записи
 
-**[ODOO][S1]** `_rec_name` задаёт field, используемый для labeling records; default — `name`.
+**[ODOO][S1]** `_rec_name` задаёт поле, используемое для наименования/отображения записей; значение по умолчанию — `name`.
 
 ```python
 _rec_name = 'code'
 ```
 
-может изменить representative field model.
-
-Важно:
+Различаем:
 
 ```text
 _rec_name
-≠
-technical model name `_name`
+= какое поле представляет запись пользователю
+
+_name
+= техническое имя самой модели
 ```
 
-**[ВЫВОД]** Technical identity модели и human-facing identity конкретного record — разные уровни.
+**[ВЫВОД]** Техническая идентичность модели и отображаемая идентичность конкретной записи — разные уровни.
 
-Exact `display_name`/field behavior будет подробно разобрано в `ORM-04`.
+`display_name` будет разобрано в `ORM-04`.
 
 ---
 
-## 9. `_order` задаёт default ordering search results
+## 9. `_order` задаёт порядок записей по умолчанию
 
-**[ODOO][S1]** `_order` задаёт default order field/expression для search results; documentation указывает default `id`.
+**[ODOO][S1]** `_order` задаёт выражение сортировки результатов по умолчанию; документация указывает стандартное значение `id`.
 
 ```python
 _order = 'name'
 ```
 
-**[ВЫВОД]** Порядок records по умолчанию — model metadata, а не свойство конкретного list view.
-
-UI может иметь свои sorting aspects позже, но default ORM ordering существует отдельно.
+**[ВЫВОД]** Порядок записей по умолчанию является метаданными модели, а не только настройкой конкретного списка в интерфейсе.
 
 ---
 
-## 10. Иерархическая metadata: `_parent_name` и `_parent_store`
+## 10. Иерархические настройки: `_parent_name` и `_parent_store`
 
-**[ODOO][S1]** `_parent_name` определяет Many2one field, используемый как parent field; default — `parent_id`.
+**[ODOO][S1]** `_parent_name` определяет поле `Many2one`, которое используется как родительское; стандартное имя — `parent_id`.
 
-**[ODOO][S1]** `_parent_store=True` вместе с `parent_path` организует indexed storage tree structure и ускоряет hierarchical domain operators `child_of` / `parent_of`.
+**[ODOO][S1]** `_parent_store=True` вместе с `parent_path` поддерживает оптимизированное хранение иерархии и ускоряет операторы домена `child_of` / `parent_of`.
 
 ```text
 _parent_name
-→ какой relation field является parent
+→ какое поле-связь является родителем
 
 _parent_store
-→ хранить optimized hierarchy path
+→ хранить оптимизированный путь иерархии
 ```
 
-Relations и domain traversal принадлежат `ORM-05`; field `parent_path` и indexing подробнее будут использованы там/в performance aspect.
+Связи и переходы в domain принадлежат `ORM-05`; производительность — `RUN-01`.
 
-**[ВЫВОД]** Tree/hierarchy behavior Odoo может включать model-level metadata и storage optimization, а не только визуальный tree widget.
+**[ВЫВОД]** Иерархическое поведение Odoo может включать метаданные модели и оптимизацию хранения, а не только визуальное дерево в интерфейсе.
 
 ---
 
-## 11. `_fold_name` — metadata для folded groups
+## 11. `_fold_name` — поле для сворачивания групп
 
-**[ODOO][S1]** `_fold_name` задаёт field, используемый для определения folded groups в kanban views; default — `fold`.
+**[ODOO][S1]** `_fold_name` задаёт поле, используемое для определения свёрнутых групп в kanban; стандартное значение — `fold`.
 
-Это хороший пример cross-layer metadata:
+Это пример связи нескольких уровней:
 
 ```text
-model attribute
+атрибут модели
       │
       ▼
-field semantics
+поле
       │
       ▼
-UI behavior
+поведение интерфейса
 ```
 
-Полная kanban/view semantics принадлежит `UI-02`.
+Полная семантика kanban и представлений принадлежит `UI-02`.
 
-**[ВЫВОД]** Не вся UI-related behavior живёт исключительно внутри XML view definitions.
+**[ВЫВОД]** Не всё поведение интерфейса задаётся исключительно XML-представлениями.
 
 ---
 
-## 12. Что сознательно не разбираем среди model attributes
+## 12. Какие атрибуты сознательно не разбираем здесь
 
 ORM Reference рядом документирует:
 
@@ -279,19 +275,19 @@ _abstract
 _transient
 ```
 
-Но ownership уже установлен:
+Но владельцы уже определены:
 
 - `_inherit` / `_inherits` → `EXT-01`;
-- company consistency / `_check_company_auto` → `EXT-04`;
-- различие `Model` / `TransientModel` / `AbstractModel` → уже `ORM-01`.
+- `_check_company_auto` и согласованность компаний → `EXT-04`;
+- различие `Model` / `TransientModel` / `AbstractModel` → `ORM-01`.
 
-**[ВЫВОД]** Наличие attribute в одном reference section не означает, что один lesson должен полностью владеть всеми его semantics.
+**[ВЫВОД]** То, что атрибуты находятся рядом на одной странице справочника, не означает, что один урок обязан владеть всей их семантикой.
 
 ---
 
-## 13. Constraints и indexes в Odoo 19 объявляются как model attributes
+## 13. Ограничения и индексы объявляются как атрибуты модели
 
-**[ODOO][S1]** ORM Reference позволяет declaratively объявлять:
+**[ODOO][S1]** ORM Reference позволяет декларативно задавать:
 
 ```text
 Constraint
@@ -299,9 +295,9 @@ Index
 UniqueIndex
 ```
 
-Имена class attributes для таких declarations должны начинаться с `_`, чтобы не конфликтовать с field names.
+Имена атрибутов класса для таких объявлений должны начинаться с `_`, чтобы не конфликтовать с именами полей.
 
-Пример из documented pattern:
+Пример:
 
 ```python
 class Example(models.Model):
@@ -309,132 +305,128 @@ class Example(models.Model):
 
     _positive = models.Constraint(
         'CHECK (amount > 0)',
-        'Amount must be positive',
+        'Сумма должна быть положительной',
     )
 
     _name_idx = models.Index('(name)')
 ```
 
-**[ODOO][S3]** Official tutorial также разделяет Python constraints и SQL/schema constraints/indexes и использует `Constraint`, `Index`, `UniqueIndex` для последних.
+**[ODOO][S3]** Официальный tutorial также разделяет Python-ограничения и ограничения/индексы SQL-схемы и использует `Constraint`, `Index`, `UniqueIndex` для последних.
 
 ---
 
-## 14. Schema constraint ≠ Python constraint
+## 14. `models.Constraint` ≠ `@api.constrains`
 
-В этом уроке owner — только schema-level declarations.
+В этом уроке рассматриваются только объявления на уровне схемы.
 
 ```text
 models.Constraint(...)
-= database/schema-level invariant declaration
+= ограничение / инвариант на уровне базы и схемы
 
 @api.constrains(...)
-= Python ORM validation method
+= метод проверки на уровне Python ORM
 ```
 
-Python constraints принадлежат `ORM-06`.
+Python-ограничения принадлежат `ORM-06`.
 
-**[ВЫВОД]** Одинаковое слово «constraint» не означает один и тот же execution mechanism.
-
-Это разграничение обязательно сохраняется дальше по курсу.
+**[ВЫВОД]** Одинаковое слово «constraint» не означает один и тот же механизм выполнения.
 
 ---
 
-## 15. `Index` и `UniqueIndex` — schema tools, не business classification
+## 15. `Index` и `UniqueIndex` — инструменты схемы
 
-**[ODOO][S1]** ORM Reference отдельно документирует index declarations наряду с constraints.
+**[ODOO][S1]** ORM Reference документирует объявления индексов рядом с ограничениями.
 
-**[ODOO][S3]** Tutorial прямо говорит, что Odoo позволяет объявлять SQL constraints и более complex SQL indexes.
+**[ODOO][S3]** Tutorial прямо показывает возможность объявлять SQL-ограничения и более сложные SQL-индексы.
 
 Минимально:
 
 ```text
 Index
-→ структура database для поиска/access patterns
+→ структура базы для ускорения определённых способов доступа
 
 UniqueIndex
-→ index с uniqueness semantics
+→ индекс с требованием уникальности
 ```
 
-Performance trade-offs индексов принадлежат `RUN-01`.
+Компромиссы производительности принадлежат `RUN-01`, а поведение при миграциях и обновлениях схемы — `RUN-05`.
 
-Migration/update behavior schema declarations принадлежит `RUN-05`.
-
-**[ВЫВОД]** Наличие index declaration в model class не означает, что текущий lesson уже определяет production indexing strategy.
+**[ВЫВОД]** Сам факт наличия `Index` в модели не означает, что стратегия индексации для production уже определена.
 
 ---
 
-## 16. Model metadata и Fields — разные owners
+## 16. Метаданные модели и поля — разные владельцы
 
-После этого урока схема должна быть такой:
+После этого урока структура должна читаться так:
 
 ```text
-MODEL CLASS
+КЛАСС МОДЕЛИ
 │
-├── model metadata / storage options       → ORM-03
+├── метаданные модели / параметры хранения       → ORM-03
 │
-├── fields / automatic fields              → ORM-04
+├── поля / автоматические поля                   → ORM-04
 │
-├── relational fields                      → ORM-05
+├── поля-связи                                    → ORM-05
 │
-├── computed / related / Python constraints→ ORM-06
+├── вычисляемые / связанные / Python-ограничения → ORM-06
 │
-└── methods / runtime behavior             → previous/later owners
+└── методы / поведение                            → предыдущие и следующие уроки
 ```
 
-**[ВЫВОД]** Это разделение защищает курс от повторного превращения «Fields» в свалку всей ORM schema semantics.
+**[ВЫВОД]** Такое разделение не даёт уроку «Поля» превратиться в свалку всей семантики ORM-схемы.
 
 ---
 
-## 17. Минимальная mental model
+## 17. Минимальная модель
 
 ```text
-                ORM MODEL
+                ORM-МОДЕЛЬ
                     │
       ┌─────────────┼─────────────┐
       │             │             │
- technical       persistence    schema
- metadata         policy        declarations
+ технические      хранение      схема
+ метаданные          │             │
       │             │             │
  _name          _auto          Constraint
  _description   _table         Index
  _rec_name      _log_access    UniqueIndex
  _order
  _register
- hierarchy/UI-related metadata
+ иерархические / UI-связанные настройки
       │
       ▼
- PostgreSQL schema + ORM runtime semantics
+ PostgreSQL-схема + поведение ORM
 ```
 
-Это conceptual map. Она не является exact internal metaclass/schema-update algorithm.
+Это концептуальная карта, а не точный алгоритм metaclass или обновления схемы.
 
 ---
 
 ## Что нельзя заключать
 
-- `_name` = SQL table name — нет;
-- `_description` = technical model identifier — нет;
-- `_auto=False` автоматически означает model без storage — нет;
-- `_register` = module installation state — нет;
-- `_order` = только list-view sorting — нет;
+- `_name` = имя SQL-таблицы — нет;
+- `_description` = технический идентификатор модели — нет;
+- `_auto=False` автоматически означает отсутствие хранения — нет;
+- `_register` = состояние установки модуля — нет;
+- `_order` = только сортировка list view — нет;
 - `_parent_store` = визуальный tree widget — нет;
 - `models.Constraint` = `@api.constrains` — нет;
-- наличие `Index` означает, что performance strategy уже определена — нет;
-- этот урок объясняет inheritance или multi-company semantics — нет.
+- наличие `Index` означает готовую стратегию производительности — нет;
+- этот урок объясняет наследование или multi-company — нет.
 
 ## Контрольные вопросы
 
 1. Чем `_name` отличается от `_description`?
 2. Что контролирует `_auto`?
 3. Что означает `_table`?
-4. Почему `_register` нельзя смешивать с module installed state?
+4. Почему `_register` нельзя смешивать с состоянием установки модуля?
 5. Что контролирует `_log_access`?
 6. Чем `_rec_name` отличается от `_name`?
 7. Что задаёт `_order`?
 8. Для чего нужны `_parent_name` и `_parent_store`?
 9. Чем `models.Constraint` отличается от `@api.constrains`?
-10. Какие schema declarations Odoo 19 документирует вместе с constraints/indexes?
-11. Почему performance и migration aspects indexes не принадлежат ORM-03?
+10. Какие объявления схемы Odoo 19 документирует вместе с ограничениями и индексами?
+11. Почему аспекты производительности и миграций индексов не принадлежат `ORM-03`?
 
 ## Официальные источники
 
