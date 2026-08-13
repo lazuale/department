@@ -1,110 +1,150 @@
 # Odoo 19 Community: архитектура и идеология
 
-Последовательный учебный курс по **Odoo 19.0 Community**.
+Последовательный учебный курс по **Odoo 19.0 Community self-hosted**.
 
 Цель — досконально понять Odoo как платформу и ERP-систему: от runtime/module/ORM architecture до штатных business models и end-to-end процессов.
 
 ## Governance
 
-Перед уроками действуют четыре обязательных правила:
+Перед уроками действуют обязательные controls:
 
-1. только официальные материалы Odoo 19.0;
-2. один owner для каждого фундаментального понятия;
-3. Community/Enterprise status не угадывается;
-4. новый уровень не использует необъяснённые prerequisites.
+1. только official Odoo 19.0 documentation;
+2. stable lesson IDs и явные prerequisites;
+3. один canonical owner concept + явные aspect owners;
+4. coverage map против пропусков;
+5. Community/Enterprise status не угадывается;
+6. новый уровень не использует необъяснённые prerequisites.
 
-Документы governance:
+Документы:
 
 - [Метод курса](00-governance/method.md)
 - [Политика источников](00-governance/source-policy.md)
 - [Владение понятиями](00-governance/concept-ownership.md)
+- [Coverage map](00-governance/coverage-map.md)
 - [Реестр редакций](00-governance/edition-ledger.md)
 - [Глоссарий](00-governance/glossary.md)
 
-## Маркировка утверждений
+## Scope
 
-- **[ODOO]** — непосредственно подтверждено official Odoo 19.0 documentation;
-- **[ВЫВОД]** — логическое следствие документированных механизмов;
-- **[ERP-КЛАССИФИКАЦИЯ]** — внешний business/ERP term, а не внутренний platform/ORM type Odoo.
+Baseline:
+
+```text
+Odoo 19.0
+Community
+self-hosted
+```
+
+Не переносятся автоматически в baseline:
+
+- Enterprise-only behavior;
+- Odoo Online-specific behavior;
+- Odoo.sh-specific behavior;
+- `saas-19.x` documentation.
+
+Current docs-only policy позволяет глубоко изучать documented semantics, но **не гарантирует exhaustive Community addon whitelist**. Для полного technical inventory может потребоваться отдельное разрешение official source/manifests через governance change.
+
+## Маркировка
+
+- **[ODOO][S#]** — claim подтверждается указанным official source урока;
+- **[ВЫВОД]** — наше логическое следствие documented mechanisms;
+- **[ERP-КЛАССИФИКАЦИЯ]** — внешний business/ERP term.
 
 ## Текущие уроки
 
-### 01. Architecture
+### Architecture
 
-- [01. Архитектурный фундамент](01-architecture/01-architecture-foundations.md)
-- [02. Модульная система](01-architecture/02-module-system.md)
-- [03. Загрузка модулей и per-database models](01-architecture/03-module-loading.md)
+- [`ARCH-01` Архитектурный фундамент](01-architecture/01-architecture-foundations.md)
+- [`ARCH-02` Модульная система](01-architecture/02-module-system.md)
+- [`ARCH-03` Python package и import chain](01-architecture/03-module-loading.md)
+- [`ARCH-04` Request / RPC execution boundary](01-architecture/04-request-rpc-boundary.md)
 
-### 02. ORM
+### ORM
 
-- [01. ORM Core](02-orm/01-orm-core.md)
+- [`ORM-01` ORM Core](02-orm/01-orm-core.md)
+- [`ORM-02` Per-database model registry и composition](02-orm/02-model-registry-composition.md)
 
-## Согласованная архитектура курса
+## Course DAG
+
+```text
+ARCH-01
+   │
+   ├──► ARCH-02 ─► ARCH-03 ─► ORM-01 ─► ORM-02 ─► ORM-03 Fields
+   │                                      │
+   └──► ARCH-04                           ├──► ORM-04 Relations
+            │                             └──► ...
+            ├──► ORM-06 Transactions
+            ├──► SEC-01 Security
+            └──► UI-03 Onchange (after UI-02 Views)
+```
+
+Full planned sequence находится в `00-governance/method.md`.
+
+## Архитектура каталогов
 
 ```text
 00-governance/
 
 01-architecture/
-    architecture foundation
-    module system
-    module loading
+    ARCH-01 foundation
+    ARCH-02 module system
+    ARCH-03 Python import chain
+    ARCH-04 request/RPC boundary
 
 02-orm/
-    ORM Core
-    Fields
-    Relations
-    Computed / related / inverse / constraints
-    Transactions
+    ORM-01 Core
+    ORM-02 registry/composition
+    ORM-03 Fields
+    ORM-04 Relations
+    ORM-05 Derived fields / constraints
+    ORM-06 Transactions
 
 03-data-security-ui/
-    Module data / external IDs / noupdate
-    Security
-    Actions and menus
-    Views
-    Onchange
+    DATA-01 Module data
+    SEC-01 Security
+    UI-01 Actions and menus
+    UI-02 Views
+    UI-03 Onchange
 
 04-extension/
-    Model inheritance
-    View inheritance
-    Mixins
-    Multi-company
+    EXT-01 Model inheritance
+    EXT-02 View inheritance
+    EXT-03 Mixins
+    EXT-04 Multi-company
 
 05-runtime/
-    Advanced ORM
-    HTTP / RPC
-    Web client / Owl / assets
-    Testing
-    Upgrades / migrations
-    Deployment / workers
+    RUN-01 Advanced ORM
+    RUN-02 HTTP / controllers
+    RUN-03 Web client / Owl / assets
+    RUN-04 Testing
+    RUN-05 Upgrades / migrations
+    RUN-06 Deployment / workers
 
 10-business-model/
 11-domain-apps/
 12-end-to-end/
 ```
 
-Эта структура разделяет платформенные понятия по владельцам и не позволяет одному каталогу `platform` превратиться в свалку всех последующих тем.
-
-## Важные терминологические границы
+## Критические терминологические границы
 
 ### Odoo module master data ≠ ERP master data
 
-Официальная Odoo documentation использует **Master Data** для data, устанавливаемых с module и необходимых для его работы, включая technical data вроде views/actions.
-
-Будущая **ERP master data** — отдельная business classification курса. Эти понятия всегда квалифицируются.
+Первое — official module-data terminology; второе — future business classification курса.
 
 ### App ≠ functional area
 
-App — user-facing Odoo module. Functional area — аналитическая business category и может складываться из нескольких modules.
+App — user-facing module. Functional area может состоять из нескольких modules.
+
+### database-bound addon ≠ любой runtime module
+
+Большинство installed addons bound to a specific database, но CLI Odoo также имеет server-wide modules через `--load`.
 
 ### Odoo server/runtime ≠ один process
 
-Odoo может работать в multiprocessing mode. При этом official tutorial отдельно показывает multi-database property одного Python process. Process architecture и database context не смешиваются.
+Process architecture и database context не смешиваются.
 
-## Community scope
+### user/company security-context ≠ data-model semantics
 
-Official custom-module examples используются для изучения architecture/framework, но **не считаются частью канонического Community ERP baseline**.
-
-Concrete module/feature попадает в Community-карту только после отдельного official edition evidence.
+`user` как security principal и `res.users` как model — разные aspects. То же относится к company context и `res.company`.
 
 ## Официальные отправные точки
 
@@ -112,6 +152,6 @@ Concrete module/feature попадает в Community-карту только п
 - Server Framework 101: https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101.html
 - ORM API: https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
 - Module Manifests: https://www.odoo.com/documentation/19.0/developer/reference/backend/module.html
-- Define module data: https://www.odoo.com/documentation/19.0/developer/tutorials/define_module_data.html
 - CLI: https://www.odoo.com/documentation/19.0/developer/reference/cli.html
+- Security: https://www.odoo.com/documentation/19.0/developer/reference/backend/security.html
 - Coding Guidelines: https://www.odoo.com/documentation/19.0/contributing/development/coding_guidelines.html
