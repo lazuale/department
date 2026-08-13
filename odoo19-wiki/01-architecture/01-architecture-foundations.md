@@ -9,7 +9,7 @@
 > Preview: module, App, model, record, UI resources  
 > Отложено: module lifecycle, imports, ORM details, workers, security, business models  
 > Edition scope: Odoo 19.0 Community self-hosted platform baseline; concrete feature entitlement не определяется здесь  
-> Sources: `S1`–`S5`
+> Sources: `S1`–`S6`
 
 ## Цель
 
@@ -46,7 +46,7 @@ PostgreSQL
 Odoo server = один Python process
 ```
 
-**[ODOO][S5]** CLI поддерживает multiprocessing mode: при `--workers > 0` используются worker subprocesses; runtime behavior зависит от server mode.
+**[ODOO][S6]** CLI поддерживает multiprocessing mode: при `--workers > 0` используются worker subprocesses; runtime behavior зависит от server mode.
 
 Минимально:
 
@@ -113,7 +113,7 @@ runtime behavior of Database X differs from Database Y
 
 ## 6. Odoo в значительной степени data-driven
 
-**[ODOO][S3][S4]** Developer documentation описывает Odoo как greatly/highly data-driven. Records/data используются не только для ordinary business rows: views, actions/menus, security/configuration и другие system resources во многом представлены data records.
+**[ODOO][S3][S5]** Developer documentation описывает Odoo как greatly/highly data-driven. Records/data используются не только для ordinary business rows: views, actions/menus, security/configuration и другие system resources во многом представлены data records.
 
 **[ODOO][S4]** Views themselves хранятся как records.
 
@@ -222,8 +222,9 @@ web client
   https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/03_basicmodel.html
 - `S3` — Data Files  
   https://www.odoo.com/documentation/19.0/developer/reference/backend/data.html
-- `S4` — View Records / Define module data  
-  https://www.odoo.com/documentation/19.0/developer/reference/user_interface/view_records.html  
+- `S4` — View Records  
+  https://www.odoo.com/documentation/19.0/developer/reference/user_interface/view_records.html
+- `S5` — Define module data  
   https://www.odoo.com/documentation/19.0/developer/tutorials/define_module_data.html
-- `S5` — Command-line interface  
+- `S6` — Command-line interface  
   https://www.odoo.com/documentation/19.0/developer/reference/cli.html
