@@ -36,9 +36,9 @@ RUN-01
 BUS-01
 ```
 
-`GOV` — зарезервированный **root pseudo-node**. Это не lesson и не учебная тема: он означает, что global governance уже действует. Первый урок может иметь `Prerequisites: GOV`; остальные prerequisites должны ссылаться на stable lesson IDs.
+`GOV` — зарезервированный **root pseudo-node**. Это не lesson и не учебная тема: он означает, что global governance уже действует.
 
-Это позволяет проверять dependency graph и менять файловую структуру без разрушения логики курса.
+Единственный нормативный prerequisite graph хранится в [course-dag.md](course-dag.md). README и текстовая последовательность курса только отображают его и не создают собственные зависимости.
 
 ## Владение понятиями: canonical owner и aspect owners
 
@@ -65,15 +65,17 @@ Environment cache aspect    → RUN-01
 
 ## Полнота и coverage
 
-Concept ownership защищает от дублей, но не от пропусков. Поэтому официальный documentation surface сопоставляется с курсом в [coverage-map.md](coverage-map.md).
+Concept ownership защищает от дублей, но не от пропусков. Поэтому official documentation surface сопоставляется с курсом в [coverage-map.md](coverage-map.md).
 
-Для каждого крупного official documentation section используется статус:
+Допустимые статусы coverage **закрыты и не расширяются произвольным текстом**:
 
 - `covered`;
 - `in progress`;
 - `planned`;
 - `intentionally deferred`;
 - `out of scope`.
+
+Если нужно указать частичное покрытие или отдельный аспект, это пишется в колонке owner/scope, а не создаётся новый status.
 
 Раздел курса нельзя считать завершённым, пока соответствующая часть coverage map не сверена с актуальным индексом Odoo 19.0 Documentation.
 
@@ -96,12 +98,26 @@ Sources: S1, S2, ...
 
 `Canonical owner` и `Aspect owner` могут быть пустыми, если урок только использует уже определённые concepts.
 
+`Prerequisites` должны соответствовать [course-dag.md](course-dag.md).
+
 ## Source traceability
 
-Claims `[ODOO]` по возможности маркируются source ID урока:
+Каждый claim **[ODOO] обязан** иметь хотя бы один local source ID:
 
 ```text
 [ODOO][S1]
+```
+
+Правило source IDs:
+
+```text
+1 source ID = 1 official documentation page
+```
+
+Если claim подтверждается несколькими страницами:
+
+```text
+[ODOO][S1][S2]
 ```
 
 Внизу урока:
@@ -111,7 +127,9 @@ S1 — ORM API — <official URL>
 S2 — Server Framework 101 — <official URL>
 ```
 
-Это не заменяет смысловую проверку источника, но делает реверификацию claims возможной без археологии по длинному списку ссылок.
+Один source page может подтверждать много claims, но один `S#` не должен объединять несколько разных pages.
+
+Для `[ВЫВОД]` source ID в marker не обязателен, но supporting `[ODOO]` claims должны быть traceable.
 
 Полная policy — в [source-policy.md](source-policy.md).
 
@@ -127,7 +145,9 @@ S2 — Server Framework 101 — <official URL>
 
 Если когда-либо потребуется доказать полный module inventory Community, допуск official Odoo source/manifests должен быть отдельным изменением governance.
 
-## Последовательность курса
+## Педагогическая последовательность курса
+
+Ниже — рекомендуемый порядок чтения. Нормативные prerequisites находятся только в `course-dag.md`.
 
 ```text
 00  Governance
@@ -141,10 +161,11 @@ S2 — Server Framework 101 — <official URL>
 02  ORM
     ORM-01   ORM Core
     ORM-02   Per-database model registry / model composition
-    ORM-03   Fields
-    ORM-04   Relations
-    ORM-05   Computed / related / inverse / constraints
-    ORM-06   Transactions
+    ORM-03   Model metadata / SQL storage / schema declarations
+    ORM-04   Fields
+    ORM-05   Relations
+    ORM-06   Computed / related / inverse / constraints
+    ORM-07   Transactions
 
 03  Data, security and UI
     DATA-01  Module data / external IDs / noupdate
@@ -152,6 +173,7 @@ S2 — Server Framework 101 — <official URL>
     UI-01    Actions and menus
     UI-02    Views
     UI-03    Onchange
+    UI-04    QWeb reports / report actions
 
 04  Extension
     EXT-01   Model inheritance
@@ -163,23 +185,36 @@ S2 — Server Framework 101 — <official URL>
     RUN-01   Advanced ORM: cache / prefetch / performance /
              flush / raw SQL / invalidation
     RUN-02   HTTP / controllers / deeper RPC
-    RUN-03   Web client / Owl / frontend registries / assets
+    RUN-03   Web client / Owl / frontend registries / assets / frontend QWeb
     RUN-04   Testing
     RUN-05   Upgrades / migrations
-    RUN-06   Deployment / workers / server-wide modules / operations
+    RUN-06   Deployment / workers / `--load` runtime mechanics / operations
 
 10  Shared business model
 11  Domain applications
 12  End-to-end ERP flows
 ```
 
-### Почему ARCH-03 больше не владеет ORM registry
+### Почему ORM-03 выделен отдельно
 
-Python import chain можно понять до ORM Core. Но `model instance`, effective model class и per-database model mapping требуют уже определённых `Model`/recordset concepts. Поэтому registry/model-composition semantics перенесены в `ORM-02`.
+ORM Reference содержит не только fields, но и technical model metadata/storage semantics: model identity/table options и schema-level declarations. Они не должны бесконтрольно расползаться между ORM Core и Fields.
+
+Поэтому:
+
+```text
+ORM-03 → model metadata / SQL storage / schema declarations
+ORM-04 → field taxonomy / field attributes / field storage semantics
+ORM-05 → relational fields
+ORM-06 → computed/related/inverse and Python constraints
+```
+
+### Почему ARCH-03 не владеет ORM registry
+
+Python import chain можно понять до ORM Core. Но `model instance`, effective model class и per-database model mapping требуют уже определённых `Model`/recordset concepts. Поэтому registry/model-composition semantics находятся в `ORM-02`.
 
 ### Почему ARCH-04 ранний
 
-Security public methods, framework-managed transactions и onchange используют request/RPC execution boundary. Поэтому базовая client/server invocation model вводится до этих тем, а подробные HTTP/controllers/frontend details остаются в RUN-02/RUN-03.
+Security public methods, documented RPC transaction semantics и onchange используют request/RPC execution boundary. Поэтому базовая client/server invocation model вводится до этих тем, а подробные HTTP/controllers/frontend details остаются в RUN-02/RUN-03.
 
 ### Почему onchange после Views
 
@@ -217,13 +252,27 @@ user-facing interface
 
 До предметной части сначала устанавливается native semantics платформы и штатных models. Только после этого оценивается применимость к business processes.
 
+## Заморозка baseline
+
+После финального аудита baseline фиксируется в [baseline.md](baseline.md).
+
+После freeze архитектура курса меняется только если появляется хотя бы одно из условий:
+
+- новое official evidence противоречит текущему baseline;
+- обнаружена фактическая внутренняя contradiction;
+- coverage audit выявил фундаментальный prerequisite, который невозможно корректно встроить без изменения DAG/ownership;
+- изменён согласованный scope/source policy.
+
+Литературная редактура, добавление новых уроков и расширение уже предусмотренных aspects **не являются основанием** для очередной перестройки baseline.
+
 ## Правило остановки
 
 Новый урок не добавляется, если предыдущий baseline:
 
-- использует prerequisite, отсутствующий в stable-ID graph;
+- использует prerequisite, отсутствующий в canonical course DAG;
 - имеет два canonical owners одного понятия;
 - содержит неподтверждённый edition claim;
 - смешивает Odoo terminology с ERP classification;
 - выдаёт implementation caveat за архитектурный фундамент;
-- оставляет relevant official documentation section без статуса в coverage map.
+- оставляет relevant official documentation section без допустимого статуса в coverage map;
+- содержит `[ODOO]` claim без однозначной source-ID traceability.
