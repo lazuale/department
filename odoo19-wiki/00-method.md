@@ -2,33 +2,34 @@
 
 ## Цель
 
-Изучить Odoo 19 Community как систему: её архитектуру, внутреннюю модель данных, способы расширения и нативную бизнес-логику. Курс не является инструкцией по настройке конкретной организации.
+Изучить **Odoo 19.0 Community** как систему: платформенную архитектуру, модульную модель, ORM, представление данных, безопасность, способы расширения и нативную ERP-логику.
+
+Курс не является инструкцией по настройке конкретной организации. Сначала устанавливается, **как Odoo устроена и почему**, и только затем — как её штатные модели применяются к предметным процессам.
 
 ## 1. Источниковая дисциплина
 
-Для фактических утверждений используются только официальные материалы Odoo 19.
+Для фактических утверждений используются только официальные материалы Odoo 19.0:
 
-Допустимые источники:
-
-- пользовательская документация Odoo 19;
-- developer tutorials Odoo 19;
-- developer reference Odoo 19;
-- administration documentation Odoo 19.
+- Odoo 19 Documentation;
+- Developer tutorials;
+- Developer reference;
+- Administration documentation.
 
 Не используются как основание курса:
 
-- блоги;
-- форумы;
-- ответы Stack Overflow;
-- сторонние модули;
+- блоги и форумы;
+- Stack Overflow;
 - статьи интеграторов;
-- документация прошлых версий, если утверждение должно описывать Odoo 19.
+- сторонние модули;
+- документация прошлых версий, если утверждение должно описывать Odoo 19.0.
+
+Если официальный материал прямо помечен Odoo как устаревший tutorial, он не используется как основной нормативный источник, если то же понятие описано в актуальном Server Framework 101 или Reference.
 
 ## 2. Community и Enterprise не смешиваются
 
-Общая документация Odoo описывает продукт в целом. Поэтому само наличие страницы в документации не доказывает доступность описанной функции в Community.
+Общая документация Odoo описывает продукт в целом. Само наличие страницы в документации не доказывает доступность функции в Community.
 
-Для каждого спорного приложения или механизма используется один из статусов:
+Для спорных приложений и функций используются три статуса:
 
 - **Community подтверждено**;
 - **Enterprise подтверждено**;
@@ -36,124 +37,130 @@
 
 Если редакция не установлена, курс не делает предположение.
 
-## 3. Разделяем техническую архитектуру и ERP-семантику
+## 3. Разделяем уровни архитектуры
 
-Нельзя смешивать внутренние типы Odoo с удобной бизнес-классификацией.
+Нельзя смешивать понятия разных уровней.
 
-Например:
+Примеры:
 
-- `Model`, `TransientModel`, `AbstractModel` — формальные типы моделей Odoo;
-- master data, transaction, reference data — аналитические категории ERP, а не классы ORM Odoo.
-
-Поэтому каждый термин в курсе должен быть понятен по уровню, на котором он используется.
+- `Model`, `TransientModel`, `AbstractModel` — формальные ORM-классы Odoo;
+- module/addon — техническая единица расширения платформы;
+- App — user-facing module, помеченный как полноценное приложение;
+- view/action/menu — механизмы пользовательского слоя;
+- master data, transaction, reference data — ERP-классификация, а не типы ORM.
 
 ## 4. Три типа утверждений
 
 ### [ODOO]
 
-То, что прямо установлено официальной документацией.
-
-Пример:
-
-> [ODOO] Обычные сохраняемые модели создаются наследованием `Model`.
+Утверждение непосредственно следует из официальной документации Odoo 19.0.
 
 ### [ВЫВОД]
 
-То, что следует из нескольких документированных фактов.
-
-Пример:
-
-> [ВЫВОД] Пользовательское приложение нельзя корректно отождествлять с одной ORM-моделью: модуль может определять несколько моделей и расширять модели других модулей.
+Логическое следствие нескольких документированных фактов, но не буквальная формулировка Odoo.
 
 ### [ERP-КЛАССИФИКАЦИЯ]
 
-Понятие, которое вводится для анализа бизнес-смысла.
+Общеархитектурный термин для анализа бизнес-смысла, не являющийся внутренним типом Odoo.
 
-Пример:
+Маркировка нужна там, где интерпретацию легко спутать с канонической терминологией продукта.
 
-> [ERP-КЛАССИФИКАЦИЯ] Product можно рассматривать как master data в конкретном предметном контуре.
+## 5. Единая последовательность курса
 
-Такая маркировка особенно важна там, где архитектурная интерпретация выглядит очевидной, но не является термином самой Odoo.
-
-## 5. Порядок изучения
-
-Курс идёт от платформы к бизнес-процессам.
+README отражает именно эту последовательность и не имеет отдельной логики курса.
 
 ```text
-Архитектура платформы
-        ↓
-Модули и зависимости
-        ↓
-ORM
-        ↓
-Models / records / recordsets
-        ↓
-Fields / relations / computed behavior
-        ↓
-Data files / external IDs
-        ↓
-Views / actions / menus
-        ↓
-Security
-        ↓
-Inheritance / mixins
-        ↓
-Multi-company
-        ↓
-Общие бизнес-модели
-        ↓
-Предметные приложения
-        ↓
-Сквозные ERP-процессы
-        ↓
-Конфигурация vs разработка
-        ↓
-Deployment и эксплуатация
+00  Метод и глоссарий
+
+01  Архитектурный фундамент
+    process / databases / three tiers / module-app-model-record
+
+02  Модульная система
+    addons_path / manifest / dependencies / lifecycle
+
+03  Загрузка модулей
+    Python package / __init__ / imports / dependency order /
+    per-database construction of available models
+
+04  ORM Core
+    Model / Recordset / Environment / browse / search /
+    domain / create / read / write / unlink
+
+05  Fields
+    basic field semantics / metadata / storage
+
+06  Relations
+    Many2one / One2many / Many2many / relational commands
+
+07  Derived behavior
+    computed / related / dependencies / inverse /
+    onchange / constraints / recomputation
+
+08  Module data
+    XML / CSV / external IDs / noupdate / load order
+
+09  Security
+    users / groups / ACL / record rules / field access
+
+10  User interface plumbing
+    actions / menus / views / domains / context
+
+11  Inheritance and extension
+    _inherit / _inherits / view inheritance / mixins /
+    cross-module extension
+
+12  Multi-company
+    allowed companies / company-bound data /
+    company-dependent values / consistency
+
+13  Advanced ORM
+    cache / prefetch / performance / transactions /
+    flush / raw SQL / invalidation / recomputation consistency
+
+14  HTTP and frontend
+    controllers / RPC / web client / Owl / assets
+
+15  Testing, upgrades and deployment
+
+16+ Shared business models, domain applications and end-to-end ERP flows
 ```
 
-Переход к следующему уровню делается только после того, как предыдущий не требует скрытых допущений.
+Переход к следующему уровню делается только после того, как предыдущий не требует необъяснённых предпосылок.
 
-## 6. Шаблон каждого урока
+## 6. Что значит «полнота урока»
 
-Каждый урок должен отвечать на одинаковый набор вопросов.
+Каждый урок должен **покрывать** следующие вопросы, но не обязан использовать их как буквальные заголовки:
 
-### Что это?
+- что это в терминах Odoo;
+- зачем механизм существует;
+- где он находится в архитектуре;
+- с чем связан;
+- что пользователь видит;
+- какие выводы делать нельзя;
+- какая минимальная модель должна остаться в голове;
+- какие официальные источники подтверждают материал.
 
-Определение в терминах Odoo.
+Это правило содержания, а не жёсткий шаблон оформления.
 
-### Зачем это существует?
+## 7. Один владелец понятия
 
-Какую архитектурную проблему механизм решает.
+Каждая фундаментальная тема имеет основной урок-владелец.
 
-### Где это находится?
+Ранний урок может упомянуть будущий механизм только настолько, насколько это необходимо для текущего объяснения, и должен явно отметить, что подробная семантика будет разобрана позже.
 
-Python, PostgreSQL, XML/CSV data, web client, configuration или комбинация уровней.
+Например:
 
-### С чем связано?
+- ORM Core может упомянуть наличие fields, но не разбирать computed fields;
+- Environment можно определить до Security, но `sudo()` подробно разбирается только после Security;
+- raw SQL не разбирается до cache, transactions и recomputation.
 
-Зависимости, ORM-relations, actions, views, security, company context, mixins.
+Это предотвращает дублирование и скрытые зависимости.
 
-### Что пользователь видит?
+## 8. Не учим Odoo через меню
 
-Как внутренний механизм проявляется в интерфейсе.
+Структура интерфейса не является надёжным описанием внутренней архитектуры.
 
-### Что нельзя из этого заключать?
-
-Типичные ложные выводы и смешение уровней.
-
-### Минимальная модель в голове
-
-Короткая схема, которую можно использовать дальше.
-
-### Официальные источники
-
-Ссылки только на Odoo 19 Documentation.
-
-## 7. Не учим Odoo через меню
-
-Структура интерфейса полезна для работы, но не является надёжным описанием внутренней архитектуры.
-
-Курс не делает вывод вида:
+Курс не делает вывод:
 
 ```text
 есть меню → существует отдельная независимая бизнес-система
@@ -162,37 +169,45 @@ Python, PostgreSQL, XML/CSV data, web client, configuration или комбин�
 Вместо этого устанавливается:
 
 ```text
-какие modules загружены
+какие modules доступны и установлены
         ↓
-какие models зарегистрированы или расширены
+какие models определены или расширены
         ↓
-какие records существуют
+какие records и configuration data существуют
         ↓
-какие actions открывают какие views
+какие actions/views/menus публикуют эту модель
         ↓
-что в результате видит пользователь
+что в итоге видит пользователь
 ```
 
-## 8. Не подгоняем Odoo под заранее выбранный процесс
-
-Во время изучения запрещено оценивать механизм только по критерию «подходит ли он нам».
+## 9. Не подгоняем Odoo под заранее выбранный процесс
 
 Сначала устанавливается:
 
 1. что механизм означает в Odoo;
 2. как он устроен;
-3. почему он связан с другими механизмами;
-4. какие ограничения заложены в его модели;
-5. и только затем — где его естественно применять.
+3. с чем связан;
+4. какие ограничения заложены в платформе или модели;
+5. где проходит граница Community/Enterprise;
+6. только затем — где механизм естественно применять.
 
-Так сохраняется нативная идеология продукта.
+## 10. Терминология
 
-## 9. Официальные исходные страницы курса
+Основные термины нормализуются в [глоссарии](glossary.md).
+
+При первом вводе используется форма:
+
+> модель (`model`)
+
+Далее в русском тексте используется русский термин, если речь не идёт о конкретном API, имени класса, manifest key или техническом идентификаторе.
+
+## 11. Официальные отправные точки
 
 - Architecture Overview: https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/01_architecture.html
 - Models and Basic Fields: https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101/03_basicmodel.html
 - ORM API: https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html
-- Building a Module: https://www.odoo.com/documentation/19.0/developer/tutorials/backend.html
-- Define module data: https://www.odoo.com/documentation/19.0/developer/tutorials/define_module_data.html
-- Actions: https://www.odoo.com/documentation/19.0/developer/reference/backend/actions.html
+- Module Manifests: https://www.odoo.com/documentation/19.0/developer/reference/backend/module.html
+- Data Files: https://www.odoo.com/documentation/19.0/developer/reference/backend/data.html
 - Security: https://www.odoo.com/documentation/19.0/developer/reference/backend/security.html
+- Actions: https://www.odoo.com/documentation/19.0/developer/reference/backend/actions.html
+- Server Framework 101: https://www.odoo.com/documentation/19.0/developer/tutorials/server_framework_101.html
