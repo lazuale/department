@@ -3,17 +3,17 @@
 > Lesson ID: `ORM-01`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ARCH-01`, `ARCH-02`, `ARCH-03`  
+> Prerequisites: `ARCH-03`  
 > Canonical owner: Model/TransientModel/AbstractModel; record/recordset/singleton; Environment basic semantics; browse/exists/ensure_one; search/basic domain; CRUD  
 > Aspect owner: —  
-> Preview: fields; relations; transactions; security context  
-> Отложено: backend model registry/composition; field taxonomy; relations; computed behavior; `sudo`; multi-company; cache/prefetch; raw SQL; transaction details  
+> Preview: model technical metadata; fields; relations; transactions; security context  
+> Отложено: backend model registry/composition; model metadata/schema; field taxonomy; relations; computed behavior; `sudo`; multi-company; cache/prefetch; raw SQL; transaction details  
 > Edition scope: platform ORM semantics  
 > Sources: `S1`, `S2`
 
 ## Цель
 
-Понять минимальный рабочий язык backend Odoo, не забегая в registry composition, fields, security, transactions и performance.
+Понять минимальный рабочий язык backend Odoo, не забегая в registry composition, model metadata/schema, fields, security, transactions и performance.
 
 ---
 
@@ -70,7 +70,14 @@ MODEL
 
 **[ВЫВОД]** `ORM model = SQL table` недостаточно как architecture explanation.
 
-Как несколько Python classes/modules составляют effective model, принадлежит `ORM-02` и `EXT-01`.
+Следующие owners разделены специально:
+
+```text
+ORM-02 → per-database registry / effective model composition
+ORM-03 → technical model metadata / SQL storage / schema declarations
+ORM-04 → field taxonomy / field semantics
+EXT-01 → inheritance mechanics
+```
 
 ---
 
@@ -138,7 +145,12 @@ record.name
 
 **[ВЫВОД]** ORM field не равен visual input/widget form view.
 
-Field taxonomy/storage принадлежат `ORM-03`.
+Model/table metadata и field semantics разделены:
+
+```text
+ORM-03 → model metadata / schema
+ORM-04 → fields
+```
 
 ---
 
@@ -227,7 +239,7 @@ Multiple plain criteria комбинируются AND; logical operators поз
 
 **[ВЫВОД]** Domain — ORM expression language, не SQL WHERE string.
 
-Relation traversal и UI domains принадлежат будущим aspect owners.
+Relation traversal и UI domains принадлежат future aspect owners.
 
 ---
 
@@ -316,7 +328,8 @@ Environment
 - domain = SQL WHERE string — нет;
 - CRUD = raw SQL — нет;
 - Environment = process-global state — нет;
-- per-database registry/model composition уже объяснены — нет.
+- per-database registry/model composition уже объяснены — нет;
+- model metadata/schema и field taxonomy уже объяснены — нет.
 
 ## Контрольные вопросы
 
@@ -330,6 +343,7 @@ Environment
 8. Что минимально содержит Environment?
 9. Что делает `env['model.name']`?
 10. Почему CRUD нельзя свести к raw SQL?
+11. Почему model metadata/schema и field semantics получили отдельные future owners?
 
 ## Официальные источники
 
