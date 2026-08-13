@@ -40,8 +40,10 @@
 | browse / exists / ensure_one / search / domain basics | `ORM-01` | covered |
 | create / read / write / unlink | `ORM-01` | covered |
 | backend model registry / per-database effective model composition | `ORM-02` | covered |
-| model technical metadata (`_name`, `_description`, `_auto`, `_table`, `_register`, `_log_access`, related options) | `ORM-03` | planned |
-| SQL/schema declarations: `Constraint`, `Index`, `UniqueIndex` and related model-storage semantics | `ORM-03` | planned |
+| model technical metadata (`_name`, `_description`, `_auto`, `_table`, `_register`, `_log_access`, `_rec_name`, `_order`, hierarchy/UI-related options) | `ORM-03` | covered |
+| SQL/schema declarations: `Constraint`, `Index`, `UniqueIndex` and related model-storage semantics | `ORM-03` | covered |
+| inheritance-specific model attributes (`_inherit`, `_inherits`) | `EXT-01` | planned |
+| multi-company model attribute (`_check_company_auto`) | `EXT-04` | planned |
 | field classes / attributes / automatic fields / field storage semantics | `ORM-04` | planned |
 | Many2one / One2many / Many2many / commands | `ORM-05` | planned |
 | computed / related / inverse / depends / Python constraints | `ORM-06` | planned |
