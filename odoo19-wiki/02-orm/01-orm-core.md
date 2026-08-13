@@ -1,28 +1,28 @@
-# ORM-01. ORM Core
+# ORM-01. Основы ORM
 
-> Lesson ID: `ORM-01`  
+> ID урока: `ORM-01`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ARCH-03`  
-> Canonical owner: Model/TransientModel/AbstractModel; record/recordset/singleton; Environment basic semantics; browse/exists/ensure_one; search/basic domain; CRUD  
-> Aspect owner: —  
-> Preview: model technical metadata; fields; relations; transactions; security context  
-> Отложено: backend model registry/composition; model metadata/schema; field taxonomy; relations; computed behavior; `sudo`; multi-company; cache/prefetch; raw SQL; transaction details  
-> Edition scope: platform ORM semantics  
-> Sources: `S1`, `S2`
+> Предпосылки: `ARCH-03`  
+> Канонический владелец: `Model` / `TransientModel` / `AbstractModel`; запись / набор записей (`recordset`) / singleton; базовая семантика `Environment`; `browse()` / `exists()` / `ensure_one()`; `search()` и базовый domain; CRUD  
+> Владельцы аспектов: —  
+> Предварительно упоминается: технические метаданные модели; поля; связи; транзакции; контекст безопасности  
+> Отложено: реестр моделей и композиция; метаданные/схема модели; типы полей; связи; вычисляемое поведение; `sudo`; multi-company; кэш/предзагрузка; raw SQL; подробности транзакций  
+> Область редакции: базовая семантика ORM-платформы  
+> Источники: `S1`, `S2`
 
 ## Цель
 
-Понять минимальный рабочий язык backend Odoo, не забегая в registry composition, model metadata/schema, fields, security, transactions и performance.
+Понять минимальный рабочий язык серверной части Odoo, не забегая вперёд в реестр моделей, схему хранения, поля, безопасность, транзакции и производительность.
 
 ---
 
-## 1. ORM — основной server-side data API
+## 1. ORM — основной серверный API работы с данными
 
-**[ODOO][S1]** ORM является ключевым компонентом Odoo framework; business objects объявляются Python classes, наследующими ORM model classes.
+**[ODOO][S1]** ORM — ключевой компонент framework Odoo; бизнес-объекты объявляются Python-классами, наследующими классы ORM-моделей.
 
 ```text
-Python model declaration
+объявление модели на Python
         │
         ▼
       Odoo ORM
@@ -31,13 +31,13 @@ Python model declaration
      PostgreSQL
 ```
 
-**[ВЫВОД]** Normal server-side business logic строится вокруг ORM models/recordsets, а manual SQL не является базовой application API model.
+**[ВЫВОД]** Нормальная серверная бизнес-логика Odoo строится вокруг ORM-моделей и наборов записей. Ручной SQL не является основной прикладной моделью API.
 
 ---
 
-## 2. Три основных model classes
+## 2. Три основных класса моделей
 
-**[ODOO][S1]** Основные ORM base classes:
+**[ODOO][S1]** Основные базовые классы ORM:
 
 ```text
 BaseModel
@@ -46,75 +46,75 @@ BaseModel
 └── AbstractModel
 ```
 
-- `Model` — regular database-persisted model superclass;
-- `TransientModel` — temporary records, stored in database and periodically vacuumed;
-- `AbstractModel` — abstract superclass for reusable behavior.
+- `Model` — обычная постоянная модель, данные которой хранятся в базе;
+- `TransientModel` — временные записи, которые хранятся в базе и периодически очищаются;
+- `AbstractModel` — абстрактный базовый класс для повторного использования поведения.
 
-**[ВЫВОД]** «Документ», «справочник», `ERP master data` и business transaction не являются альтернативными ORM base classes.
+**[ВЫВОД]** «Документ», «справочник», ERP master data и бизнес-транзакция не являются альтернативными базовыми классами ORM.
 
 ---
 
-## 3. Model — ORM concept, не просто SQL table
+## 3. Модель — понятие ORM, а не просто SQL-таблица
 
-**[ODOO][S1][S2]** Model definitions содержат fields и methods; ORM обеспечивает persistence/framework semantics.
+**[ODOO][S1][S2]** Определение модели содержит поля и методы; ORM добавляет правила хранения и поведения framework.
 
 На этом уровне достаточно:
 
 ```text
-MODEL
-├── technical identity
-├── fields
-├── methods
-└── ORM behavior
+МОДЕЛЬ
+├── техническая идентичность
+├── поля
+├── методы
+└── поведение ORM
 ```
 
-**[ВЫВОД]** `ORM model = SQL table` недостаточно как architecture explanation.
+**[ВЫВОД]** Формулы `ORM-модель = SQL-таблица` недостаточно для объяснения архитектуры.
 
-Следующие owners разделены специально:
+Следующие темы специально разделены:
 
 ```text
-ORM-02 → per-database registry / effective model composition
-ORM-03 → technical model metadata / SQL storage / schema declarations
-ORM-04 → field taxonomy / field semantics
-EXT-01 → inheritance mechanics
+ORM-02 → реестр моделей конкретной базы / композиция итоговой модели
+ORM-03 → технические метаданные модели / SQL-хранение / схема
+ORM-04 → поля
+EXT-01 → механика наследования
 ```
 
 ---
 
-## 4. Recordset — основной рабочий объект ORM
+## 4. `recordset` — основной рабочий объект ORM
 
-**[ODOO][S1]** Interactions with models and records выполняются через recordsets — ordered collections of records одной model. Model methods работают на recordset; `self` является recordset.
+**[ODOO][S1]** Работа с моделями и записями выполняется через наборы записей (`recordsets`) — упорядоченные коллекции записей одной модели. Методы модели работают на наборе записей; `self` является `recordset`.
 
 ```python
 class Example(models.Model):
     _name = 'example.model'
 
     def do_something(self):
-        # self is a recordset
+        # self — набор записей
         ...
 ```
 
 `self` может содержать:
 
 ```text
-0 records
-1 record
-N records
+0 записей
+1 запись
+N записей
 ```
 
-Implementation caveats не входят в core mental model.
+Особенности реализации, которые не нужны для базовой модели мышления, будут отложены.
 
 ---
 
-## 5. Один record — singleton recordset
+## 5. Одна запись — singleton `recordset`
 
-**[ODOO][S1]** Record не имеет отдельного explicit object representation: один record представлен recordset из одного элемента.
+**[ODOO][S1]** У отдельной записи нет второго отдельного представления объекта: одна запись представляется набором записей из одного элемента.
 
 ```text
-one record = singleton recordset
+одна запись = singleton recordset
 ```
 
-При итерации по recordset каждый `record` в цикле является singleton recordset.
+При переборе набора записей каждый `record` в цикле также является singleton `recordset`.
 
 ---
 
@@ -122,74 +122,74 @@ one record = singleton recordset
 
 **[ODOO][S1]**
 
-- `records.ids` возвращает record identifiers;
-- `records.exists()` возвращает subset существующих records;
-- `ensure_one()` проверяет singleton и иначе raises `ValueError`.
+- `records.ids` возвращает идентификаторы записей;
+- `records.exists()` возвращает подмножество реально существующих записей;
+- `ensure_one()` проверяет, что набор содержит ровно одну запись, иначе вызывает `ValueError`.
 
 ```python
 records = model.browse([7, 18, 999999])
 existing = records.exists()
 ```
 
-**[ВЫВОД]** `browse(ids)` создаёт ORM representation identifiers; это не independent existence check.
+**[ВЫВОД]** `browse(ids)` создаёт ORM-представление указанных идентификаторов. Сам по себе этот вызов не является отдельной проверкой существования записей.
 
 ---
 
-## 7. Fields — только preview
+## 7. Поля — только предварительное упоминание
 
-**[ODOO][S1]** Fields объявляются на model и доступны через recordset API.
+**[ODOO][S1]** Поля объявляются на модели и доступны через API записей.
 
 ```python
 record.name
 ```
 
-**[ВЫВОД]** ORM field не равен visual input/widget form view.
+**[ВЫВОД]** ORM-поле не равно элементу ввода или виджету формы.
 
-Model/table metadata и field semantics разделены:
+Метаданные модели и поля разделены:
 
 ```text
-ORM-03 → model metadata / schema
-ORM-04 → fields
+ORM-03 → метаданные модели / схема
+ORM-04 → поля
 ```
 
 ---
 
-## 8. Environment — runtime context ORM
+## 8. `Environment` — контекст выполнения ORM
 
-**[ODOO][S1]** Environment хранит contextual data ORM, включая:
+**[ODOO][S1]** `Environment` хранит контекстные данные ORM, включая:
 
-- `cr` — database cursor;
-- `uid` — current user id;
-- `context` — context dictionary;
-- `su` — superuser-mode state.
+- `cr` — курсор базы данных;
+- `uid` — ID текущего пользователя;
+- `context` — словарь контекста;
+- `su` — признак режима superuser.
 
-Environment также предоставляет model access по technical model name.
+`Environment` также даёт доступ к моделям по их техническому имени.
 
-Минимальная mental model:
+Минимальная модель:
 
 ```text
 Environment
-├── database cursor
-├── current user id
+├── курсор базы данных
+├── ID текущего пользователя
 ├── context
-└── superuser-state flag
+└── признак superuser-режима
 ```
 
-Security/company/cache aspects принадлежат другим owners.
+Аспекты безопасности, компании и кэша принадлежат другим урокам.
 
 ---
 
-## 9. Model access через Environment
+## 9. Доступ к модели через `Environment`
 
-**[ODOO][S1]** Mapping-like access:
+**[ODOO][S1]** Запись вида:
 
 ```python
 partners = self.env['res.partner']
 ```
 
-даёт recordset указанной model в текущем Environment.
+возвращает набор записей указанной модели в текущем `Environment`.
 
-Далее возможны:
+Далее доступны, например:
 
 ```python
 partners.browse(...)
@@ -197,16 +197,16 @@ partners.search(...)
 partners.create(...)
 ```
 
-Backend registry/per-database composition за этим access будет разобран в `ORM-02`.
+Реестр моделей и построение набора моделей конкретной базы за этим доступом будут разобраны в `ORM-02`.
 
 ---
 
 ## 10. `browse()`
 
-**[ODOO][S1]** `browse(ids)` возвращает recordset для supplied identifiers в current Environment.
+**[ODOO][S1]** `browse(ids)` возвращает набор записей для переданных идентификаторов в текущем `Environment`.
 
 ```text
-known identifiers
+известные идентификаторы
       │
       ▼
    browse()
@@ -215,13 +215,13 @@ known identifiers
   recordset
 ```
 
-`browse()` не выполняет business-criteria search.
+`browse()` не выполняет поиск по бизнес-критериям.
 
 ---
 
-## 11. `search()` и basic domain
+## 11. `search()` и базовый domain
 
-**[ODOO][S1]** `search(domain)` возвращает records model, удовлетворяющие search domain.
+**[ODOO][S1]** `search(domain)` возвращает записи модели, удовлетворяющие домену поиска.
 
 ```python
 records = self.env['example.model'].search([
@@ -229,23 +229,23 @@ records = self.env['example.model'].search([
 ])
 ```
 
-Basic criterion:
+Базовое условие:
 
 ```python
 (field_name, operator, value)
 ```
 
-Multiple plain criteria комбинируются AND; logical operators позволяют строить более сложные expressions.
+Несколько обычных условий объединяются через AND; логические операторы позволяют строить более сложные выражения.
 
-**[ВЫВОД]** Domain — ORM expression language, не SQL WHERE string.
+**[ВЫВОД]** Domain — язык выражений ORM для поиска, а не строка `SQL WHERE`.
 
-Relation traversal и UI domains принадлежат future aspect owners.
+Переходы по связям и домены в интерфейсе принадлежат следующим урокам.
 
 ---
 
 ## 12. `create()`
 
-**[ODOO][S1]** `Model.create(vals_list)` создаёт records и возвращает created recordset.
+**[ODOO][S1]** `Model.create(vals_list)` создаёт записи и возвращает набор созданных записей.
 
 ```python
 records = model.create([
@@ -254,13 +254,13 @@ records = model.create([
 ])
 ```
 
-Single dictionary также поддерживается для compatibility.
+Для совместимости поддерживается и один словарь значений.
 
 ---
 
 ## 13. `read()`
 
-**[ODOO][S1]** `read(fields)` возвращает requested values как list of dictionaries.
+**[ODOO][S1]** `read(fields)` возвращает запрошенные значения как список словарей.
 
 ```python
 values = records.read(['name', 'active'])
@@ -270,7 +270,7 @@ values = records.read(['name', 'active'])
 
 ## 14. `write()`
 
-**[ODOO][S1]** `write(vals)` обновляет все records текущего `self`.
+**[ODOO][S1]** `write(vals)` обновляет все записи текущего `self`.
 
 ```python
 records.write({'active': False})
@@ -280,21 +280,21 @@ records.write({'active': False})
 
 ## 15. `unlink()`
 
-**[ODOO][S1]** `unlink()` удаляет records current `self`.
+**[ODOO][S1]** `unlink()` удаляет записи текущего `self`.
 
-Security/business restrictions существуют, но их semantics имеют другие owners.
+Ограничения безопасности и бизнес-правила существуют, но их подробная семантика принадлежит другим урокам.
 
 ---
 
-## 16. CRUD не равен raw SQL
+## 16. CRUD не равен ручному SQL
 
 ```text
-ORM create/read/write/unlink
+ORM create / read / write / unlink
         ≠
-manual INSERT/SELECT/UPDATE/DELETE
+ручные INSERT / SELECT / UPDATE / DELETE
 ```
 
-**[ВЫВОД]** ORM operations выполняются внутри model/environment/framework semantics. Transactions, security, computed behavior и cache будут добавлены следующими layers.
+**[ВЫВОД]** ORM-операции выполняются внутри правил модели, `Environment` и framework. Транзакции, безопасность, вычисляемое поведение и кэш будут добавлены следующими слоями курса.
 
 ---
 
@@ -316,34 +316,34 @@ Environment
               ▼
           recordset
               │
-       read/write/unlink
+       read / write / unlink
 ```
 
 ## Что нельзя заключать
 
-- `self` всегда один record — нет;
-- `browse(id)` проверяет existence — нет;
-- model = SQL table — нет;
-- field = form widget — нет;
-- domain = SQL WHERE string — нет;
-- CRUD = raw SQL — нет;
-- Environment = process-global state — нет;
-- per-database registry/model composition уже объяснены — нет;
-- model metadata/schema и field taxonomy уже объяснены — нет.
+- `self` всегда содержит одну запись — нет;
+- `browse(id)` проверяет существование записи — нет;
+- модель = SQL-таблица — нет;
+- поле = виджет формы — нет;
+- domain = строка `SQL WHERE` — нет;
+- CRUD = ручной SQL — нет;
+- `Environment` = глобальное состояние процесса — нет;
+- реестр моделей конкретной базы уже объяснён — нет;
+- метаданные модели, схема и типы полей уже объяснены — нет.
 
 ## Контрольные вопросы
 
-1. Какие три base model classes используются ORM?
-2. Что такое recordset?
-3. Почему one record — singleton recordset?
+1. Какие три базовых класса моделей использует ORM?
+2. Что такое `recordset`?
+3. Почему одна запись является singleton `recordset`?
 4. Что делает `ensure_one()`?
 5. Чем `browse()` отличается от `search()`?
 6. Зачем нужен `exists()`?
-7. Что такое basic domain criterion?
-8. Что минимально содержит Environment?
+7. Что такое базовое условие domain?
+8. Что минимально содержит `Environment`?
 9. Что делает `env['model.name']`?
-10. Почему CRUD нельзя свести к raw SQL?
-11. Почему model metadata/schema и field semantics получили отдельные future owners?
+10. Почему CRUD нельзя свести к ручному SQL?
+11. Почему метаданные модели/схема и поля вынесены в отдельные уроки?
 
 ## Официальные источники
 
