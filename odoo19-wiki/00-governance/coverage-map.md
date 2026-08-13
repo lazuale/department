@@ -49,8 +49,10 @@
 | `company_dependent` | `EXT-04` | planned |
 | настройка индексов/производительности на уровне поля | `RUN-01` | planned |
 | `Many2one` / `One2many` / `Many2many` / `Command` | `ORM-05` | covered |
-| переходы `domain` по связям, `any` / `not any`, `child_of` / `parent_of` | `ORM-05`; security-аспект `any!` → `SEC-01` | covered |
-| вычисляемые / связанные / `inverse` / `depends` / Python-ограничения | `ORM-06` | planned |
+| переходы `domain` по связям, `any` / `not any`, `child_of` / `parent_of` | `ORM-05`; аспект безопасности `any!` → `SEC-01` | covered |
+| вычисляемые поля: `compute`, `@api.depends`, `@api.depends_context`, `store`, `search`, `inverse`, `precompute`, `compute_sudo`, `recursive` | `ORM-06`; безопасность `compute_sudo` → `SEC-01`; производительность перевычисления → `RUN-01` | covered |
+| связанные поля `related`: цепочки, перенос атрибутов, сохранение, зависимости и ограничения `One2many`/`Many2many` | `ORM-06` | covered |
+| Python-ограничения `@api.constrains` | `ORM-06`; транзакционный аспект исключения → `ORM-07` | covered |
 | транзакция RPC / `commit` / `rollback` | `ORM-07`, предпосылка `ARCH-04` | planned |
 | изменения `Environment` в аспектах безопасности и компаний | аспекты `SEC-01`, `EXT-04` | planned |
 | кэш / prefetch / `flush` / raw SQL / invalidation | `RUN-01` | planned |
