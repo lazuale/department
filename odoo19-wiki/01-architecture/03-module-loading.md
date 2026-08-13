@@ -3,7 +3,7 @@
 > Lesson ID: `ARCH-03`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ARCH-01`, `ARCH-02`  
+> Prerequisites: `ARCH-02`  
 > Canonical owner: Python package / `__init__.py` import chain  
 > Aspect owner: —  
 > Preview: Python model declarations  
