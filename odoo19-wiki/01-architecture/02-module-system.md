@@ -4,7 +4,7 @@
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
 > Prerequisites: `ARCH-01`  
-> Canonical owner: module/addon; App; `addons_path`; manifest; dependencies; `auto_install`; module lifecycle; server-wide module distinction  
+> Canonical owner: module/addon; App; `addons_path`; manifest; dependencies; `auto_install`; module lifecycle; server-wide loading distinction  
 > Aspect owner: runtime details `--load` → `RUN-06`  
 > Preview: Python import chain; module data  
 > Отложено: imports; external IDs; inheritance; migrations; exact worker/runtime behavior  
@@ -13,15 +13,17 @@
 
 ## Цель
 
-Понять module как техническую единицу композиции Odoo и не смешивать:
+Понять module как техническую единицу композиции Odoo и различать **две независимые оси**:
 
 ```text
-addon code доступен server
-        ≠
-database-bound module установлен в Database X
-        ≠
-server-wide module загружен runtime через --load
+A. database installation state
+   module installed / not installed in Database X
+
+B. runtime loading state
+   module may be loaded server-wide through --load
 ```
+
+Эти оси **не являются взаимоисключающими классами modules**.
 
 ---
 
@@ -127,7 +129,7 @@ Odoo module
         module_c
 ```
 
-**[ВЫВОД]** Database-bound installed configuration формируется dependency graph modules, а не плоским списком Apps.
+**[ВЫВОД]** Database-installed configuration формируется dependency graph modules, а не плоским списком Apps.
 
 ---
 
@@ -148,9 +150,11 @@ Python imports внутри одного addon package — другой mechanis
 
 ## 9. `base`
 
-**[ODOO][S3]** `base` всегда установлен в Odoo instance/database context согласно manifest reference.
+**[ODOO][S3]** `base` всегда установлен согласно manifest reference.
 
 **[ВЫВОД]** `base` — platform foundation module, но не business parent всех records.
+
+Важно: тот же `base` входит в default `--load` вместе с `web` по CLI documentation. Это наглядно показывает, что **database installation state и server-wide loading state могут пересекаться**.
 
 ---
 
@@ -173,7 +177,7 @@ Module A       Module B
 
 **[ODOO][S3]** Manifest `data` и `demo` перечисляют data files module.
 
-В документации термин **master data** имеет отдельный Odoo module-data смысл. Полное определение принадлежит `DATA-01`.
+В documentation термин **master data** имеет отдельный Odoo module-data смысл. Полное определение принадлежит `DATA-01`.
 
 > Здесь достаточно помнить: `Odoo module master data` не следует автоматически читать как `ERP master data`.
 
@@ -181,9 +185,9 @@ Module A       Module B
 
 ---
 
-## 12. Основная database-bound lifecycle model
+## 12. Database installation lifecycle
 
-Для большинства addons полезна модель:
+Для большинства addons relevant отдельная database installation axis:
 
 ```text
 addon code находится в searchable addons_path
@@ -195,7 +199,7 @@ Odoo может обнаружить/показать module
 module installed in Database X
 ```
 
-**[ODOO][S4][S5]** Apps List обновляет обнаруживаемые modules; install/update operations работают с выбранной database.
+**[ODOO][S4][S5]** Apps List обновляет обнаруживаемые modules; install/update operations работают с выбранной database context.
 
 **[ВЫВОД]** Не вводим отдельную фундаментальную сущность между «Odoo обнаружила addon» и «module доступен к install», если documentation не требует такого concept.
 
@@ -205,35 +209,35 @@ module installed in Database X
 
 **[ODOO][S4][S5]** Odoo поддерживает install, upgrade и uninstall module operations.
 
-- install вводит database-bound module и dependencies в installed configuration;
+- install вводит module и dependencies в installed configuration database;
 - upgrade применяет обновлённую module/data version;
 - uninstall удаляет module из installed configuration и может затрагивать связанные records/dependencies.
 
-**[ВЫВОД]** Lifecycle — изменение database configuration/data, а не UI toggle.
+**[ВЫВОД]** Database module lifecycle — изменение database configuration/data, а не UI toggle.
 
 ---
 
-## 14. Важное исключение: server-wide modules
+## 14. Отдельная runtime axis: `--load`
 
-**[ODOO][S5]** CLI option `--load` задаёт **server-wide modules**. Documentation прямо говорит, что они предоставляют features, не обязательно связанные с конкретной database, в отличие от modules, которые устанавливаются и привязаны к specific database; последние составляют большинство Odoo addons. Default `--load` — `base,web`.
+**[ODOO][S5]** CLI option `--load` задаёт **server-wide modules** и по умолчанию содержит `base,web`. Documentation противопоставляет этот runtime mechanism большинству addons, которые устанавливаются и привязываются к specific database.
 
-Поэтому нельзя превращать правило:
+Это не означает, что Odoo modules делятся на два непересекающихся множества.
 
-```text
-module → installed in database
-```
-
-в универсальное описание всех runtime modules.
-
-Минимально:
+Правильная mental model:
 
 ```text
-majority of addons
-→ database-bound when installed
-
-server-wide modules
-→ runtime-level loading via --load
+MODULE X
+│
+├── database aspect
+│      └── installed / not installed in Database A, B, ...
+│
+└── runtime aspect
+       └── may / may not participate in server-wide --load
 ```
+
+`base` показывает пересечение этих аспектов: он документирован как always installed и одновременно входит в default `--load`.
+
+**[ВЫВОД]** `--load` — отдельный runtime loading mechanism, а не альтернативный mutually-exclusive edition/type module.
 
 Exact runtime implications принадлежат `RUN-06`.
 
@@ -250,19 +254,17 @@ Exact runtime implications принадлежат `RUN-06`.
 ## Минимальная модель
 
 ```text
-filesystem
-   │
-addons_path
-   │
-discoverable addon
-   │
-__manifest__.py
-   │
-module dependencies
-   │
-   ├── majority → installed per database
-   └── special server-wide modules → --load runtime path
+filesystem / addons_path
+        │
+        ▼
+discoverable addon + manifest/dependencies
+        │
+        ├── database axis → install / upgrade / uninstall per DB
+        │
+        └── runtime axis  → server-wide loading via --load when configured
 ```
+
+Оси могут пересекаться.
 
 ## Что нельзя заключать
 
@@ -270,7 +272,7 @@ module dependencies
 - App = любой module — нет;
 - Apps dashboard = complete architecture — нет;
 - dependency = Python import — нет;
-- каждый module обязательно database-bound — нет;
+- `--load` modules и database-installed modules образуют два непересекающихся класса — нет;
 - `master data` всегда означает ERP master data — нет;
 - Enterprise = independent server engine — нет.
 
@@ -278,13 +280,14 @@ module dependencies
 
 1. Что такое module/addon?
 2. Что делает `addons_path`?
-3. Какие два files current tutorial требует для минимального addon shell?
+3. Какие два files current tutorial требует для minimal addon shell?
 4. Какую роль выполняет manifest?
 5. Чем App отличается от module?
 6. Почему dependencies образуют graph?
 7. Что такое link module?
-8. Как выглядит упрощённый database-bound lifecycle?
-9. Чем server-wide modules через `--load` отличаются от большинства installed addons?
+8. Как выглядит database installation lifecycle?
+9. Что задаёт `--load`?
+10. Почему database installation и server-wide loading являются разными, потенциально пересекающимися axes?
 
 ## Официальные источники
 
