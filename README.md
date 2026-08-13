@@ -9,7 +9,9 @@
 **[Рабочие сценарии →](docs/02-scripts.md)**  
 **[Контроль и аналитика →](docs/03-control.md)**  
 **[Click-only пилот →](docs/06-workspace.md)**  
-**[Master data: люди →](docs/17-master-data-people.md)**
+**[Реестр master data →](docs/19-master-data.md)**  
+**[Master data: люди →](docs/24-master-data-people.md)**  
+**[Master data: техника и оборудование →](docs/25-master-data-assets.md)**
 
 ## Три слоя
 
@@ -50,23 +52,37 @@
 → выполнение и контроль
 ```
 
-Примеры предметных моделей текущего контура:
+Согласованные предметные модели текущего контура:
 
 ```text
-Contacts    → сотрудники компании / люди
-Fleet       → ТС, если модель подходит реальному парку
-Maintenance → оборудование / обслуживание при необходимости
-Inventory   → serial / lot / location / movement при необходимости
-```
+Люди / сотрудники
+→ res.partner
 
-Для людей отдельно зафиксировано:
+Доступ в Odoo
+→ res.users, связанный с тем же res.partner
 
-```text
-человек / сотрудник компании → res.partner
-доступ в Odoo                → res.users, связанный с тем же res.partner
+Самосвалы + строительная техника + малая механизация
+→ fleet.vehicle
+
+Сканирующие рамки объёма
+→ maintenance.equipment
+
+Терминал Nobilis как комплект
+→ stock.package
+
+Тип комплектующей Nobilis
+→ product.product
+
+Конкретная комплектующая / Serial Number
+→ stock.lot
+
+Местонахождение и движение Nobilis
+→ stock.location / stock.quant / stock.move / stock.move.line
 ```
 
 Employees / HR не входит в текущий baseline только ради справочника сотрудников.
+
+Подробные решения ведутся в [реестре master data](docs/19-master-data.md). Технические исследования не считаются принятыми решениями автоматически.
 
 Task хранит работу:
 
@@ -102,13 +118,15 @@ Chatter
 
 Odoo 19 Properties поддерживают relational-типы.
 
-Поэтому сначала проверяется штатная click-only связь:
+Поэтому сначала проверяется штатная click-only связь с уже выбранной предметной моделью:
 
 ```text
 Property[ТС]           → Many2one(fleet.vehicle)
 Property[Сотрудник]    → Many2one(res.partner)
-Property[Оборудование] → Many2one(maintenance.equipment)
+Property[Рамка]        → Many2one(maintenance.equipment)
 ```
+
+Для Inventory-объектов Nobilis способ связи с Task определяется конкретным процессом; источник истины по комплекту, серийным частям, местонахождению и движениям остаётся в Stock.
 
 Источник истины остаётся в предметной модели. Task не копирует справочник.
 
@@ -248,11 +266,13 @@ Domain relational Property помогает выбирать records, но не 
 - [04 — Шаблоны](docs/04-templates.md)
 - [05 — Описание процессов](docs/05-processes.md)
 - [06 — Настройка пилота](docs/06-workspace.md)
-- [17 — Master data: люди](docs/17-master-data-people.md)
+- [19 — Реестр master data](docs/19-master-data.md)
+- [24 — Master data: люди](docs/24-master-data-people.md)
+- [25 — Master data: техника и оборудование](docs/25-master-data-assets.md)
 
 ### Технические аудиты
 
-Документы `07–16` фиксируют результаты углублённой проверки возможностей, ограничений, модулей и runtime-гипотез. Они являются техническим приложением и **не задают организационные правила работы по умолчанию**, если нормативный слой уже зафиксировал конкретное решение.
+Документы `07–16` и `20–23` фиксируют результаты углублённой проверки возможностей, ограничений, модулей и runtime-гипотез. Они являются техническим приложением и **не задают организационные правила работы по умолчанию**, если нормативный слой уже зафиксировал конкретное решение.
 
 ## Где хранится что
 
