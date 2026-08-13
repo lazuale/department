@@ -1,64 +1,64 @@
 # ARCH-02. Модульная система Odoo
 
-> Lesson ID: `ARCH-02`  
+> ID урока: `ARCH-02`  
 > Версия: Odoo 19.0  
 > Проверено: 2026-08-13  
-> Prerequisites: `ARCH-01`  
-> Canonical owner: module/addon; App; `addons_path`; manifest; dependencies; `auto_install`; module lifecycle; server-wide loading distinction  
-> Aspect owner: runtime details `--load` → `RUN-06`  
-> Preview: Python import chain; module data  
-> Отложено: imports; external IDs; inheritance; migrations; exact worker/runtime behavior  
-> Edition scope: platform semantics; concrete module availability фиксируется отдельно  
-> Sources: `S1`–`S5`
+> Предпосылки: `ARCH-01`  
+> Канонический владелец: модуль/addon; App; `addons_path`; manifest; зависимости; `auto_install`; жизненный цикл модуля; загрузка через `--load`  
+> Владельцы аспектов: подробности runtime для `--load` → `RUN-06`  
+> Предварительно упоминается: цепочка Python-импортов; данные модуля  
+> Отложено: импорты; внешние ID; наследование; миграции; точное поведение workers/runtime  
+> Область редакции: семантика платформы; доступность конкретных модулей определяется отдельно  
+> Источники: `S1`–`S5`
 
 ## Цель
 
-Понять module как техническую единицу композиции Odoo и различать **две независимые оси**:
+Понять модуль как техническую единицу композиции Odoo и различать **две независимые оси**:
 
 ```text
-A. database installation state
-   module installed / not installed in Database X
+A. состояние в конкретной базе
+   модуль установлен / не установлен в Базе X
 
-B. runtime loading state
-   module may be loaded server-wide through --load
+B. загрузка на уровне runtime
+   модуль может быть загружен на уровне сервера через --load
 ```
 
-Эти оси **не являются взаимоисключающими классами modules**.
+Это **не два взаимоисключающих класса модулей**.
 
 ---
 
-## 1. Module и addon
+## 1. Модуль и addon
 
-**[ODOO][S1]** Server/client extensions Odoo packaged as modules; в документации также используется термин addon.
+**[ODOO][S1]** Расширения серверной и клиентской части Odoo упаковываются в модули; документация также использует термин addon.
 
-Module может содержать business objects, views, data, controllers, static web data или только часть этих элементов.
+Модуль может содержать бизнес-объекты, представления, данные, контроллеры, статические веб-ресурсы или только часть этих элементов.
 
-**[ВЫВОД]** Module не обязан создавать отдельную model, table, menu или business domain.
+**[ВЫВОД]** Модуль не обязан создавать отдельную модель, таблицу, меню или предметную область.
 
 ---
 
 ## 2. `addons_path`
 
-**[ODOO][S5]** `--addons-path` задаёт directories, которые Odoo scans for modules.
+**[ODOO][S5]** Параметр `--addons-path` задаёт каталоги, которые Odoo просматривает в поисках модулей.
 
 ```text
-Odoo runtime
+runtime Odoo
    │
    └── addons_path
-        ├── dir A
+        ├── каталог A
         │    ├── module_x/
         │    └── module_y/
-        └── dir B
+        └── каталог B
              └── module_z/
 ```
 
-**[ВЫВОД]** Наличие directory где-то на filesystem не означает, что Odoo рассматривает его как addon: его parent directory должен находиться в configured addon search path.
+**[ВЫВОД]** Наличие каталога модуля где-то на диске не означает, что Odoo его увидит: родительский каталог должен входить в настроенный путь поиска addons.
 
 ---
 
-## 3. Minimal addon skeleton
+## 3. Минимальная структура addon
 
-**[ODOO][S2]** Current Server Framework 101 вводит минимальный addon shell с двумя files:
+**[ODOO][S2]** Current Server Framework 101 начинает addon как минимум с двух файлов:
 
 ```text
 module/
@@ -66,58 +66,58 @@ module/
 └── __manifest__.py
 ```
 
-`__init__.py` может быть пустым. `__manifest__.py` описывает module и не является пустым.
+`__init__.py` может быть пустым. `__manifest__.py` описывает модуль.
 
-**[ВЫВОД]** Для classic addon в `addons_path` package/module skeleton существует до появления business objects.
+**[ВЫВОД]** Базовая структура addon существует ещё до появления бизнес-моделей.
 
-Python import role `__init__.py` принадлежит `ARCH-03`.
+Роль `__init__.py` в цепочке импортов принадлежит `ARCH-03`.
 
 ---
 
 ## 4. Manifest
 
-**[ODOO][S3]** `__manifest__.py` содержит Python dictionary с metadata/properties module.
+**[ODOO][S3]** `__manifest__.py` содержит Python-словарь с метаданными и свойствами модуля.
 
 Для архитектуры курса важны:
 
-- `name` — human-readable name;
-- `version` — module version;
-- `depends` — module dependencies;
-- `data` — files, загружаемые при install/update;
-- `demo` — demonstration data;
-- `application` — признак полноценного application;
-- `auto_install` — conditional automatic installation;
-- `external_dependencies` — external Python/binary requirements.
+- `name` — понятное человеку имя;
+- `version` — версия модуля;
+- `depends` — зависимости от других модулей;
+- `data` — файлы данных, загружаемые при установке/обновлении;
+- `demo` — демонстрационные данные;
+- `application` — признак приложения;
+- `auto_install` — условная автоматическая установка;
+- `external_dependencies` — внешние Python/binary-зависимости.
 
-**[ВЫВОД]** Manifest — декларативный контракт module system, а не только карточка Apps UI.
+**[ВЫВОД]** Manifest — декларативное описание модуля для модульной системы, а не просто карточка в интерфейсе Apps.
 
 ---
 
-## 5. App — специальный user-facing module
+## 5. App — пользовательский модуль-приложение
 
-**[ODOO][S1][S3]** Main user-facing modules выделяются как Apps; manifest `application` указывает, следует ли считать module полноценным application. Большинство modules не обязаны быть Apps.
+**[ODOO][S1][S3]** Основные пользовательские модули выделяются как Apps; параметр `application` в manifest показывает, считать ли модуль полноценным приложением. Большинство модулей не обязаны быть Apps.
 
 ```text
-Odoo module
+модуль Odoo
 ├── application = True  → App
-└── application = False → supporting/technical module
+└── application = False → вспомогательный / технический модуль
 ```
 
-**[ВЫВОД]** `App` не является синонимом arbitrary functional area.
+**[ВЫВОД]** `App` не является синонимом произвольной функциональной области.
 
 ---
 
-## 6. Apps dashboard — UI, а не dependency graph
+## 6. Интерфейс Apps — не архитектура зависимостей
 
-**[ODOO][S4]** Apps UI позволяет устанавливать/управлять apps/modules. Default Apps filter можно менять, чтобы искать extra/technical modules; Update Apps List используется для обновления списка обнаруживаемых addons.
+**[ODOO][S4]** Интерфейс Apps позволяет устанавливать и управлять приложениями и модулями. Фильтр Apps по умолчанию можно менять, чтобы искать дополнительные/технические модули; `Update Apps List` обновляет список обнаруженных addons.
 
-**[ВЫВОД]** Раскладка карточек в Apps dashboard не является model/module architecture.
+**[ВЫВОД]** Раскладка карточек в Apps не описывает архитектуру моделей и модулей.
 
 ---
 
-## 7. `depends` формирует graph
+## 7. `depends` формирует граф зависимостей
 
-**[ODOO][S3]** Dependencies загружаются до dependent module; при installation dependent module требуемые dependencies также устанавливаются.
+**[ODOO][S3]** Зависимости загружаются раньше зависимого модуля; при установке модуля требуемые зависимости также устанавливаются.
 
 ```text
           base
@@ -129,165 +129,163 @@ Odoo module
         module_c
 ```
 
-**[ВЫВОД]** Database-installed configuration формируется dependency graph modules, а не плоским списком Apps.
+**[ВЫВОД]** Установленная конфигурация базы формируется графом зависимостей модулей, а не плоским списком приложений.
 
 ---
 
-## 8. Dependency — не Python import
+## 8. Зависимость модуля — не Python-импорт
 
-**[ODOO][S3]** Dependency нужна и когда module использует capabilities другого module, и когда изменяет resources, которые тот определяет.
+**[ODOO][S3]** Зависимость нужна и когда модуль использует возможности другого модуля, и когда изменяет ресурсы, которые тот определяет.
 
 ```text
-module A defines X
+модуль A определяет X
         │
-module B depends on A
-        └── changes / extends X
+модуль B зависит от A
+        └── изменяет / расширяет X
 ```
 
-Python imports внутри одного addon package — другой mechanism и owner `ARCH-03`.
+Python-импорты внутри одного addon — другой механизм и принадлежат `ARCH-03`.
 
 ---
 
 ## 9. `base`
 
-**[ODOO][S3]** `base` всегда установлен согласно manifest reference.
+**[ODOO][S3]** `base` всегда установлен согласно документации manifest.
 
-**[ВЫВОД]** `base` — platform foundation module, но не business parent всех records.
+**[ВЫВОД]** `base` — фундаментальный модуль платформы, но не «родитель» всех бизнес-записей.
 
-Важно: тот же `base` входит в default `--load` вместе с `web` по CLI documentation. Это наглядно показывает, что **database installation state и server-wide loading state могут пересекаться**.
+Важно: тот же `base` входит в `--load` по умолчанию вместе с `web` согласно CLI. Это показывает, что **состояние установки в базе и загрузка на уровне сервера могут пересекаться**.
 
 ---
 
-## 10. `auto_install` и link modules
+## 10. `auto_install` и связующие модули
 
-**[ODOO][S3]** Manifest reference приводит link module как типичный use case `auto_install`: отдельный module интегрирует иначе независимые modules и устанавливается при выполнении dependency conditions.
+**[ODOO][S3]** Документация manifest приводит связующий модуль как типичный случай `auto_install`: отдельный модуль интегрирует два иначе независимых модуля и устанавливается, когда выполнены условия по зависимостям.
 
 ```text
-Module A       Module B
+Модуль A       Модуль B
     \           /
      \         /
-      Link module
+      Связующий модуль
 ```
 
-**[ВЫВОД]** Cross-module integration может поставляться отдельным addon. Это documented pattern, но не единственный универсальный pattern Odoo.
+**[ВЫВОД]** Интеграция между модулями может поставляться отдельным addon. Это документированный шаблон, но не единственный способ интеграции в Odoo.
 
 ---
 
-## 11. Module data — только preview
+## 11. Данные модуля — только предварительное упоминание
 
-**[ODOO][S3]** Manifest `data` и `demo` перечисляют data files module.
+**[ODOO][S3]** Manifest-поля `data` и `demo` перечисляют файлы данных модуля.
 
-В documentation термин **master data** имеет отдельный Odoo module-data смысл. Полное определение принадлежит `DATA-01`.
+В документации термин **master data** имеет отдельный смысл именно для данных модуля Odoo. Полное определение принадлежит `DATA-01`.
 
-> Здесь достаточно помнить: `Odoo module master data` не следует автоматически читать как `ERP master data`.
-
-Это не входит в контрольные вопросы ARCH-02.
+> Здесь достаточно помнить: master data модуля Odoo нельзя автоматически трактовать как ERP master data.
 
 ---
 
-## 12. Database installation lifecycle
+## 12. Жизненный цикл модуля в базе
 
-Для большинства addons relevant отдельная database installation axis:
+Для большинства addons полезна отдельная ось установки в базу:
 
 ```text
-addon code находится в searchable addons_path
+код addon находится в addons_path
         │
         ▼
-Odoo может обнаружить/показать module
+Odoo может обнаружить модуль
         │
         ▼
-module installed in Database X
+модуль установлен в Базе X
 ```
 
-**[ODOO][S4][S5]** Apps List обновляет обнаруживаемые modules; install/update operations работают с выбранной database context.
+**[ODOO][S4][S5]** Apps List обновляет список обнаруженных модулей; операции установки и обновления выполняются в контексте выбранной базы данных.
 
-**[ВЫВОД]** Не вводим отдельную фундаментальную сущность между «Odoo обнаружила addon» и «module доступен к install», если documentation не требует такого concept.
-
----
-
-## 13. Install / upgrade / uninstall
-
-**[ODOO][S4][S5]** Odoo поддерживает install, upgrade и uninstall module operations.
-
-- install вводит module и dependencies в installed configuration database;
-- upgrade применяет обновлённую module/data version;
-- uninstall удаляет module из installed configuration и может затрагивать связанные records/dependencies.
-
-**[ВЫВОД]** Database module lifecycle — изменение database configuration/data, а не UI toggle.
+**[ВЫВОД]** Не вводим лишнюю фундаментальную сущность между «модуль обнаружен» и «модуль может быть установлен», если официальная документация её не требует.
 
 ---
 
-## 14. Отдельная runtime axis: `--load`
+## 13. Установка / обновление / удаление
 
-**[ODOO][S5]** CLI option `--load` задаёт **server-wide modules** и по умолчанию содержит `base,web`. Documentation противопоставляет этот runtime mechanism большинству addons, которые устанавливаются и привязываются к specific database.
+**[ODOO][S4][S5]** Odoo поддерживает установку, обновление и удаление модулей.
 
-Это не означает, что Odoo modules делятся на два непересекающихся множества.
+- установка добавляет модуль и его зависимости в конфигурацию конкретной базы;
+- обновление применяет новую версию определения модуля и его данных;
+- удаление выводит модуль из установленной конфигурации и может затрагивать связанные записи и зависимости.
 
-Правильная mental model:
+**[ВЫВОД]** Жизненный цикл модуля — изменение конфигурации и данных базы, а не просто переключатель интерфейса.
+
+---
+
+## 14. Отдельная ось runtime: `--load`
+
+**[ODOO][S5]** Параметр CLI `--load` задаёт модули, загружаемые на уровне сервера, и по умолчанию содержит `base,web`. Документация противопоставляет этот механизм большинству addons, которые устанавливаются в конкретную базу.
+
+Но это не означает деление всех модулей на два непересекающихся множества.
+
+Правильная модель:
 
 ```text
-MODULE X
+МОДУЛЬ X
 │
-├── database aspect
-│      └── installed / not installed in Database A, B, ...
+├── аспект базы
+│      └── установлен / не установлен в Базе A, B, ...
 │
-└── runtime aspect
-       └── may / may not participate in server-wide --load
+└── аспект runtime
+       └── участвует / не участвует в --load
 ```
 
-`base` показывает пересечение этих аспектов: он документирован как always installed и одновременно входит в default `--load`.
+`base` показывает пересечение: он документирован как всегда установленный и одновременно входит в `--load` по умолчанию.
 
-**[ВЫВОД]** `--load` — отдельный runtime loading mechanism, а не альтернативный mutually-exclusive edition/type module.
+**[ВЫВОД]** `--load` — отдельный механизм загрузки runtime, а не альтернативный тип или редакция модуля.
 
-Exact runtime implications принадлежат `RUN-06`.
+Точные последствия для работы сервера принадлежат `RUN-06`.
 
 ---
 
-## 15. Community / Enterprise на module level
+## 15. Community / Enterprise на уровне модулей
 
-**[ODOO][S1]** Enterprise technical functionality документируется как additional modules поверх Community modules/server.
+**[ODOO][S1]** Техническая функциональность Enterprise документируется как дополнительные модули поверх Community и общего сервера.
 
-**[ВЫВОД]** Общая edition architecture модульна, но status конкретного module/feature определяется только edition ledger.
+**[ВЫВОД]** Общая граница редакций модульна, но статус конкретного модуля или функции определяется только через реестр редакций.
 
 ---
 
 ## Минимальная модель
 
 ```text
-filesystem / addons_path
+файловая система / addons_path
         │
         ▼
-discoverable addon + manifest/dependencies
+обнаруживаемый addon + manifest + зависимости
         │
-        ├── database axis → install / upgrade / uninstall per DB
+        ├── ось базы    → install / upgrade / uninstall для конкретной БД
         │
-        └── runtime axis  → server-wide loading via --load when configured
+        └── ось runtime → загрузка через --load при соответствующей настройке
 ```
 
-Оси могут пересекаться.
+Эти оси могут пересекаться.
 
 ## Что нельзя заключать
 
-- addon on filesystem = installed module — нет;
-- App = любой module — нет;
-- Apps dashboard = complete architecture — нет;
-- dependency = Python import — нет;
-- `--load` modules и database-installed modules образуют два непересекающихся класса — нет;
-- `master data` всегда означает ERP master data — нет;
-- Enterprise = independent server engine — нет.
+- addon лежит на диске = модуль установлен — нет;
+- App = любой модуль — нет;
+- интерфейс Apps = полная архитектура Odoo — нет;
+- dependency = Python-импорт — нет;
+- модули `--load` и модули, установленные в базе, образуют два непересекающихся класса — нет;
+- master data всегда означает ERP master data — нет;
+- Enterprise = отдельный независимый серверный движок — нет.
 
 ## Контрольные вопросы
 
-1. Что такое module/addon?
+1. Что такое модуль/addon?
 2. Что делает `addons_path`?
-3. Какие два files current tutorial требует для minimal addon shell?
+3. Какие два файла нужны для минимальной структуры addon в current tutorial?
 4. Какую роль выполняет manifest?
-5. Чем App отличается от module?
-6. Почему dependencies образуют graph?
-7. Что такое link module?
-8. Как выглядит database installation lifecycle?
+5. Чем App отличается от обычного модуля?
+6. Почему зависимости образуют граф?
+7. Что такое связующий модуль?
+8. Как выглядит жизненный цикл установки модуля в базе?
 9. Что задаёт `--load`?
-10. Почему database installation и server-wide loading являются разными, потенциально пересекающимися axes?
+10. Почему установка в базе и server-wide loading — разные, потенциально пересекающиеся оси?
 
 ## Официальные источники
 
