@@ -1,64 +1,64 @@
 # Реестр редакций Odoo 19.0
 
-Этот файл разделяет два разных типа evidence:
+Этот файл разделяет два разных вида доказательств:
 
-1. **platform edition facts** — общая архитектурная граница Community/Enterprise;
-2. **feature/module availability** — entitlement конкретного module/feature.
+1. **общие факты о редакциях платформы** — архитектурная граница Community/Enterprise;
+2. **доступность конкретной функции или модуля** — принадлежность отдельной возможности к редакции.
 
-Они не смешиваются.
+Эти уровни не смешиваются.
 
-## 1. Platform edition facts
+## 1. Общие факты о редакциях платформы
 
-| Утверждение | Official evidence | Проверено |
+| Утверждение | Официальное основание | Проверено |
 |---|---|---|
-| Odoo имеет Community и Enterprise editions | Architecture Overview / Licenses | 2026-08-13 |
+| Odoo имеет редакции Community и Enterprise | Architecture Overview / Licenses | 2026-08-13 |
 | Community является open-source основой | Architecture Overview / Licenses | 2026-08-13 |
-| Enterprise technical functionality поставляется additional modules поверх Community modules/server | Architecture Overview / Source install | 2026-08-13 |
-| Current course baseline: Odoo 19.0 Community self-hosted | Governance scope, не entitlement claim | 2026-08-13 |
+| Техническая функциональность Enterprise поставляется дополнительными модулями поверх Community и общего сервера | Architecture Overview / Source install | 2026-08-13 |
+| Базовый контур текущего курса — Odoo 19.0 Community self-hosted | область курса; это не доказательство доступности конкретной функции | 2026-08-13 |
 
-Эта таблица **не доказывает** edition status конкретного application/feature.
+Эта таблица **не доказывает** редакцию конкретного приложения или функции.
 
-## 2. Feature / module availability
+## 2. Доступность конкретных функций и модулей
 
-Допустимые статусы только такие:
+Допустимы только три статуса:
 
 - **Community подтверждено**;
 - **Enterprise подтверждено**;
 - **Редакция не установлена**.
 
-| Feature / module | Статус | Official evidence | Проверено |
+| Функция / модуль | Статус | Официальное основание | Проверено |
 |---|---|---|---|
-| _пока нет предметных entries_ | — | — | — |
+| _предметных записей пока нет_ | — | — | — |
 
-Новая строка появляется только когда конкретный module/feature реально встречается в курсе и есть official edition evidence.
+Новая строка появляется только тогда, когда конкретный модуль или функция действительно встречается в курсе и есть официальное доказательство по редакции.
 
-## 3. Что не является edition entry
+## 3. Что не является записью о редакции
 
-Не добавляются в availability table:
+В таблицу доступности не добавляются:
 
-- custom-module examples из tutorials;
-- governance rules;
-- общие platform architecture facts;
-- наличие documentation page без edition evidence.
+- примеры собственных модулей из tutorials;
+- правила курса;
+- общие факты об архитектуре платформы;
+- само наличие страницы в документации без доказательства по редакции.
 
-Official tutorial custom addon — учебный пример architecture/framework, а не штатный baseline module и не объект entitlement classification.
+Собственный addon из официального tutorial — учебный пример устройства платформы, а не штатный модуль базового контура и не объект классификации Community/Enterprise.
 
-## 4. Docs-only limitation
+## 4. Ограничение режима «только документация»
 
-При current source policy official documentation не гарантирует exhaustive Community addon inventory.
+При текущей политике источников официальная документация не гарантирует исчерпывающий технический перечень Community addons.
 
-Поэтому отсутствие module в этой таблице означает только:
+Поэтому отсутствие модуля в этой таблице означает только:
 
-> edition status ещё не зафиксирован курсом.
+> его редакция ещё не зафиксирована курсом.
 
-Это **не означает**, что module отсутствует в Community.
+Это **не означает**, что модуль отсутствует в Community.
 
 ## Запрещённый вывод
 
 ```text
-страница есть в Odoo 19 Documentation
+страница есть в документации Odoo 19
         ≠
-feature подтверждена как Community
+функция подтверждена как Community
 ```
 
-Если documentation не даёт достаточного edition evidence, статус остаётся **«Редакция не установлена»**.
+Если документация не даёт достаточного доказательства по редакции, статус остаётся **«Редакция не установлена»**.
