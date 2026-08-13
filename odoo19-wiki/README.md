@@ -1,45 +1,46 @@
 # Odoo 19 Community: архитектура и идеология
 
-Последовательный учебный курс по **Odoo 19.0 Community self-hosted**.
+Последовательный учебный курс по **Odoo 19.0 Community в самостоятельном развёртывании (self-hosted)**.
 
-Цель — досконально понять Odoo как платформу и ERP-систему: от runtime/module/ORM architecture до штатных business models и end-to-end процессов.
+Цель — досконально понять Odoo как платформу и ERP-систему: от архитектуры сервера, модулей и ORM до штатных бизнес-моделей и сквозных процессов.
 
-## Baseline
+## Базовая версия курса
 
 ```text
 Baseline ID: B1
 Зафиксирован: 2026-08-13
-Status: frozen foundation
+Статус: frozen foundation
 ```
 
-Baseline B1 фиксирует architecture курса, governance, prerequisite DAG и ownership. Он не перестраивается при каждом новом lesson; основания для изменения перечислены в [baseline.md](00-governance/baseline.md).
+Baseline B1 фиксирует архитектуру курса, правила, граф предпосылок и распределение владельцев понятий. Он не перестраивается при появлении каждого нового урока; основания для изменения перечислены в [baseline.md](00-governance/baseline.md).
 
-## Governance
+## Правила курса
 
-Перед lessons действуют обязательные controls:
+Перед уроками действуют обязательные ограничения:
 
-1. только official Odoo 19.0 documentation;
-2. stable lesson IDs;
-3. один canonical prerequisite graph;
-4. один canonical owner concept + явные aspect owners;
-5. coverage map против пропусков;
-6. Community/Enterprise status не угадывается;
-7. каждый `[ODOO]` claim имеет однозначный `S#`, причём `1 S# = 1 official page`.
+1. только официальная документация Odoo 19.0;
+2. стабильные ID уроков;
+3. один канонический граф предпосылок;
+4. один канонический владелец понятия и явные владельцы отдельных аспектов;
+5. карта покрытия против пропусков;
+6. статус Community/Enterprise не угадывается;
+7. каждое утверждение `[ODOO]` имеет однозначный `S#`, причём `1 S# = 1 официальная страница`;
+8. основной язык объяснения — русский; английский сохраняется только для точных технических имён и API.
 
 Документы:
 
 - [Метод курса](00-governance/method.md)
-- [Канонический prerequisite DAG](00-governance/course-dag.md)
+- [Канонический граф предпосылок](00-governance/course-dag.md)
 - [Политика источников](00-governance/source-policy.md)
 - [Владение понятиями](00-governance/concept-ownership.md)
-- [Coverage map](00-governance/coverage-map.md)
+- [Карта покрытия](00-governance/coverage-map.md)
 - [Реестр редакций](00-governance/edition-ledger.md)
 - [Глоссарий](00-governance/glossary.md)
 - [Baseline B1](00-governance/baseline.md)
 
-## Scope
+## Область курса
 
-Baseline:
+Базовый контур:
 
 ```text
 Odoo 19.0
@@ -47,156 +48,175 @@ Community
 self-hosted
 ```
 
-Не переносятся автоматически в baseline:
+Не переносятся автоматически:
 
-- Enterprise-only behavior;
-- Odoo Online-specific behavior;
-- Odoo.sh-specific behavior;
-- `saas-19.x` documentation.
+- функции Enterprise;
+- особенности Odoo Online;
+- особенности Odoo.sh;
+- документация веток `saas-19.x`.
 
-Current docs-only policy позволяет глубоко изучать documented semantics, но **не гарантирует exhaustive Community addon whitelist**. Для полного technical inventory может потребоваться отдельное разрешение official source/manifests через governance change.
+Текущая политика «только официальная документация» позволяет глубоко изучать документированное поведение платформы, но **не гарантирует исчерпывающий технический список всех модулей Community**. Для полного технического инвентаря может потребоваться отдельное разрешение использовать официальный исходный код и manifest-файлы.
 
-## Маркировка
+## Маркировка утверждений
 
-- **[ODOO][S#]** — claim подтверждается указанной одной official documentation page;
-- **[ВЫВОД]** — логическое следствие documented mechanisms;
-- **[ERP-КЛАССИФИКАЦИЯ]** — внешний business/ERP term.
+- **[ODOO][S#]** — утверждение подтверждается указанной страницей официальной документации;
+- **[ВЫВОД]** — логическое следствие документированных механизмов;
+- **[ERP-КЛАССИФИКАЦИЯ]** — внешний бизнес-термин, а не внутренний тип Odoo.
 
-## Текущие owner-lessons
+## Текущие уроки-владельцы
 
-### Architecture
+### Архитектура
 
 - [`ARCH-01` Архитектурный фундамент](01-architecture/01-architecture-foundations.md)
 - [`ARCH-02` Модульная система](01-architecture/02-module-system.md)
-- [`ARCH-03` Python package и import chain](01-architecture/03-module-loading.md)
-- [`ARCH-04` Request / RPC execution boundary](01-architecture/04-request-rpc-boundary.md)
+- [`ARCH-03` Python-пакет и цепочка импортов](01-architecture/03-module-loading.md)
+- [`ARCH-04` Граница запроса / RPC](01-architecture/04-request-rpc-boundary.md)
 
 ### ORM
 
-- [`ORM-01` ORM Core](02-orm/01-orm-core.md)
-- [`ORM-02` Per-database model registry и composition](02-orm/02-model-registry-composition.md)
-- [`ORM-03` Model metadata, SQL storage и schema declarations](02-orm/03-model-metadata-schema.md)
-- [`ORM-04` Fields](02-orm/04-fields.md)
+- [`ORM-01` Основы ORM](02-orm/01-orm-core.md)
+- [`ORM-02` Реестр моделей базы и композиция модели](02-orm/02-model-registry-composition.md)
+- [`ORM-03` Метаданные модели, SQL-хранение и объявления схемы](02-orm/03-model-metadata-schema.md)
+- [`ORM-04` Поля](02-orm/04-fields.md)
 
-Следующий planned owner: `ORM-05` — Relations.
+Следующий запланированный владелец: `ORM-05` — связи.
 
-## Prerequisite graph
+## Граф предпосылок
 
-**Единственный нормативный graph находится в [`00-governance/course-dag.md`](00-governance/course-dag.md).**
+**Единственный нормативный граф находится в [`00-governance/course-dag.md`](00-governance/course-dag.md).**
 
-README не определяет собственные зависимости между lessons.
+README не определяет собственные зависимости между уроками.
 
-Текущий основной путь после существующих owners:
+Основной путь ORM:
 
 ```text
-ORM-01
+ORM-01 Основы ORM
   ↓
-ORM-02
+ORM-02 Реестр и композиция модели
   ↓
-ORM-03 Model metadata / schema
+ORM-03 Метаданные модели / схема
   ↓
-ORM-04 Fields
+ORM-04 Поля
   ↓
-ORM-05 Relations
+ORM-05 Связи
   ↓
-ORM-06 Derived fields / Python constraints
+ORM-06 Вычисляемые поля / Python-ограничения
 ```
 
-`ORM-07 Transactions` имеет отдельные direct prerequisites, зафиксированные только в canonical DAG.
+`ORM-07` «Транзакции» имеет отдельные прямые предпосылки, зафиксированные только в каноническом графе.
 
-## Архитектура каталогов
+## Структура каталогов
 
 ```text
 00-governance/
-    method
-    course DAG
-    source policy
-    concept ownership
-    coverage map
-    edition ledger
-    glossary
+    метод
+    граф курса
+    политика источников
+    владельцы понятий
+    карта покрытия
+    реестр редакций
+    глоссарий
     baseline
 
 01-architecture/
-    ARCH-01 foundation
-    ARCH-02 module system
-    ARCH-03 Python import chain
-    ARCH-04 request/RPC boundary
+    ARCH-01 архитектурный фундамент
+    ARCH-02 модульная система
+    ARCH-03 Python-импорты
+    ARCH-04 граница запроса / RPC
 
 02-orm/
-    ORM-01 Core
-    ORM-02 registry/composition
-    ORM-03 Model metadata / SQL storage / schema declarations
-    ORM-04 Fields
-    ORM-05 Relations
-    ORM-06 Derived fields / Python constraints
-    ORM-07 Transactions
+    ORM-01 основы ORM
+    ORM-02 реестр / композиция модели
+    ORM-03 метаданные модели / SQL-хранение / схема
+    ORM-04 поля
+    ORM-05 связи
+    ORM-06 вычисляемые поля / Python-ограничения
+    ORM-07 транзакции
 
 03-data-security-ui/
-    DATA-01 Module data
-    SEC-01 Security
-    UI-01 Actions and menus
-    UI-02 Views
-    UI-03 Onchange
-    UI-04 QWeb reports / report actions
+    DATA-01 данные модуля
+    SEC-01 безопасность
+    UI-01 действия и меню
+    UI-02 представления
+    UI-03 onchange
+    UI-04 QWeb-отчёты
 
 04-extension/
-    EXT-01 Model inheritance
-    EXT-02 View inheritance
-    EXT-03 Mixins
-    EXT-04 Multi-company
+    EXT-01 наследование моделей
+    EXT-02 наследование представлений
+    EXT-03 mixins
+    EXT-04 multi-company
 
 05-runtime/
-    RUN-01 Advanced ORM
-    RUN-02 HTTP / controllers
-    RUN-03 Web client / Owl / assets / frontend QWeb
-    RUN-04 Testing
-    RUN-05 Upgrades / migrations
-    RUN-06 Deployment / workers / --load runtime mechanics
+    RUN-01 продвинутая ORM
+    RUN-02 HTTP / контроллеры
+    RUN-03 веб-клиент / Owl / assets / QWeb
+    RUN-04 тестирование
+    RUN-05 обновления / миграции
+    RUN-06 развёртывание / workers / `--load`
 
 10-business-model/
 11-domain-apps/
 12-end-to-end/
 ```
 
+Имена каталогов не переводятся, чтобы не ломать уже зафиксированные пути и ссылки. Содержание уроков при этом остаётся русскоязычным.
+
 ## Критические терминологические границы
 
-### Odoo module master data ≠ ERP master data
+### Master data модуля Odoo ≠ ERP master data
 
-Первое — official module-data terminology; второе — future business classification курса.
+Первое — термин официальной документации о данных модуля. Второе — будущая бизнес-классификация курса.
 
-### App ≠ functional area
+### App ≠ функциональная область
 
-App — user-facing module. Functional area может состоять из нескольких modules.
+`App` — пользовательский модуль-приложение. Функциональная область может состоять из нескольких модулей.
 
-### Database installation ≠ server-wide loading
+### Установка в базе ≠ загрузка через `--load`
 
-Это **две независимые axes**, а не два непересекающихся класса modules:
+Это **две независимые оси**, а не два непересекающихся класса модулей:
 
 ```text
-module
-├── database aspect: installed / not installed in DB
-└── runtime aspect: may / may not participate in --load
+модуль
+├── аспект базы: установлен / не установлен в конкретной БД
+└── аспект runtime: участвует / не участвует в --load
 ```
 
 ### Multi-database ≠ multi-company
 
 ```text
-multi-database → несколько PostgreSQL database contexts
-multi-company  → company semantics внутри Odoo database/environment
+multi-database → несколько контекстов PostgreSQL-баз
+multi-company  → логика компаний внутри базы / Environment
 ```
 
-### Odoo server/runtime ≠ один process
+### Сервер Odoo ≠ один процесс
 
-Process architecture и database context не смешиваются.
+Архитектура процессов и контекст базы данных не смешиваются.
 
-### user/company security-context ≠ data-model semantics
+### Пользователь/компания как контекст ≠ модель данных
 
-`user` как security principal и `res.users` как model — разные aspects. То же относится к company context и `res.company`.
+Пользователь как субъект безопасности и `res.users` как ORM-модель — разные аспекты. То же относится к контексту компании и `res.company`.
 
-### RPC transaction claim ≠ generic HTTP transaction claim
+### Транзакция RPC ≠ автоматически доказанная транзакция любого HTTP-запроса
 
-Current architecture lesson фиксирует только прямо документированную framework-managed transaction semantics RPC calls. Generic HTTP/controller aspect принадлежит future `RUN-02` и должен подтверждаться отдельно.
+Текущий архитектурный урок фиксирует только прямо документированное управление транзакцией для RPC-вызовов. Общая семантика HTTP/контроллеров будет отдельно проверена в `RUN-02`.
+
+## Язык курса
+
+Русский — основной язык объяснения.
+
+Пишем:
+
+```text
+поле (`Field`)
+модель (`Model`)
+набор записей (`recordset`)
+окружение (`Environment`)
+```
+
+а не смешиваем в одном предложении русскую грамматику с фразами вроде `field semantics`, `runtime behavior` или `business model decision`.
+
+Английский сохраняется без перевода в коде, точных именах API, классах, методах, атрибутах и устойчивых технических именах Odoo.
 
 ## Официальные отправные точки
 
